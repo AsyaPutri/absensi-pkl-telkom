@@ -400,12 +400,6 @@
         font-size: 12px;
     }
 }
-
-
-        
-
-
-
     </style>
 </head>
 <body>
@@ -551,4 +545,4 @@
     </script>
 </body>
 </html>
->>>>>>> c87061960b655036fffd7f3eba1af8f37c4ee269
+
