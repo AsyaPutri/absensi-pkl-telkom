@@ -210,7 +210,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
               <tr>
                 <th>No</th>
                 <th>Nama</th>
-                <th>Instansi / Unit</th>
+                <th>Unit</th>
                 <th>Tgl Mulai</th>
                 <th>Tgl Selesai</th>
                 <th>Hari Kerja</th>
