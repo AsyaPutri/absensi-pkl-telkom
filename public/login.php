@@ -1,412 +1,116 @@
+<?php
+session_start();
+
+// Database configuration
+$host = 'localhost';
+$dbname = 'absensi';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+
+// Redirect jika sudah login
+if (isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true) {
+    if ($_SESSION['role'] === 'magang') {
+        header("Location: magang/dashboard.php");
+    } else {
+        header("Location: admin/dashboard.php");
+    }
+    exit();
+}
+
+$error_message = '';
+$success_message = '';
+
+// Proses login
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim($_POST['email'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+    $role = $_POST['role'] ?? '';
+    $recaptcha = isset($_POST['recaptcha']);
+    
+    // Validasi input
+    if (empty($email) || empty($password) || empty($role)) {
+        $error_message = 'Mohon lengkapi semua field yang diperlukan';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error_message = 'Format email tidak valid';
+    } elseif (!$recaptcha) {
+        $error_message = 'Mohon verifikasi reCAPTCHA';
+    } else {
+        try {
+            // Query untuk mencari user berdasarkan email dan role
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email AND role = :role");
+            $stmt->execute([
+                ':email' => $email,
+                ':role' => $role
+            ]);
+            
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($user) {
+                // Verifikasi password - cek apakah hash atau plain text
+                $passwordMatch = false;
+                
+                // Jika password di database dalam format hash
+                if (strlen($user['password']) >= 60 && substr($user['password'], 0, 4) === '$2y$') {
+                    $passwordMatch = password_verify($password, $user['password']);
+                } else {
+                    // Jika password plain text, bandingkan langsung
+                    $passwordMatch = ($password === $user['password']);
+                }
+                
+                if ($passwordMatch) {
+                    // Set session
+                    $_SESSION['user_logged_in'] = true;
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['email'] = $user['email'];
+                    $_SESSION['role'] = $user['role'];
+                    $_SESSION['name'] = isset($user['name']) ? $user['name'] : $user['email'];
+                    $_SESSION['login_time'] = date('Y-m-d H:i:s');
+                    
+                    // Update last login jika kolom ada
+                    try {
+                        $checkColumn = $pdo->query("SHOW COLUMNS FROM users LIKE 'last_login'");
+                        if ($checkColumn->rowCount() > 0) {
+                            $updateStmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = :id");
+                            $updateStmt->execute([':id' => $user['id']]);
+                        }
+                    } catch(PDOException $e) {
+                        // Ignore jika kolom last_login tidak ada
+                    }
+                    
+                    // Redirect berdasarkan role
+                    if ($role === 'magang') {
+                        header("Location: magang/dashboard.php");
+                    } else {
+                        header("Location: admin/dashboard.php");
+                    }
+                    exit();
+                } else {
+                    $error_message = 'Password salah';
+                }
+            } else {
+                $error_message = 'Email tidak ditemukan atau role tidak sesuai';
+            }
+        } catch(PDOException $e) {
+            $error_message = 'Terjadi kesalahan sistem: ' . $e->getMessage();
+        }
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Telkom Indonesia</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #ff4444 0%, #cc0000 50%, #ffffff 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        /* Background decorative elements */
-        .bg-decoration {
-            position: absolute;
-            opacity: 0.1;
-        }
-        
-        .decoration-1 {
-            top: -100px;
-            right: -100px;
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            background: #ff6666;
-        }
-        
-        .decoration-2 {
-            bottom: -150px;
-            left: -150px;
-            width: 400px;
-            height: 400px;
-            border-radius: 50%;
-            background: #cc0000;
-        }
-        
-        .decoration-3 {
-            top: 20%;
-            left: 10%;
-            width: 100px;
-            height: 100px;
-            background: #ffffff;
-            transform: rotate(45deg);
-        }
-        
-        .main-container {
-            display: flex;
-            max-width: 1200px;
-            width: 90%;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .left-panel {
-            flex: 1;
-            padding: 40px;
-            background: #f8f9fa;
-            position: relative;
-        }
-        
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .bumn-logo {
-            width: 100px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            text-align: center;
-        }
-        
-        /* .telkom-logo {
-            width: 100px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: white;
-            text-align: center;
-            font-weight: bold;
-        } */
-        
-        .security-awareness {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-        
-        .security-title {
-            color: #e74c3c;
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .security-subtitle {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        
-        .security-list {
-            list-style: none;
-        }
-        
-        .security-item {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 15px;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-        
-        .security-number {
-            background: #e74c3c;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-        
-        .support-info {
-            margin-top: 30px;
-            font-size: 13px;
-            color: #666;
-        }
-        
-        .support-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .contact-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        
-        .contact-icon {
-            width: 16px;
-            height: 16px;
-            margin-right: 8px;
-            background: #666;
-            border-radius: 2px;
-        }
-        
-        .right-panel {
-            flex: 1;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-        }
-        
-        .login-header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .login-title {
-            width: 200px;
-            height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: white;
-            text-align: center;
-            font-weight: bold;
-            margin: 0 auto 20px auto;
-            border-radius: 8px;
-        }
-        
-        .login-subtitle {
-            color: black;
-            font-size: 25px;
-        }
-        
-        .login-form {
-            max-width: 350px;
-            margin: 0 auto;
-            width: 100%;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        
-        .form-input:focus {
-            outline: none;
-            border-color: #e74c3c;
-        }
-        
-        .form-select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            background: white;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-        
-        .form-select:focus {
-            outline: none;
-            border-color: #e74c3c;
-        }
-        
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .checkbox-group input[type="checkbox"] {
-            margin-right: 8px;
-        }
-        
-        .checkbox-group label {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .recaptcha-container {
-            margin-bottom: 25px;
-            text-align: center;
-        }
-        
-        .recaptcha-mock {
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            background: #f9f9f9;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .recaptcha-checkbox {
-            width: 20px;
-            height: 20px;
-            border: 2px solid #ccc;
-            border-radius: 3px;
-        }
-        
-        .login-button {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .login-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
-        }
-        
-        .powered-by {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #999;
-        }
-        
-        @media (max-width: 768px) {
-            .main-container {
-                flex-direction: column;
-                width: 95%;
-            }
-            
-            .left-panel, .right-panel {
-                padding: 30px 20px;
-            }
-            
-            .logo-section {
-                justify-content: center;
-            }
-        } /* Responsif untuk layar kecil */
-@media (max-width: 768px) {
-    body {
-        padding: 20px;
-    }
-
-    .main-container {
-        flex-direction: column;
-        width: 100%;
-        border-radius: 10px;
-    }
-
-    .left-panel, .right-panel {
-        padding: 20px;
-    }
-
-    .logo-section {
-        justify-content: center;
-        margin-bottom: 20px;
-    }
-
-    .bumn-logo img,
-    .telkom-logo img {
-        width: 80px;
-        height: auto;
-    }
-
-    .login-title img {
-        width: 150px;
-    }
-
-    .login-subtitle {
-        font-size: 20px;
-    }
-
-    .login-form {
-        max-width: 100%;
-    }
-
-    .form-input,
-    .form-select {
-        font-size: 16px;
-        padding: 14px;
-    }
-
-    .login-button {
-        font-size: 18px;
-        padding: 16px;
-    }
-}
-
-@media (max-width: 480px) {
-    .login-title img {
-        width: 120px;
-    }
-
-    .login-subtitle {
-        font-size: 18px;
-    }
-
-    .security-title {
-        font-size: 20px;
-    }
-
-    .security-subtitle,
-    .security-item {
-        font-size: 12px;
-    }
-}
-
-
-        
-
-
-
-    </style>
+    <link rel="stylesheet" href="assets/css/login.css">
 </head>
 <body>
     <div class="bg-decoration decoration-1"></div>
@@ -417,37 +121,42 @@
         <div class="left-panel">
             <div class="logo-section">
                 <div class="bumn-logo">
-                    <img src="assets/img/akhlak-removebg.png" width="120%">
+                    <img src="assets/img/akhlak-removebg.png" width="120%" alt="Logo AKHLAK">
                 </div>
-                <!-- <div class="telkom-logo">
-                    <img src="assets/img/telkom-removebg.png" width="120%">
-                </div> -->
             </div>
             
             <div class="security-awareness">
-                <div class="security-title">SECURITY<br>AWARENESS</div>
-                <div class="security-subtitle">Jaga <strong>aksimu anda aman</strong> dengan mengikuti tips praktis dibawah ini:</div>
+                <div class="security-title">WORKPLACE WARENESS</div>
+                <div class="security-subtitle">Jaga sikapmu,<strong>tetap profesional</strong> dengan mengikuti tips praktis dibawah ini:</div>
                 
                 <ul class="security-list">
                     <li class="security-item">
                         <div class="security-number">1</div>
-                        <div>Jangan tulis <strong>password</strong> anda dan meninggalkan di <strong>tempat yang dapat terlihat</strong></div>
+                        <div>Datang <strong>tepat waktu sesuai jadwal</strong> yang telah ditentukan.</div>
                     </li>
                     <li class="security-item">
                         <div class="security-number">2</div>
-                        <div>Jangan <strong>menggunakan password yang sama</strong> untuk aktivitas pribadi dan pekerjaan</div>
+                        <div>Gunakan <strong>pakaian yang rapi dan sopan</strong> sesuai ketentuan perusahaan.</div>
                     </li>
                     <li class="security-item">
                         <div class="security-number">3</div>
-                        <div>Jangan <strong>menggunakan kembali password lama</strong> ketika diminta untuk ubah password</div>
+                        <div>Jaga <strong>kebersihan dan kerapihan</strong> di lingkungan kerja.</div>
                     </li>
                     <li class="security-item">
                         <div class="security-number">4</div>
-                        <div>Jangan <strong>membagi password anda</strong> dengan alasan apapun</div>
+                        <div>Bersikaplah <strong>ramah, sopan, dan saling menghargai</strong> rekan kerja maupun atasan.</div>
                     </li>
                     <li class="security-item">
                         <div class="security-number">5</div>
-                        <div>Jangan <strong>mengaktifkan save password option</strong> ketika ditanya.</div>
+                        <div>Gunakan <strong>fasilitas kantor dengan bijak</strong> dan sesuai peruntukannya.</div>
+                    </li>
+                    <li class="security-item">
+                        <div class="security-number">6</div>
+                         <div>Hindari <strong>penggunaan ponsel untuk kepentingan pribadi</strong> selama jam kerja.</div>
+                    </li>
+                     <li class="security-item">
+                        <div class="security-number">7</div>
+                        <div><strong>Laporkan ketidakhadiran atau keterlambatan</strong> kepada atasan dengan segera.</div>
                     </li>
                 </ul>
                 
@@ -476,28 +185,43 @@
         <div class="right-panel">
             <div class="login-header">
                 <div class="login-title">
-                    <img src="assets/img/telkom-removebg.png" width="200">
+                    <img src="assets/img/telkom-removebg.png" width="200" alt="Logo Telkom">
                 </div>
                 <div class="login-subtitle">Sistem Absensi Magang</div>
             </div>
             
-            <form class="login-form">
+            <form class="login-form" method="POST" action="">
+                <?php if (!empty($error_message)): ?>
+                    <div class="alert alert-error">
+                        <?php echo htmlspecialchars($error_message); ?>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($success_message)): ?>
+                    <div class="alert alert-success">
+                        <?php echo htmlspecialchars($success_message); ?>
+                    </div>
+                <?php endif; ?>
+                
                 <div class="form-group">
-                    <label class="form-label" for="username">Username</label>
-                    <input type="text" id="username" class="form-input" placeholder="Masukkan username anda">
+                    <label class="form-label" for="email">Email</label>
+                    <input type="email" id="email" name="email" class="form-input" 
+                           placeholder="Masukkan email anda" 
+                           value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label" for="password">Password</label>
-                    <input type="password" id="password" class="form-input" placeholder="••••••••">
+                    <input type="password" id="password" name="password" class="form-input" 
+                           placeholder="••••••••" required>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label" for="role">Masuk Sebagai</label>
-                    <select id="role" class="form-select">
+                    <select id="role" name="role" class="form-select" required>
                         <option value="">-- Pilih --</option>
-                        <option value="magang">Magang</option>
-                        <option value="admin">Admin</option>
+                        <option value="magang" <?php echo (($_POST['role'] ?? '') === 'magang') ? 'selected' : ''; ?>>Magang</option>
+                        <option value="admin" <?php echo (($_POST['role'] ?? '') === 'admin') ? 'selected' : ''; ?>>Admin</option>
                     </select>
                 </div>
                 
@@ -507,14 +231,15 @@
                 </div>
                 
                 <div class="recaptcha-container">
-                    <div class="recaptcha-mock">
-                        <div class="recaptcha-checkbox"></div>
+                    <div class="recaptcha-mock" id="recaptcha-mock">
+                        <div class="recaptcha-checkbox" id="recaptcha-checkbox"></div>
                         <span>I'm not a robot</span>
                         <div style="margin-left: 20px; font-size: 10px; color: #999;">reCAPTCHA<br>Privacy - Terms</div>
                     </div>
+                    <input type="hidden" name="recaptcha" id="recaptcha-input" value="">
                 </div>
                 
-                <button type="submit" class="login-button">LOGIN</button>
+                <button type="submit" class="login-button" id="login-button" disabled>LOGIN</button>
                 
                 <div class="powered-by">
                     Powered by IT Solution Development Telkom Indonesia
@@ -523,31 +248,6 @@
         </div>
     </div>
     
-    <script>
-        // Show/Hide password functionality
-        document.getElementById('showPassword').addEventListener('change', function() {
-            const passwordInput = document.getElementById('password');
-            if (this.checked) {
-                passwordInput.type = 'text';
-            } else {
-                passwordInput.type = 'password';
-            }
-        });
-        
-        // Form submission
-        document.querySelector('.login-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const role = document.getElementById('role').value;
-            
-            if (!username || !password || !role) {
-                alert('Mohon lengkapi semua field yang diperlukan');
-                return;
-            }
-            
-            alert(`Login berhasil!\nUsername: ${username}\nRole: ${role}`);
-        });
-    </script>
+    <script src="assets/js/login.js"></script>
 </body>
 </html>

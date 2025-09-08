@@ -1,0 +1,599 @@
+/* ==================== VARIABLES ==================== */
+:root {
+    --telkom-red: #cc0000;
+    --telkom-red-dark: #990000;
+    --telkom-teal: #00a8a8;
+    --telkom-teal-dark: #006666;
+}
+
+/* ==================== GENERAL STYLES ==================== */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.d-none {
+    display: none !important;
+}
+
+/* ==================== HEADER & LOGO STYLES ==================== */
+.logo-section {
+    background: white;
+    padding: 0.75rem 0;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+}
+
+.logo-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo-item img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+}
+
+.logo-divider {
+    width: 1px;
+    height: 30px;
+    background-color: #dee2e6;
+}
+
+/* Header Telkom - Override untuk menjadi putih */
+.header-telkom {
+    background: white;
+    color: #1f2937;
+    padding: 1rem 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-bottom: none;
+}
+
+/* ==================== PROFILE STYLES ==================== */
+/* Override untuk profile-header menjadi merah */
+.profile-header {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    border-bottom: none;
+    padding: 1rem 0;
+    color: white;
+}
+
+.profile-simple {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    color: #333;
+}
+
+.profile-info-simple {
+    text-align: center;
+}
+
+/* Mengubah warna teks di profile header menjadi putih */
+.profile-name-simple {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.25rem;
+}
+
+.profile-unit-simple {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0;
+}
+
+.profile-divider-simple {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, transparent, #e9ecef, transparent);
+}
+
+/* ==================== CARD STYLES ==================== */
+.card-custom {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease-in-out;
+}
+
+.card-custom:hover {
+    transform: translateY(-2px);
+}
+
+.card-custom .card-header {
+    border-bottom: none;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+/* ==================== BUTTON STYLES ==================== */
+/* Check In Button */
+.btn-check-in {
+    background-color: #22c55e;
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-check-in:hover {
+    background-color: #16a34a;
+    color: white;
+}
+
+/* Check Out Button */
+.btn-check-out {
+    background-color: #f97316;
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-check-out:hover {
+    background-color: #ea580c;
+    color: white;
+}
+
+/* Completed Button */
+.btn-completed {
+    background-color: #6b7280;
+    color: white;
+    border: none;
+    cursor: not-allowed;
+}
+
+/* Camera Button */
+.btn-camera {
+    background-color: #ffc107;
+    color: #212529;
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-camera:hover {
+    background-color: #ffca2c;
+    color: #212529;
+    transform: translateY(-1px);
+}
+
+/* Logout Button */
+.btn-logout {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-logout:hover {
+    background-color: #bb2d3b;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+}
+
+/* Telkom Button */
+.btn-telkom {
+    background: linear-gradient(135deg, var(--telkom-red) 0%, var(--telkom-red-dark) 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-telkom:hover {
+    background: linear-gradient(135deg, var(--telkom-red-dark) 0%, #800000 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(204, 0, 0, 0.3);
+    color: white;
+}
+
+/* ==================== CAMERA STYLES ==================== */
+.camera-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.camera-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: #6c757d;
+}
+
+#video, #photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+/* ==================== MAP STYLES ==================== */
+.map-container {
+    position: relative;
+    height: 200px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.map-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: #6c757d;
+}
+
+.location-info {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.location-marker {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background-color: rgba(220, 38, 38, 0.7);
+    border: 3px solid white;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+/* Location section specific styles */
+.location-section {
+    transition: opacity 0.3s ease;
+}
+
+/* ==================== OPTION CARDS STYLES ==================== */
+.option-card {
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.option-card:hover:not(.disabled) {
+    border-color: #adb5bd;
+    background-color: #f8f9fa;
+}
+
+.option-card.selected {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.option-card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.option-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* ==================== BANNER STYLES ==================== */
+/* Status Banner */
+.status-banner {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border-left: 4px solid #6c757d;
+}
+
+.status-banner.checked-in {
+    background-color: rgba(25, 135, 84, 0.1);
+    border-left-color: #198754;
+}
+
+.status-banner.completed {
+    background-color: rgba(13, 110, 253, 0.1);
+    border-left-color: #0d6efd;
+}
+
+/* Welcome Banner */
+.welcome-banner {
+    background-color: var(--telkom-teal) ;
+    padding: 0.75rem;
+    margin-top: 1rem;
+    border-radius: 8px;
+}
+
+/* ==================== LINK STYLES ==================== */
+.manual-link {
+    text-decoration: none;
+    color: #212529;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.manual-link:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+/* ==================== FORM STYLES ==================== */
+.form-control:focus, .form-select:focus {
+    border-color: var(--telkom-red);
+    box-shadow: 0 0 0 0.25rem rgba(204, 0, 0, 0.25);
+}
+
+/* ==================== ALERT STYLES ==================== */
+.alert-custom {
+    border: none;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+
+/* Auto-save indicator styles */
+.auto-save-indicator {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 0.9;
+    }
+}
+
+/* Textarea dengan auto-save indicator */
+.form-control:focus {
+    border-color: #0066cc;
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+}
+
+.form-control.auto-saving {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* GPS Marker Styles */
+.user-location-marker {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    text-align: center;
+    line-height: 30px;
+    animation: pulse-marker 2s infinite;
+}
+
+.office-marker {
+    background: transparent;
+    border: none;
+    font-size: 32px;
+    text-align: center;
+    line-height: 40px;
+}
+
+@keyframes pulse-marker {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Popup Styles */
+.leaflet-popup-content {
+    text-align: center;
+    font-size: 14px;
+}
+
+.leaflet-popup-content strong {
+    color: #007bff;
+}
+
+/* ==================== CONDITIONAL LOCATION DISPLAY ==================== */
+/* Conditional location display styles */
+.option-card.hidden {
+    display: none !important;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s ease;
+}
+
+.option-card.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    filter: grayscale(100%);
+    cursor: not-allowed;
+}
+
+.option-card:not(.disabled):not(.hidden) {
+    transition: all 0.3s ease;
+}
+
+/* Availability indicator */
+.availability-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    z-index: 2;
+}
+
+.availability-indicator.available {
+    background: #28a745;
+    color: white;
+}
+
+.availability-indicator.unavailable {
+    background: #dc3545;
+    color: white;
+}
+
+/* Auto-selected container */
+.location-section.auto-selected {
+    position: relative;
+}
+
+.location-section.auto-selected::after {
+    content: "Otomatis dipilih berdasarkan kondisi kesehatan";
+    position: absolute;
+    bottom: -25px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Condition-based styling */
+.option-card[data-type="condition"][data-value="sehat"].selected {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+}
+
+.option-card[data-type="condition"][data-value="kurang-fit"].selected {
+    border-color: #ffc107;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+}
+
+.option-card[data-type="condition"][data-value="sakit"].selected {
+    border-color: #dc3545;
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+}
+
+/* Location card animations */
+.option-card[data-type="location"] {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.option-card[data-type="location"]:not(.hidden) {
+    animation: slideInLocation 0.4s ease-out;
+}
+
+@keyframes slideInLocation {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Health condition message alerts */
+.health-condition-alert {
+    margin-top: 1rem;
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.health-condition-alert.alert-success {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+}
+
+.health-condition-alert.alert-warning {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    color: #856404;
+}
+
+.health-condition-alert.alert-danger {
+    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+    color: #721c24;
+}
+
+.health-condition-alert.alert-info {
+    background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+    color: #0c5460;
+}
+
+/* Form validation improvements */
+.form-control.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-control.is-valid {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Auto-save indicator improvements */
+.auto-save-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    animation: slideInRight 0.3s ease-out;
+}
+
+.auto-save-indicator.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.auto-save-indicator.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.auto-save-indicator.warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+@keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
