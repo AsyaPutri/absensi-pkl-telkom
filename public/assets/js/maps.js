@@ -1,564 +1,451 @@
-class AttendanceMap {
-    constructor(mapId, officeLocation, officeRadius = 100) {
-        console.log('🚀 Initializing AttendanceMap...');
-        
-        // Cek support browser
-        if (!navigator.geolocation) {
-            this.showError('❌ Browser tidak mendukung GPS. Gunakan Chrome/Firefox terbaru.');
-            return;
-        }
-        
-        // Cek HTTPS (kecuali localhost)
-        if (location.protocol !== 'https:' && !location.hostname.includes('localhost')) {
-            this.showError('❌ GPS memerlukan HTTPS. Hubungi admin untuk mengaktifkan SSL.');
-            return;
-        }
-        
-        this.mapId = mapId;
-        this.officeLocation = officeLocation;
-        this.officeRadius = officeRadius;
-        this.watchId = null;
-        this.userMarker = null;
-        this.accuracyCircle = null;
-        this.isInOffice = false;
-        this.currentLocation = null;
-        this.officeName = 'Telkom Indonesia';
-        this.map = null;
-        
-        this.initializeMap();
-        this.requestPermissionAndStart();
+// maps.js - Leaflet Version
+let map;
+let userMarker;
+let officeMarker;
+let officeCircle;
+let officeData = null;
+let userLocation = null;
+let watchId = null;
+
+// Custom icons
+const officeIcon = L.divIcon({
+    html: '<div style="background-color: #dc3545; width: 25px; height: 25px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 12px;">🏢</span></div>',
+    className: 'custom-div-icon',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+});
+
+const userIcon = L.divIcon({
+    html: '<div style="background-color: #007bff; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 10px;">👤</span></div>',
+    className: 'custom-div-icon',
+    iconSize: [25, 25],
+    iconAnchor: [12, 12]
+});
+
+// Inisialisasi maps
+function initMap() {
+    console.log('🗺️ Initializing Leaflet map...');
+    
+    if (!officeData) {
+        console.error('❌ No office data available for map initialization');
+        return;
     }
     
-    async requestPermissionAndStart() {
-        console.log('📍 Requesting location permission...');
-        
-        // Update UI: Loading state
-        this.updateLocationInfo('🔍 Meminta izin akses lokasi...', 'info');
-        this.updateLocationBadge('🔍 Requesting GPS...', 'info');
-        
-        try {
-            const testOptions = {
-                enableHighAccuracy: false,
-                timeout: 8000,
-                maximumAge: 60000
-            };
-            
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    console.log('✅ Permission granted, starting GPS tracking...');
-                    this.updateLocationInfo('✅ Izin diberikan, memulai pelacakan GPS...', 'success');
-                    this.updateLocationBadge('✅ GPS Active', 'success');
-                    setTimeout(() => this.startWatching(), 1000);
-                },
-                (error) => {
-                    console.error('❌ Permission error:', error);
-                    this.handleLocationError(error);
-                },
-                testOptions
-            );
-            
-        } catch (error) {
-            console.error('❌ Geolocation error:', error);
-            this.showError('Error mengakses GPS: ' + error.message);
-        }
-    }
+    // Buat map dengan center di kantor
+    map = L.map('map').setView([officeData.latitude, officeData.longitude], 16);
     
-    initializeMap() {
-        console.log('🗺️ Creating map...');
-        
-        try {
-            // Hapus placeholder loading
-            this.removeMapPlaceholder();
-            
-            // Inisialisasi peta
-            this.map = L.map(this.mapId, {
-                zoomControl: true,
-                attributionControl: true
-            }).setView(this.officeLocation, 16);
-            
-            // Tambah tile layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 19,
-                subdomains: ['a', 'b', 'c']
-            }).addTo(this.map);
-            
-            // Tambah marker kantor dengan style CSS
-            this.officeMarker = L.marker(this.officeLocation, {
-                icon: L.divIcon({
-                    className: 'custom-marker office-marker',
-                    html: '<i class="fas fa-building" style="font-size: 24px;"></i>',
-                    iconSize: [40, 40],
-                    iconAnchor: [20, 40],
-                    popupAnchor: [0, -40]
-                })
-            }).addTo(this.map).bindPopup(`
-                <div class="text-center">
-                    <strong><i class="fas fa-building me-1"></i>${this.officeName}</strong><br>
-                    <small class="text-muted">Radius: ${this.officeRadius}m</small>
-                </div>
-            `);
-            
-            // Tambah circle radius kantor
-            this.officeCircle = L.circle(this.officeLocation, {
-                color: '#007bff',
-                fillColor: '#007bff',
-                fillOpacity: 0.1,
-                radius: this.officeRadius,
-                weight: 2,
-                dashArray: '5, 5'
-            }).addTo(this.map);
-            
-            // Tambah location info badge
-            this.addLocationBadge();
-            
-            console.log('✅ Map initialized successfully');
-            
-            // Update office name di UI
-            this.updateOfficeName();
-            
-            // Fit map to show office and radius
-            const bounds = this.officeCircle.getBounds();
-            this.map.fitBounds(bounds, { padding: [20, 20] });
-            
-        } catch (error) {
-            console.error('❌ Map initialization error:', error);
-            this.showError('Error menginisialisasi peta: ' + error.message);
-            this.showMapPlaceholder('❌ Error loading map');
-        }
-    }
+    // Tambahkan tile layer OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
     
-    removeMapPlaceholder() {
-        const mapElement = document.getElementById(this.mapId);
-        if (mapElement) {
-            mapElement.innerHTML = '';
-            mapElement.classList.remove('map-loading');
-        }
-    }
+    // Tambahkan marker kantor
+    addOfficeMarker();
     
-    showMapPlaceholder(message = '🗺️ Loading map...') {
-        const mapElement = document.getElementById(this.mapId);
-        if (mapElement) {
-            mapElement.innerHTML = `
-                <div class="map-placeholder">
-                    <i class="fas fa-map-marked-alt" style="font-size: 3rem; opacity: 0.5; margin-bottom: 1rem;"></i>
-                    <p class="mb-0">${message}</p>
-                </div>
-            `;
-            mapElement.classList.add('map-loading');
-        }
-    }
+    // Tambahkan circle radius kantor
+    addOfficeCircle();
     
-    addLocationBadge() {
-        // Tambah location info badge ke map container
-        const mapContainer = document.querySelector(`#${this.mapId}`).parentElement;
-        if (mapContainer && !mapContainer.querySelector('.location-info')) {
-            const badge = document.createElement('div');
-            badge.className = 'location-info';
-            badge.id = 'location-badge';
-            badge.innerHTML = '<i class="fas fa-satellite-dish"></i>Initializing GPS...';
-            mapContainer.appendChild(badge);
-        }
-    }
+    // Coba dapatkan lokasi user
+    getUserLocation();
     
-    updateLocationBadge(message, type = 'info') {
-        const badge = document.getElementById('location-badge');
-        if (badge) {
-            const icons = {
-                'success': 'fas fa-check-circle',
-                'warning': 'fas fa-exclamation-triangle',
-                'danger': 'fas fa-times-circle',
-                'info': 'fas fa-satellite-dish'
-            };
-            
-            badge.innerHTML = `<i class="${icons[type]}"></i>${message}`;
-            
-            // Update badge color
-            badge.className = `location-info gps-status-${type === 'success' ? 'active' : type === 'danger' ? 'error' : 'warning'}`;
-        }
-    }
+    console.log('✅ Leaflet map initialized');
+}
+
+// Tambahkan marker untuk lokasi kantor
+function addOfficeMarker() {
+    console.log('🏢 Adding office marker...');
     
-    startWatching() {
-        console.log('👀 Starting GPS tracking...');
-        
-        const options = {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 5000
-        };
-        
-        this.updateLocationInfo('🔍 Mencari sinyal GPS...', 'info');
-        this.updateLocationBadge('🔍 Searching GPS...', 'warning');
-        
-        this.watchId = navigator.geolocation.watchPosition(
-            (position) => this.handleLocationSuccess(position),
-            (error) => this.handleLocationError(error),
-            options
-        );
-    }
+    officeMarker = L.marker([officeData.latitude, officeData.longitude], {
+        icon: officeIcon
+    }).addTo(map);
     
-    handleLocationSuccess(position) {
-        console.log('✅ Location found:', position.coords);
-        
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const accuracy = position.coords.accuracy;
-        
-        // Simpan lokasi current
-        this.currentLocation = {
-            latitude: lat,
-            longitude: lng,
-            accuracy: accuracy,
-            timestamp: new Date()
-        };
-        
-        // Update posisi user di peta
-        this.updateUserLocation([lat, lng], accuracy);
-        
-        // Cek apakah dalam radius kantor
-        this.checkOfficeRadius([lat, lng]);
-        
-        // Update UI dengan info lokasi
-        const distance = this.calculateDistance([lat, lng], this.officeLocation);
-        const isInRange = distance <= this.officeRadius;
-        
-        let statusMessage = `📍 Lokasi ditemukan (akurasi: ±${Math.round(accuracy)}m)`;
-        let badgeMessage = '';
-        
-        if (isInRange) {
-            statusMessage += ` - ✅ Dalam area kantor`;
-            badgeMessage = `✅ In Office (${Math.round(distance)}m)`;
-            this.updateLocationInfo(statusMessage, 'success');
-            this.updateLocationBadge(badgeMessage, 'success');
-        } else {
-            statusMessage += ` - ⚠️ Di luar area kantor (${Math.round(distance)}m)`;
-            badgeMessage = `⚠️ Outside Office (${Math.round(distance)}m)`;
-            this.updateLocationInfo(statusMessage, 'warning');
-            this.updateLocationBadge(badgeMessage, 'warning');
-        }
-    }
+    // Popup untuk kantor
+    const popupContent = `
+        <div style="min-width: 200px;">
+            <h6 style="margin: 0 0 8px 0; color: #dc3545;">
+                🏢 ${officeData.name}
+            </h6>
+            <p style="margin: 0 0 5px 0; font-size: 13px;">
+                📍 ${officeData.address}
+            </p>
+            <p style="margin: 0 0 5px 0; font-size: 12px; color: #666;">
+                📏 Radius absensi: <strong>${officeData.radius}m</strong>
+            </p>
+            <p style="margin: 0; font-size: 11px; color: #999;">
+                📍 ${officeData.latitude.toFixed(6)}, ${officeData.longitude.toFixed(6)}
+            </p>
+        </div>
+    `;
     
-    handleLocationError(error) {
-        console.error('❌ GPS Error:', error);
-        
-        let errorMessage = '';
-        let badgeMessage = '❌ GPS Error';
-        let errorCode = error.code || 0;
-        
-        switch(errorCode) {
-            case 1: // PERMISSION_DENIED
-                errorMessage = '🚫 Izin GPS ditolak. Klik ikon 🔒 di address bar, pilih "Allow" untuk Location, lalu refresh halaman.';
-                badgeMessage = '🚫 Permission Denied';
-                break;
+    officeMarker.bindPopup(popupContent);
+    
+    // Auto show popup setelah 1 detik
+    setTimeout(() => {
+        officeMarker.openPopup();
+    }, 1000);
+}
+
+// Tambahkan circle radius kantor
+function addOfficeCircle() {
+    console.log(`📏 Adding office radius circle: ${officeData.radius}m`);
+    
+    officeCircle = L.circle([officeData.latitude, officeData.longitude], {
+        color: '#dc3545',
+        fillColor: '#dc3545',
+        fillOpacity: 0.1,
+        radius: officeData.radius,
+        weight: 2
+    }).addTo(map);
+    
+    // Tooltip untuk circle
+    officeCircle.bindTooltip(`Area Absensi: ${officeData.radius}m`, {
+        permanent: false,
+        direction: 'center'
+    });
+}
+
+// Dapatkan lokasi user
+function getUserLocation() {
+    console.log('📍 Getting user location...');
+    
+    if (navigator.geolocation) {
+        // Get current position
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
                 
-            case 2: // POSITION_UNAVAILABLE
-                errorMessage = '📡 Sinyal GPS tidak tersedia. Pastikan GPS device aktif dan coba di tempat terbuka.';
-                badgeMessage = '📡 No Signal';
-                break;
-                
-            case 3: // TIMEOUT
-                errorMessage = '⏰ Timeout GPS. Koneksi lambat atau sinyal lemah. Coba refresh halaman.';
-                badgeMessage = '⏰ Timeout';
-                break;
-                
-            default:
-                errorMessage = `❌ Error GPS (${errorCode}): ${error.message || 'Unknown error'}. Coba refresh halaman atau gunakan browser lain.`;
-                badgeMessage = `❌ Error ${errorCode}`;
-                break;
-        }
-        
-        this.updateLocationInfo(errorMessage, 'danger');
-        this.updateLocationBadge(badgeMessage, 'danger');
-        this.showSolutions();
-    }
-    
-    updateUserLocation(position, accuracy) {
-        // Hapus marker lama
-        if (this.userMarker) {
-            this.map.removeLayer(this.userMarker);
-        }
-        
-        if (this.accuracyCircle) {
-            this.map.removeLayer(this.accuracyCircle);
-        }
-        
-        // Tentukan icon berdasarkan lokasi
-        const isInRange = this.calculateDistance(position, this.officeLocation) <= this.officeRadius;
-        const markerIcon = isInRange ? 'fas fa-user-check' : 'fas fa-user';
-        const markerClass = isInRange ? 'custom-marker user-marker gps-status-active' : 'custom-marker user-marker gps-status-warning';
-        
-        // Tambah marker user baru dengan style CSS
-        this.userMarker = L.marker(position, {
-            icon: L.divIcon({
-                className: markerClass,
-                html: `<i class="${markerIcon}" style="font-size: 20px;"></i>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 30],
-                popupAnchor: [0, -30]
-            })
-        }).addTo(this.map).bindPopup(`
-            <div class="text-center">
-                <strong><i class="fas fa-user me-1"></i>Lokasi Anda</strong><br>
-                <small class="text-muted">Akurasi: ±${Math.round(accuracy)}m</small><br>
-                <small class="text-muted">${new Date().toLocaleTimeString()}</small>
-            </div>
-        `);
-        
-        // Tambah circle akurasi
-        this.accuracyCircle = L.circle(position, {
-            color: isInRange ? '#28a745' : '#ffc107',
-            fillColor: isInRange ? '#28a745' : '#ffc107',
-            fillOpacity: 0.1,
-            radius: accuracy,
-            weight: 1,
-            dashArray: '3, 3'
-        }).addTo(this.map);
-        
-        // Center map ke user location dengan smooth animation
-        this.map.flyTo(position, Math.max(this.map.getZoom(), 17), {
-            animate: true,
-            duration: 1.5
-        });
-        
-        console.log('📍 User location updated on map');
-    }
-    
-    checkOfficeRadius(userPosition) {
-        const distance = this.calculateDistance(userPosition, this.officeLocation);
-        const wasInOffice = this.isInOffice;
-        this.isInOffice = distance <= this.officeRadius;
-        
-        console.log(`📏 Distance to office: ${Math.round(distance)}m, In range: ${this.isInOffice}`);
-        
-        // Trigger location change event if status changed
-        if (wasInOffice !== this.isInOffice) {
-            this.onLocationStatusChange(this.isInOffice, distance);
-        }
-    }
-    
-    onLocationStatusChange(isInOffice, distance) {
-        console.log(`🔄 Location status changed: ${isInOffice ? 'IN' : 'OUT'} office`);
-        
-        // Update location options dengan animasi
-        this.updateLocationOptionsAnimated(isInOffice);
-        
-        // Dispatch custom event untuk dashboard
-        const event = new CustomEvent('locationStatusChanged', {
-            detail: {
-                isInOffice: isInOffice,
-                distance: distance,
-                location: this.currentLocation
+                console.log('✅ User location found:', userLocation);
+                addUserMarker();
+                calculateDistance();
+                adjustMapView();
+            },
+            (error) => {
+                console.warn('⚠️ Geolocation error:', error.message);
+                showLocationError(error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000 // 5 menit
             }
-        });
-        
-        document.dispatchEvent(event);
-    }
-    
-    updateLocationOptionsAnimated(isInRange) {
-        const officeOption = document.getElementById('officeOption');
-        const wfhOption = document.getElementById('wfhOption');
-        
-        if (officeOption && wfhOption) {
-            const officeCard = officeOption.querySelector('.option-card');
-            const wfhCard = wfhOption.querySelector('.option-card');
-            
-            if (isInRange) {
-                // Animate to office selection
-                if (officeCard) {
-                    officeCard.classList.add('selected');
-                    officeCard.style.animation = 'pulse 0.5s ease-in-out';
-                }
-                if (wfhCard) {
-                    wfhCard.classList.remove('selected');
-                }
-                
-                // Hide WFH option with fade
-                wfhOption.style.transition = 'opacity 0.3s ease';
-                wfhOption.style.opacity = '0.5';
-                setTimeout(() => {
-                    wfhOption.classList.add('d-none');
-                }, 300);
-                
-            } else {
-                // Show both options
-                wfhOption.classList.remove('d-none');
-                wfhOption.style.opacity = '1';
-                
-                // Animate to WFH selection
-                if (wfhCard) {
-                    wfhCard.classList.add('selected');
-                    wfhCard.style.animation = 'pulse 0.5s ease-in-out';
-                }
-                if (officeCard) {
-                    officeCard.classList.remove('selected');
-                }
-            }
-            
-            // Clear animation after completion
-            setTimeout(() => {
-                if (officeCard) officeCard.style.animation = '';
-                if (wfhCard) wfhCard.style.animation = '';
-            }, 500);
-        }
-    }
-    
-    calculateDistance(pos1, pos2) {
-        const R = 6371e3; // Earth radius in meters
-        const φ1 = pos1[0] * Math.PI/180;
-        const φ2 = pos2[0] * Math.PI/180;
-        const Δφ = (pos2[0]-pos1[0]) * Math.PI/180;
-        const Δλ = (pos2[1]-pos1[1]) * Math.PI/180;
-        
-        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        
-        return R * c;
-    }
-    
-    updateLocationInfo(message, type = 'info') {
-        const locationInfo = document.getElementById('location-info');
-        if (locationInfo) {
-            const iconMap = {
-                'success': 'fas fa-check-circle',
-                'warning': 'fas fa-exclamation-triangle', 
-                'danger': 'fas fa-times-circle',
-                'info': 'fas fa-info-circle'
-            };
-            
-            locationInfo.innerHTML = `
-                <div class="alert alert-${type}">
-                    <div class="d-flex align-items-center">
-                        <i class="${iconMap[type]} me-2"></i>
-                        <span>${message}</span>
-                    </div>
-                </div>
-            `;
-        }
-    }
-    
-    updateOfficeName() {
-        const officeNameElement = document.getElementById('office-name');
-        if (officeNameElement) {
-            officeNameElement.textContent = this.officeName;
-            officeNameElement.classList.remove('loading-pulse');
-        }
-    }
-    
-    showError(message) {
-        console.error('❌ Error:', message);
-        this.updateLocationInfo(message, 'danger');
-        this.updateLocationBadge('❌ Error', 'danger');
-    }
-    
-    showSolutions() {
-        const locationInfo = document.getElementById('location-info');
-        if (locationInfo) {
-            const currentContent = locationInfo.innerHTML;
-            locationInfo.innerHTML = currentContent + `
-                <div class="alert alert-info mt-2">
-                    <strong>🔧 Solusi yang bisa dicoba:</strong>
-                    <ol class="mb-2 mt-2">
-                        <li><strong>Refresh halaman</strong> (F5 atau Ctrl+R)</li>
-                        <li><strong>Aktifkan GPS</strong> di device Anda</li>
-                        <li><strong>Allow location</strong> di browser (klik 🔒 di address bar)</li>
-                        <li><strong>Coba browser lain</strong> (Chrome/Firefox)</li>
-                        <li><strong>Coba di tempat terbuka</strong> (tidak di dalam gedung)</li>
-                        <li><strong>Restart browser</strong> atau device</li>
-                    </ol>
-                    <button onclick="location.reload()" class="btn btn-primary btn-sm">
-                        🔄 Refresh Halaman
-                    </button>
-                </div>
-            `;
-        }
-    }
-    
-    // Method untuk dashboard mengambil data lokasi
-    getCurrentLocationForAttendance() {
-        if (!this.currentLocation) {
-            return {
-                latitude: null,
-                longitude: null,
-                accuracy: null,
-                distance: null,
-                isInRange: false,
-                officeName: this.officeName,
-                status: 'no_location'
-            };
-        }
-        
-        const distance = this.calculateDistance(
-            [this.currentLocation.latitude, this.currentLocation.longitude], 
-            this.officeLocation
         );
         
-        return {
-            latitude: this.currentLocation.latitude,
-            longitude: this.currentLocation.longitude,
-            accuracy: this.currentLocation.accuracy,
-            distance: distance,
-            isInRange: distance <= this.officeRadius,
-            officeName: this.officeName,
-            status: 'active',
-            timestamp: this.currentLocation.timestamp
-        };
-    }
-    
-    stopWatching() {
-        if (this.watchId) {
-            navigator.geolocation.clearWatch(this.watchId);
-            this.watchId = null;
-            console.log('⏹️ GPS tracking stopped');
-        }
-    }
-    
-    destroy() {
-        this.stopWatching();
+        // Watch position untuk real-time update
+        watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
+                
+                updateUserMarker();
+                calculateDistance();
+            },
+            (error) => {
+                console.warn('⚠️ Watch position error:', error.message);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 30000,
+                maximumAge: 60000 // 1 menit
+            }
+        );
         
-        if (this.map) {
-            this.map.remove();
-            this.map = null;
-        }
-        
-        // Remove location badge
-        const badge = document.getElementById('location-badge');
-        if (badge) {
-            badge.remove();
-        }
-        
-        console.log('🗑️ AttendanceMap destroyed');
+    } else {
+        console.error('❌ Geolocation not supported');
+        showLocationError({ message: 'Browser tidak mendukung geolocation' });
     }
 }
 
-// Initialize map when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Initializing AttendanceMap from maps.js...');
+// Tambahkan marker untuk lokasi user
+function addUserMarker() {
+    console.log('👤 Adding user marker...');
     
-    // Koordinat kantor Telkom Indonesia (GANTI SESUAI LOKASI KANTOR ANDA)
-    const officeLocation = [-6.2088, 106.8456]; // Jakarta Pusat (contoh)
-    const officeRadius = 100; // 100 meter radius
-    
-    // Show loading placeholder first
-    const mapElement = document.getElementById('map');
-    if (mapElement) {
-        mapElement.innerHTML = `
-            <div class="map-placeholder">
-                <i class="fas fa-map-marked-alt" style="font-size: 3rem; opacity: 0.5; margin-bottom: 1rem;"></i>
-                <p class="mb-0">🗺️ Loading map...</p>
-                <small>Initializing GPS system...</small>
-            </div>
-        `;
-        mapElement.classList.add('map-loading');
+    if (userMarker) {
+        map.removeLayer(userMarker);
     }
     
-    // Create global map instance with delay
-    setTimeout(() => {
-        window.attendanceMap = new AttendanceMap('map', officeLocation, officeRadius);
-        console.log('✅ AttendanceMap initialized and available globally');
-    }, 500);
+    userMarker = L.marker([userLocation.lat, userLocation.lng], {
+        icon: userIcon
+    }).addTo(map);
+    
+    // Popup untuk user
+    const popupContent = `
+        <div>
+            <h6 style="margin: 0 0 5px 0; color: #007bff;">
+                👤 Lokasi Anda
+            </h6>
+            <p style="margin: 0 0 3px 0; font-size: 12px;">
+                📍 ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}
+            </p>
+            <p style="margin: 0; font-size: 11px; color: #666;">
+                🎯 Akurasi: ±${Math.round(userLocation.accuracy)}m
+            </p>
+        </div>
+    `;
+    
+    userMarker.bindPopup(popupContent);
+    
+    // Accuracy circle
+    if (userLocation.accuracy) {
+        L.circle([userLocation.lat, userLocation.lng], {
+            color: '#007bff',
+            fillColor: '#007bff',
+            fillOpacity: 0.1,
+            radius: userLocation.accuracy,
+            weight: 1,
+            dashArray: '5, 5'
+        }).addTo(map);
+    }
+}
+
+// Update marker user (untuk watch position)
+function updateUserMarker() {
+    if (userMarker) {
+        userMarker.setLatLng([userLocation.lat, userLocation.lng]);
+        
+        // Update popup content
+        const popupContent = `
+            <div>
+                <h6 style="margin: 0 0 5px 0; color: #007bff;">
+                    👤 Lokasi Anda
+                </h6>
+                <p style="margin: 0 0 3px 0; font-size: 12px;">
+                    📍 ${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}
+                </p>
+                <p style="margin: 0; font-size: 11px; color: #666;">
+                    🎯 Akurasi: ±${Math.round(userLocation.accuracy)}m
+                </p>
+                <p style="margin: 0; font-size: 10px; color: #999;">
+                    🕐 ${new Date().toLocaleTimeString('id-ID')}
+                </p>
+            </div>
+        `;
+        
+        userMarker.getPopup().setContent(popupContent);
+    }
+}
+
+// Adjust map view untuk menampilkan kedua marker
+function adjustMapView() {
+    if (userMarker && officeMarker) {
+        const group = new L.featureGroup([officeMarker, userMarker]);
+        map.fitBounds(group.getBounds().pad(0.1));
+        
+        // Set zoom maksimal
+        setTimeout(() => {
+            if (map.getZoom() > 18) {
+                map.setZoom(18);
+            }
+        }, 100);
+    }
+}
+
+// Hitung jarak antara user dan kantor
+function calculateDistance() {
+    if (!userLocation || !officeData) {
+        console.warn('⚠️ Cannot calculate distance: missing location data');
+        return null;
+    }
+    
+    const officeLatLng = L.latLng(officeData.latitude, officeData.longitude);
+    const userLatLng = L.latLng(userLocation.lat, userLocation.lng);
+    
+    // Hitung jarak dalam meter
+    const distance = officeLatLng.distanceTo(userLatLng);
+    const isInRange = distance <= officeData.radius;
+    
+    console.log(`📏 Distance: ${distance.toFixed(1)}m, In range: ${isInRange}`);
+    
+    // Update UI dengan info jarak
+    updateDistanceInfo(distance, isInRange);
+    
+    return { distance, isInRange };
+}
+
+// Update info jarak di UI
+function updateDistanceInfo(distance, isInRange) {
+    const distanceElement = document.getElementById('distanceInfo');
+    if (distanceElement) {
+        const statusClass = isInRange ? 'status-in-range' : 'status-out-range';
+        const statusIcon = isInRange ? '✅' : '❌';
+        const statusText = isInRange ? 'Dalam jangkauan' : 'Di luar jangkauan';
+        
+        distanceElement.innerHTML = `
+            <div class="alert ${isInRange ? 'alert-success' : 'alert-warning'} p-2 mb-2">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="status-badge ${statusClass}">
+                        ${statusIcon} ${statusText}
+                    </span>
+                </div>
+                <div class="distance-info mt-2">
+                    <small>
+                        📏 Jarak: <strong>${distance.toFixed(1)}m</strong><br>
+                        📍 Radius: <strong>${officeData.radius}m</strong><br>
+                        🎯 Selisih: <strong>${Math.abs(distance - officeData.radius).toFixed(1)}m</strong>
+                    </small>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Handle error lokasi
+function showLocationError(error) {
+    console.error('❌ Location error:', error);
+    
+    const errorElement = document.getElementById('locationError');
+    if (errorElement) {
+        let errorMessage = 'Tidak dapat mengakses lokasi';
+        
+        if (error.code) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'Akses lokasi ditolak. Silakan izinkan akses lokasi.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Informasi lokasi tidak tersedia.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'Timeout mendapatkan lokasi.';
+                    break;
+            }
+        }
+        
+        errorElement.innerHTML = `
+            <div class="alert alert-warning p-2">
+                <small>⚠️ ${errorMessage}</small>
+                <button class="btn btn-sm btn-outline-warning mt-1 w-100" onclick="getUserLocation()">
+                    🔄 Coba Lagi
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Load office data dan inisialisasi map
+function loadOfficeData() {
+    console.log('🏢 Loading office data from API...');
+    
+    fetch('get_office.php')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📊 API Response:', data);
+            
+            if (data.success && data.office) {
+                officeData = data.office;
+                console.log('✅ Office data loaded:', officeData.name);
+                
+                // Update office info di UI
+                updateOfficeInfo(officeData);
+                
+                // Inisialisasi map setelah data dimuat
+                initMap();
+                
+            } else {
+                throw new Error(data.message || 'Invalid API response');
+            }
+        })
+        .catch(error => {
+            console.error('❌ API Error:', error.message);
+            
+            // Fallback ke hardcoded data
+            console.warn('🔄 Using hardcoded emergency fallback...');
+            officeData = {
+                id: 1,
+                name: 'Telkom Witel Bekasi Karawang',
+                latitude: -6.237846687485902,
+                longitude: 106.99415622140583,
+                radius: 100,
+                address: 'Jl. Rw. Tembaga IV No.4, RT.006/RW.005, Marga Jaya',
+                is_active: true
+            };
+            
+            updateOfficeInfo(officeData);
+            initMap();
+        });
+}
+
+// Update office info di UI
+function updateOfficeInfo(office) {
+    const officeNameElement = document.getElementById('officeName');
+    if (officeNameElement) {
+        officeNameElement.textContent = office.name;
+    }
+    
+    const officeAddressElement = document.getElementById('officeAddress');
+    if (officeAddressElement) {
+        officeAddressElement.textContent = office.address;
+    }
+    
+    const lastUpdatedElement = document.getElementById('lastUpdated');
+    if (lastUpdatedElement && office.updated_at) {
+        const date = new Date(office.updated_at);
+        lastUpdatedElement.textContent = `Terakhir update: ${date.toLocaleDateString('id-ID')}`;
+    }
+}
+
+// Fungsi untuk button
+function refreshUserLocation() {
+    console.log('🔄 Refreshing user location...');
+    getUserLocation();
+}
+
+function checkLocation() {
+    if (!userLocation) {
+        alert('⚠️ Lokasi belum terdeteksi. Silakan tunggu atau refresh lokasi.');
+        getUserLocation();
+    } else {
+        const result = calculateDistance();
+        if (result) {
+            const message = `📏 Jarak Anda: ${result.distance.toFixed(1)}m dari kantor\n\n${result.isInRange ? '✅ DALAM JANGKAUAN ABSENSI' : '❌ DI LUAR JANGKAUAN ABSENSI'}\n\nRadius absensi: ${officeData.radius}m`;
+            alert(message);
+        }
+    }
+}
+
+function centerToOffice() {
+    if (map && officeData) {
+        map.setView([officeData.latitude, officeData.longitude], 17);
+        if (officeMarker) {
+            officeMarker.openPopup();
+        }
+    }
+}
+
+// Auto load saat halaman dimuat
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM loaded, starting office data load...');
+    loadOfficeData();
 });
 
-// Export untuk digunakan di file lain
-window.AttendanceMap = AttendanceMap;
+// Cleanup saat halaman ditutup
+window.addEventListener('beforeunload', function() {
+    if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+    }
+});
+
+// Di maps.js, dispatch events seperti ini:
+document.dispatchEvent(new CustomEvent('locationUpdated', {
+    detail: { distance, isInRange, accuracy }
+}));
+
+document.dispatchEvent(new CustomEvent('locationError', {
+    detail: { message: 'Error message' }
+}));
+
+document.dispatchEvent(new CustomEvent('officeDataLoaded', {
+    detail: officeData
+}));

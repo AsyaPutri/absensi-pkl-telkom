@@ -1,3 +1,12 @@
+<?php
+session_start();
+
+// Redirect jika belum login
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -45,7 +54,6 @@
     }
     .company-info h2 {
       color: var(--telkom-red);
-      /* font-weight: bold; */
       margin: 0;
     }
 
@@ -74,7 +82,7 @@
       font-size: 0.8rem;
     }
     .badge-sehat { background: linear-gradient(135deg, #28a745, #20c997); color: white; }
-    .badge-kurangfit { background: linear-gradient(135deg, #ffc107, #fd7e14); color: #000; }
+    .badge-kurang_fit { background: linear-gradient(135deg, #ffc107, #fd7e14); color: #000; }
     .badge-sakit { background: linear-gradient(135deg, #6f42c1, #5a2d91); color: white; }
 
     .foto-absen {
@@ -83,11 +91,26 @@
       object-fit: cover;
       border-radius: 8px;
       border: 2px solid #eee;
+      cursor: pointer;
     }
 
-    .download-btn {
-      margin: 20px 30px;
-      text-align: right;
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6c757d;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 60px;
+      color: #6c757d;
+    }
+
+    /* Modal untuk foto */
+    .photo-modal img {
+      max-width: 100%;
+      max-height: 80vh;
+      object-fit: contain;
     }
   </style>
 </head>
@@ -105,14 +128,17 @@
       <!-- Profil Mahasiswa -->
       <div class="profile-section">
         <h5>Informasi Peserta</h5>
-        <p><strong>Nama:</strong> Asya Herawati Putri</p>
-        <p><strong>NIM:</strong> 123456789</p>
-        <p><strong>Asal Instansi:</strong> Universitas Bina Sarana Informatika</p>
-        <p><strong>Unit Kerja:</strong> Finance dan HC</p>
+        <div id="userProfile">
+          <div class="loading">
+            <i class="bi bi-hourglass-split"></i>
+            <p>Memuat profil...</p>
+          </div>
+        </div>
       </div>
 
+
       <!-- Tombol Download -->
-      <div class="download-btn">
+      <div class="text-end p-3">
         <button class="btn btn-danger" onclick="downloadPDF()">
           <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download Rekap PDF
         </button>
@@ -120,6 +146,119 @@
 
       <!-- Table -->
       <div class="table-container">
+        <div id="attendanceTable">
+          <div class="loading">
+            <i class="bi bi-hourglass-split"></i>
+            <p>Memuat data absensi...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal untuk melihat foto -->
+  <div class="modal fade" id="photoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content photo-modal">
+        <div class="modal-header">
+          <h5 class="modal-title">Foto Absensi</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img id="modalPhoto" src="" alt="Foto Absensi">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let attendanceData = [];
+    let userProfileData = {};
+
+    // Load data saat halaman dimuat
+    document.addEventListener('DOMContentLoaded', function() {
+      loadUserProfile();
+      loadAttendanceData();
+    });
+
+    // Load profil user
+    async function loadUserProfile() {
+      try {
+        const response = await fetch('get_user_profile.php');
+        const result = await response.json();
+        
+        const profileDiv = document.getElementById('userProfile');
+        
+        if (result.success) {
+          userProfileData = result.data;
+          profileDiv.innerHTML = `
+            <p><strong>Nama:</strong> ${result.data.nama || '-'}</p>
+            <p><strong>NIM:</strong> ${result.data.nim || '-'}</p>
+            <p><strong>Asal Instansi:</strong> ${result.data.asal_instansi || '-'}</p>
+            <p><strong>Unit Kerja:</strong> ${result.data.unit_kerja || '-'}</p>
+          `;
+        } else {
+          profileDiv.innerHTML = `
+            <p><strong>Nama:</strong> User</p>
+            <p><strong>NIM:</strong> -</p>
+            <p><strong>Asal Instansi:</strong> -</p>
+            <p><strong>Unit Kerja:</strong> -</p>
+          `;
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        document.getElementById('userProfile').innerHTML = `
+          <p class="text-danger">Error memuat profil</p>
+        `;
+      }
+    }
+
+    // Load data absensi
+    // Load data absensi (tanpa filter)
+async function loadAttendanceData() {
+  try {
+    const response = await fetch('get_attendance_history.php');
+    const result = await response.json();
+    
+    if (result.success) {
+      attendanceData = result.data;
+      renderTable();
+    } else {
+      throw new Error(result.message || 'Gagal memuat data');
+    }
+    
+  } catch (error) {
+    console.error('Error loading attendance:', error);
+    document.getElementById('attendanceTable').innerHTML = `
+      <div class="no-data">
+        <i class="bi bi-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
+        <h5>Error Memuat Data</h5>
+        <p>${error.message}</p>
+        <button class="btn btn-primary" onclick="loadAttendanceData()">
+          <i class="bi bi-arrow-clockwise me-1"></i> Coba Lagi
+        </button>
+      </div>
+    `;
+  }
+}
+
+    // Render tabel
+    function renderTable() {
+      const tableDiv = document.getElementById('attendanceTable');
+      
+      if (attendanceData.length === 0) {
+        tableDiv.innerHTML = `
+          <div class="no-data">
+            <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+            <h5>Tidak Ada Data</h5>
+            <p>Belum ada data absensi</p>
+          </div>
+        `;
+        return;
+      }
+      
+      tableDiv.innerHTML = `
         <div class="table-responsive">
           <table class="table table-hover mb-0">
             <thead>
@@ -129,32 +268,63 @@
                 <th><i class="bi bi-heart-pulse me-1"></i>Kondisi</th>
                 <th><i class="bi bi-geo-alt me-1"></i>Lokasi Kerja</th>
                 <th><i class="bi bi-clock me-1"></i>Jam Keluar</th>
-                <th><i class="bi bi-image me-1"></i>Foto Absen</th>
+                <th><i class="bi bi-stopwatch me-1"></i>Durasi</th>
+                <th><i class="bi bi-image me-1"></i>Foto</th>
+                <th><i class="bi bi-info-circle me-1"></i>Detail</th>
               </tr>
             </thead>
-            <tbody id="attendanceTableBody"></tbody>
+            <tbody>
+              ${attendanceData.map(record => `
+                <tr>
+                  <td><strong>${formatDate(record.date)}</strong></td>
+                  <td>${record.timeIn}</td>
+                  <td>${getConditionBadge(record.condition)}</td>
+                  <td>${getLocationBadge(record.location)}</td>
+                  <td>${record.timeOut}</td>
+                  <td>${record.durasi_kerja}</td>
+                  <td>${getPhotoCell(record.photo)}</td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="showDetail(${record.id})">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
           </table>
         </div>
-      </div>
-    </div>
-  </div>
+      `;
+    }
 
-  <script>
-    const attendanceData = [
-      { date: '2024-09-02', timeIn: '08:00', timeOut: '16:00', condition: 'sehat', location: 'Office', photo: 'https://via.placeholder.com/80' },
-      { date: '2024-09-01', timeIn: '08:10', timeOut: '16:05', condition: 'kurang fit', location: 'WFH', photo: 'https://via.placeholder.com/80' },
-      { date: '2024-08-31', timeIn: '-', timeOut: '-', condition: 'sakit', location: '-', photo: 'https://via.placeholder.com/80' },
-      { date: '2024-08-30', timeIn: '07:55', timeOut: '15:50', condition: 'sehat', location: 'Office', photo: 'https://via.placeholder.com/80' }
-    ];
-
+    // Helper functions
     function getConditionBadge(condition) {
       const map = {
-        'sehat': { class: 'badge-sehat', label: 'Sehat' },
-        'kurang fit': { class: 'badge-kurangfit', label: 'Kurang Fit' },
-        'sakit': { class: 'badge-sakit', label: 'Sakit' }
+        'sehat': { class: 'badge-sehat', label: '😊 Sehat' },
+        'kurang_fit': { class: 'badge-kurang_fit', label: '😐 Kurang Fit' },
+        'sakit': { class: 'badge-sakit', label: '😷 Sakit' }
       };
-      const config = map[condition.toLowerCase()] || map['sehat'];
+      const config = map[condition] || map['sehat'];
       return `<span class="badge badge-status ${config.class}">${config.label}</span>`;
+    }
+
+    function getLocationBadge(location) {
+      const map = {
+        'office': '🏢 Office',
+        'wfh': '🏠 WFH'
+      };
+      return map[location] || location;
+    }
+
+    function getPhotoCell(photo) {
+      if (!photo) return '-';
+      
+      // Handle multiple photos (checkin|checkout)
+      const photos = photo.split('|');
+      return photos.map((p, index) => 
+        `<img src="uploads/photos/${p}" class="foto-absen me-1" 
+              onclick="showPhoto('uploads/photos/${p}')" 
+              title="${index === 0 ? 'Check-in' : 'Check-out'}">`
+      ).join('');
     }
 
     function formatDate(dateStr) {
@@ -162,21 +332,27 @@
       return new Date(dateStr).toLocaleDateString('id-ID', options);
     }
 
-    function renderTable() {
-      const tbody = document.getElementById('attendanceTableBody');
-      tbody.innerHTML = attendanceData.map(r => `
-        <tr>
-          <td><strong>${formatDate(r.date)}</strong></td>
-          <td>${r.timeIn}</td>
-          <td>${getConditionBadge(r.condition)}</td>
-          <td>${r.location}</td>
-          <td>${r.timeOut}</td>
-          <td><img src="${r.photo}" class="foto-absen" alt="Foto"></td>
-        </tr>
-      `).join('');
+    // Show photo modal
+    function showPhoto(photoUrl) {
+      document.getElementById('modalPhoto').src = photoUrl;
+      new bootstrap.Modal(document.getElementById('photoModal')).show();
     }
 
+    // Show detail (bisa dikembangkan lebih lanjut)
+    function showDetail(recordId) {
+      const record = attendanceData.find(r => r.id == recordId);
+      if (record) {
+        alert(`Detail untuk ${formatDate(record.date)}:\n\nAktivitas Masuk: ${record.aktivitas_masuk}\nAktivitas Keluar: ${record.aktivitas_keluar}\nKendala: ${record.kendala_masuk || 'Tidak ada'}`);
+      }
+    }
+
+    // Download PDF
     function downloadPDF() {
+      if (attendanceData.length === 0) {
+        alert('Tidak ada data untuk di-download');
+        return;
+      }
+      
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
@@ -184,29 +360,28 @@
       doc.text("Rekap Absensi Magang - PT Telkom Indonesia", 14, 20);
 
       doc.setFontSize(11);
-      doc.text("Nama: Asya Herawati Putri", 14, 30);
-      doc.text("NIM: 123456789", 14, 37);
-      doc.text("Asal Instansi: Universitas Bina Sarana Informatika", 14, 44);
-      doc.text("Unit Kerja: Finance dan HC", 14, 51);
+      doc.text(`Nama: ${userProfileData.nama || '-'}`, 14, 30);
+      doc.text(`NIM: ${userProfileData.nim || '-'}`, 14, 37);
+      doc.text(`Asal Instansi: ${userProfileData.asal_instansi || '-'}`, 14, 44);
+      doc.text(`Unit Kerja: ${userProfileData.unit_kerja || '-'}`, 14, 51);
 
       const tableData = attendanceData.map(r => [
         formatDate(r.date),
         r.timeIn,
-        r.condition.charAt(0).toUpperCase() + r.condition.slice(1),
-        r.location,
-        r.timeOut
+        r.condition.charAt(0).toUpperCase() + r.condition.slice(1).replace('_', ' '),
+        r.location === 'office' ? 'Office' : 'WFH',
+        r.timeOut,
+        r.durasi_kerja
       ]);
 
       doc.autoTable({
-        head: [['Tanggal', 'Jam Masuk', 'Kondisi', 'Lokasi Kerja', 'Jam Keluar']],
+        head: [['Tanggal', 'Jam Masuk', 'Kondisi', 'Lokasi', 'Jam Keluar', 'Durasi']],
         body: tableData,
         startY: 60,
       });
 
-      doc.save("rekap_absensi.pdf");
+      doc.save(`rekap_absensi_${userProfileData.nama || 'user'}.pdf`);
     }
-
-    document.addEventListener('DOMContentLoaded', renderTable);
   </script>
 </body>
 </html>

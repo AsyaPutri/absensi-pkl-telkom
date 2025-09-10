@@ -1,9 +1,10 @@
 <?php
 include "../../includes/auth.php";
+include '../../config/database.php';
 checkRole('magang');
 
 // Get user data from session (auth.php already started the session)
-$userName = isset($_SESSION['nama']) ? $_SESSION['nama'] : "Guest";
+$userName = isset($_SESSION['nama']) ? $_SESSION['nama'] : null;
 $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
 $userRole = isset($_SESSION['role']) ? $_SESSION['role'] : 'guest';
 
@@ -46,9 +47,20 @@ if (!$hasCheckedIn) {
 
 // Extended user data for profile (you can fetch this from database)
 $userProfile = [
-    'nama' => $userName,
-    'unit_kerja' => isset($_SESSION['unit_kerja']) ? $_SESSION['unit_kerja'] : 'IT Development',
+    'nama'       => $userName,
+    'unit_kerja' => 'IT Development'
 ];
+
+if ($userId) {
+    $sql = "SELECT nama, unit FROM peserta_pkl WHERE user_id = '$userId' LIMIT 1";
+    $result = $conn->query($sql);
+
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $userProfile['nama'] = $row['nama'];
+        $userProfile['unit_kerja'] = $row['unit'];
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -62,11 +74,6 @@ $userProfile = [
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Font Awesome untuk icon -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     
     <!-- Leaflet CSS untuk Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
@@ -77,259 +84,170 @@ $userProfile = [
     <link rel="stylesheet" href="../assets/css/attendance.css">
     
     <style>
-        /* Custom styles untuk maps dan dashboard */
-        
-        /* Map Container */
+        /* Custom styles untuk Leaflet Maps Integration */
         .map-container {
+            height: 400px !important;
+            width: 100% !important;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin: 20px 0;
             position: relative;
-            background: #f8f9fa;
-            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            min-height: 400px;
         }
-        
-        /* Map Element */
+
         #map {
-            height: 400px;
-            width: 100%;
-            border-radius: 8px;
-            z-index: 1;
+            height: 100% !important;
+            width: 100% !important;
+            border-radius: 6px;
         }
         
-        /* Location Info Panel */
-        #location-info {
-            margin-bottom: 1rem;
+        /* Leaflet popup customization */
+        .leaflet-popup-content {
+            font-size: 14px;
+            line-height: 1.4;
+            margin: 8px 12px;
         }
         
-        #location-info .alert {
-            margin-bottom: 0;
-            border-radius: 8px;
-            border: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        .leaflet-popup-content h6 {
+            margin: 0 0 8px 0;
+            font-weight: 600;
         }
         
-        #location-info .alert-success {
-            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+        /* Distance info styles */
+        .distance-info {
+            font-size: 13px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .status-in-range {
+            background-color: #d4edda;
             color: #155724;
         }
         
-        #location-info .alert-danger {
-            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+        .status-out-range {
+            background-color: #f8d7da;
             color: #721c24;
         }
         
-        #location-info .alert-warning {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-            color: #856404;
+        /* Location info alert */
+        #location-info {
+            margin-top: 15px;
+            border-radius: 8px;
         }
         
-        #location-info .alert-info {
-            background: linear-gradient(135deg, #d1ecf1, #bee5eb);
-            color: #0c5460;
+        /* Button styles */
+        .location-buttons {
+            margin-top: 15px;
+            gap: 10px;
         }
         
-        /* Office Name Animation */
-        #office-name {
-            color: #e60012;
-            font-weight: 600;
-            transition: all 0.3s ease;
+        .btn-location {
+            border-radius: 6px;
+            font-weight: 500;
         }
         
-        /* Location status styles */
+        /* Loading spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Location option cards */
         .location-section .option-card.location-option {
             transition: all 0.3s ease;
             cursor: pointer;
         }
         
-        .location-section .option-card.location-option:hover {
+        .location-section .option-card.location-option:hover:not(.disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
         
-        .location-section .option-card.selected {
+        .location-section .option-card.location-option.selected {
             border-color: #007bff;
-            background-color: #f8f9ff;
+            background-color: rgba(0, 123, 255, 0.1);
         }
         
-        /* Button States */
-        .btn:disabled {
+        .location-section .option-card.location-option.disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
         
-        .btn-check-in {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            border: none;
-            color: white;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-check-in:hover:not(:disabled) {
-            background: linear-gradient(135deg, #218838, #1ea085);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(40,167,69,0.3);
-        }
-        
-        .btn-check-out {
-            background: linear-gradient(135deg, #dc3545, #fd7e14);
-            border: none;
-            color: white;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-check-out:hover:not(:disabled) {
-            background: linear-gradient(135deg, #c82333, #e8650e);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(220,53,69,0.3);
-        }
-        
-        .btn-completed {
-            background: linear-gradient(135deg, #6c757d, #5a6268);
-            border: none;
-            color: white;
-            font-weight: 600;
-        }
-        
-        .btn-secondary:disabled {
-            background: #6c757d;
-            border-color: #6c757d;
-        }
-        
-        /* Info Cards */
+        /* Info cards styling */
         .info-card {
-            background: white;
-            border-radius: 10px;
-            padding: 1rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            border: 1px solid #e9ecef;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
         }
         
-        .info-card h6 {
-            color: #495057;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-        }
-        
-        .info-item {
+        .info-row {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #f8f9fa;
+            margin-bottom: 8px;
         }
         
-        .info-item:last-child {
-            border-bottom: none;
+        .info-row:last-child {
+            margin-bottom: 0;
         }
         
         .info-label {
+            font-size: 14px;
             color: #6c757d;
-            font-size: 0.875rem;
         }
         
         .info-value {
             font-weight: 600;
-            font-size: 0.875rem;
+            font-size: 14px;
         }
         
-        /* Status indicators */
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 0.5rem;
+        .info-value.success { color: #28a745; }
+        .info-value.warning { color: #ffc107; }
+        .info-value.danger { color: #dc3545; }
+        .info-value.info { color: #17a2b8; }
+        
+        /* Map controls styling */
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
         
-        .status-success { background-color: #28a745; }
-        .status-warning { background-color: #ffc107; }
-        .status-danger { background-color: #dc3545; }
-        .status-info { background-color: #17a2b8; }
-        
-        /* Loading animations */
-        .loading-pulse {
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
-        /* Welcome banner improvements */
-        .welcome-banner {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            padding: 1rem;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-            border: 1px solid #dee2e6;
-        }
-        
-        /* Card improvements */
-        .card-custom {
-            border: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            border-radius: 12px;
-        }
-        
-        .card-custom .card-body {
-            padding: 1.5rem;
-        }
-        
-        /* Form improvements */
-        .form-control:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
-        }
-        
-        /* Option cards improvements */
-        .option-card {
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 1rem;
-            transition: all 0.3s ease;
+        .map-control-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-size: 12px;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .map-control-btn:hover {
             background: white;
-        }
-        
-        .option-card:hover {
-            border-color: #007bff;
-            background-color: #f8f9ff;
-        }
-        
-        .option-card.selected {
-            border-color: #007bff;
-            background-color: #f8f9ff;
-        }
-        
-        .option-card.disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .option-icon {
-            font-size: 2rem;
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-        
-        /* Responsive improvements */
-        @media (max-width: 768px) {
-            #map {
-                height: 300px;
-            }
-            
-            .map-container {
-                min-height: 300px;
-            }
-            
-            .card-custom .card-body {
-                padding: 1rem;
-            }
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
     </style>
 </head>
@@ -348,12 +266,12 @@ $userProfile = [
                         Absensi Magang - Telkom Indonesia
                     </h4>
                 </div>
-                <div class="col-auto">
+                <!-- <div class="col-auto">
                     <div class="d-flex align-items-center user-info">
                         <i class="bi bi-person-circle me-2"></i>
                         <span><?php echo htmlspecialchars($userName); ?></span>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </header>
@@ -391,25 +309,19 @@ $userProfile = [
     <?php endif; ?>
 
     <!-- Welcome Banner -->
-    <div class="container">
-        <div class="welcome-banner text-center">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <i class="bi bi-clock me-2"></i>
-                    Current Time: <span id="currentTime" class="fw-bold"><?php echo date('n/j/Y, g:i:s A'); ?></span>
-                </div>
-                <div class="col-md-6">
-                    <i class="bi bi-geo-alt me-2"></i>
-                    Location Status: <span id="locationStatus" class="fw-bold loading-pulse">Checking...</span>
-                </div>
-            </div>
+    <div class="welcome-banner text-center">
+        <div class="container">
+            <i class="bi bi-clock me-2"></i>
+            Current Time: <span id="currentTime"><?php echo date('n/j/Y, g:i:s A'); ?></span><br>
+            <i class="bi bi-geo-alt me-2"></i>
+            Location Status: <span id="locationStatus" class="fw-bold">Checking...</span>
         </div>
     </div>
 
     <!-- Main Content -->
     <div class="container my-4">
         <div class="row g-4">
-            <!-- Left Panel - Form Section -->
+            <!-- Left Panel - Map & Form Section -->
             <div class="col-lg-8">
                 <div class="card card-custom">
                     <div class="card-body">
@@ -417,23 +329,38 @@ $userProfile = [
                         <div class="mb-4">
                             <h5 class="card-title mb-3">
                                 <i class="bi bi-map me-2"></i>
-                                Peta Absensi - <span id="office-name" class="loading-pulse">Loading...</span>
-                                <small class="text-muted fw-normal d-block mt-1">GPS akan mendeteksi lokasi secara otomatis</small>
+                                Peta Lokasi Absensi
+                                <small class="text-muted fw-normal">(GPS akan mendeteksi lokasi secara otomatis)</small>
                             </h5>
                             
-                            <!-- Location Info Panel -->
-                            <div id="location-info" class="mb-3">
-                                <div class="alert alert-info">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-spinner fa-spin me-2"></i>
-                                        <span>Memuat data kantor dan mencari lokasi GPS...</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Map Container -->
+                            <!-- Leaflet Map Container -->
                             <div class="map-container">
                                 <div id="map"></div>
+                                <!-- Map controls will be added by maps.js -->
+                            </div>
+
+                            <!-- Location Info Alert - Will be updated by maps.js -->
+                            <div id="location-info" class="alert alert-info">
+                                <div class="d-flex align-items-center">
+                                    <div class="loading-spinner me-2"></div>
+                                    <strong>📍 Status:</strong> Memuat data lokasi kantor dan mendeteksi posisi Anda...
+                                </div>
+                            </div>
+
+                            <!-- Location Action Buttons -->
+                            <div class="d-flex flex-wrap location-buttons">
+                                <button type="button" class="btn btn-primary btn-location me-2 mb-2" onclick="refreshUserLocation()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>
+                                    Refresh Lokasi
+                                </button>
+                                <button type="button" class="btn btn-info btn-location me-2 mb-2" onclick="centerToOffice()">
+                                    <i class="bi bi-building me-1"></i>
+                                    Ke Kantor
+                                </button>
+                                <button type="button" class="btn btn-success btn-location mb-2" onclick="checkLocation()">
+                                    <i class="bi bi-geo-alt me-1"></i>
+                                    Cek Jarak
+                                </button>
                             </div>
                         </div>
 
@@ -547,6 +474,7 @@ $userProfile = [
                                          data-type="location" data-value="office">
                                         <span class="option-icon">🏢</span>
                                         <h6 class="mb-0">Office</h6>
+                                        <small class="text-muted">Dalam radius kantor</small>
                                     </div>
                                 </div>
                                 <!-- WFH option -->
@@ -555,6 +483,7 @@ $userProfile = [
                                          data-type="location" data-value="wfh">
                                         <span class="option-icon">🏠</span>
                                         <h6 class="mb-0">Work From Home</h6>
+                                        <small class="text-muted">Di luar radius kantor</small>
                                     </div>
                                 </div>
                             </div>
@@ -563,82 +492,69 @@ $userProfile = [
                 </div>
             </div>
 
-            <!-- Right Panel - Camera & Info -->
+            <!-- Right Panel - Info & Camera -->
             <div class="col-lg-4">
-                <!-- Camera Section -->
+                <!-- Location Info Card -->
                 <div class="card card-custom mb-4">
-                    <div class="card-header bg-warning text-dark">
+                    <div class="card-header bg-info text-white">
                         <h6 class="mb-0">
-                            <i class="bi bi-camera me-2"></i>
-                            Camera
+                            <i class="bi bi-geo-alt me-2"></i>
+                            Informasi Lokasi
                         </h6>
                     </div>
                     <div class="card-body p-3">
-                        <div class="camera-container mb-3">
-                            <video id="video" class="d-none" autoplay></video>
-                            <canvas id="canvas" class="d-none"></canvas>
-                            <img id="photo" class="d-none" alt="Captured photo">
-                            <div id="camera-placeholder" class="camera-placeholder">
-                                <i class="bi bi-camera" style="font-size: 3rem; opacity: 0.7;"></i>
-                                <p class="mt-2 mb-0">Klik "Start Camera"</p>
-                                <small>untuk mengaktifkan kamera dan ambil foto</small>
-                            </div>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-camera" id="startCamera" <?php echo $currentStatus === 'completed' ? 'disabled' : ''; ?>>
-                                <i class="bi bi-camera me-2"></i>
-                                Start Camera
-                            </button>
-                            <button class="btn btn-camera d-none" id="capture">
-                                <i class="bi bi-camera-fill me-2"></i>
-                                Capture
-                            </button>
-                            <button class="btn btn-secondary d-none" id="retake">
-                                <i class="bi bi-arrow-clockwise me-2"></i>
-                                Retake
-                            </button>
+                        <!-- Distance Info Detail - Will be populated by maps.js -->
+                        <div id="distanceInfo" class="mt-3">
+                            <!-- Distance details will be shown here -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Location Info Card -->
-                <div class="card card-custom mb-4">
-                    <div class="card-body info-card">
-                        <h6 class="card-title">
-                            <i class="bi bi-info-circle me-2"></i>
-                            Informasi Lokasi
-                        </h6>
-                        <div class="info-item">
-                            <span class="info-label">Status GPS:</span>
-                            <span id="gpsStatus" class="info-value text-warning">
-                                <span class="status-indicator status-warning"></span>
-                                Checking...
-                            </span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Jarak ke Kantor:</span>
-                            <span id="distanceToOffice" class="info-value">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Akurasi GPS:</span>
-                            <span id="gpsAccuracy" class="info-value">-</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Koordinat:</span>
-                            <span id="coordinates" class="info-value text-muted">-</span>
-                        </div>
-                    </div>
-                </div>
+                <!-- Camera Section -->
+<div class="card card-custom mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h6 class="mb-0">
+            <i class="bi bi-camera me-2"></i>
+            Camera
+        </h6>
+    </div>
+    <div class="card-body p-3">
+        <div class="camera-container mb-3">
+            <video id="video" class="d-none" autoplay playsinline></video>
+            <canvas id="canvas" class="d-none"></canvas>
+            <img id="photo" class="d-none img-fluid rounded" alt="Captured photo">
+            <div id="camera-placeholder" class="camera-placeholder text-center">
+                <i class="bi bi-camera" style="font-size: 3rem; opacity: 0.7;"></i>
+                <p class="mt-2 mb-0">Klik "Start Camera"</p>
+                <small>untuk mengaktifkan kamera dan ambil foto</small>
+            </div>
+        </div>
+        <div class="d-grid gap-2">
+            <button class="btn btn-camera" id="startCamera" <?php echo $currentStatus === 'completed' ? 'disabled' : ''; ?>>
+                <i class="bi bi-camera me-2"></i>
+                Start Camera
+            </button>
+            <button class="btn btn-camera d-none" id="capture">
+                <i class="bi bi-camera-fill me-2"></i>
+                Capture
+            </button>
+            <button class="btn btn-secondary d-none" id="retake">
+                <i class="bi bi-arrow-clockwise me-2"></i>
+                Retake
+            </button>
+        </div>
+    </div>
+</div>
 
-                <!-- Quick Actions -->
+                <!-- Logbook & History -->
                 <div class="card card-custom mb-4">
                     <div class="card-body">
                         <div class="d-grid gap-2">
-                            <a href="#" class="manual-link d-flex align-items-center py-2" id="logbookLink">
+                            <a href="logbook.php" class="manual-link d-flex align-items-center py-2" id="logbookLink">
                                 <i class="bi bi-journal-text me-2"></i>
                                 Logbook Aktivitas
                             </a>
-                            <a href="#" class="manual-link d-flex align-items-center py-2" id="historyLink">
+                            <a href="riwayat_absensi.php" class="manual-link d-flex align-items-center py-2" id="historyLink">
                                 <i class="bi bi-clock-history me-2"></i>
                                 Riwayat Absensi
                             </a>
@@ -658,7 +574,7 @@ $userProfile = [
                         <i class="bi <?php echo $buttonIcon; ?> me-2"></i>
                         <?php echo $buttonText; ?>
                     </button>
-                    <button class="btn btn-logout btn-lg" id="logoutBtn">
+                    <button class="btn btn-logout btn-lg" id="logoutBtn" onclick="window.location.href='../logout.php';">
                         <i class="bi bi-box-arrow-right me-2"></i>
                         Logout
                     </button>
@@ -680,15 +596,14 @@ $userProfile = [
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom JavaScript -->
+    <!-- Custom JavaScript - Load your existing files -->
     <script src="../assets/js/maps.js"></script>
     <script src="../assets/js/dashboard_pkl.js"></script>
+
+    <!--camera</body> -->
+    <script src="../assets/js/camera.js"></script>
     
     <script>
-        // Global variables
-        let locationUpdateInterval;
-        let timeUpdateInterval;
-        
         // Update current time every second
         function updateCurrentTime() {
             const now = new Date();
@@ -701,201 +616,150 @@ $userProfile = [
                 second: '2-digit',
                 hour12: true
             };
-            const timeElement = document.getElementById('currentTime');
-            if (timeElement) {
-                timeElement.textContent = now.toLocaleString('en-US', options);
-            }
+            document.getElementById('currentTime').textContent = now.toLocaleString('en-US', options);
         }
         
-                // Update location UI based on map data
-        function updateLocationUI(locationData) {
-            console.log('📊 Updating UI with location data:', locationData);
+        // Update time immediately and then every second
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+        
+        // Integration dengan maps.js yang sudah ada
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Dashboard loaded, waiting for maps.js integration...');
             
-            // Update GPS status
-            const gpsStatus = document.getElementById('gpsStatus');
-            if (gpsStatus) {
-                if (locationData.latitude && locationData.longitude) {
-                    gpsStatus.innerHTML = `
-                        <span class="status-indicator status-success"></span>
-                        Active
-                    `;
-                    gpsStatus.className = 'info-value text-success';
-                } else {
-                    gpsStatus.innerHTML = `
-                        <span class="status-indicator status-warning"></span>
-                        Searching...
-                    `;
-                    gpsStatus.className = 'info-value text-warning';
-                }
-            }
-            
-            // Update distance
-            const distanceElement = document.getElementById('distanceToOffice');
-            if (distanceElement && locationData.distance !== null) {
-                const distance = Math.round(locationData.distance);
-                distanceElement.textContent = distance + 'm';
-                distanceElement.className = locationData.isInRange ? 
-                    'info-value text-success' : 'info-value text-warning';
-            }
-            
-            // Update accuracy
-            const accuracyElement = document.getElementById('gpsAccuracy');
-            if (accuracyElement && locationData.accuracy) {
-                accuracyElement.textContent = '±' + Math.round(locationData.accuracy) + 'm';
-                accuracyElement.className = locationData.accuracy < 20 ? 
-                    'info-value text-success' : 'info-value text-warning';
-            }
-            
-            // Update coordinates
-            const coordinatesElement = document.getElementById('coordinates');
-            if (coordinatesElement && locationData.latitude && locationData.longitude) {
-                coordinatesElement.textContent = 
-                    `${locationData.latitude.toFixed(6)}, ${locationData.longitude.toFixed(6)}`;
-                coordinatesElement.className = 'info-value text-muted';
-            }
-            
-            // Update main location status
-            const locationStatus = document.getElementById('locationStatus');
-            if (locationStatus) {
-                locationStatus.classList.remove('loading-pulse');
+            // Listen untuk update dari maps.js (jika maps.js mengirim event)
+            document.addEventListener('locationUpdated', function(event) {
+                const { distance, isInRange, accuracy } = event.detail;
                 
-                if (locationData.isInRange) {
-                    locationStatus.textContent = 'Dalam Area Kantor';
-                    locationStatus.className = 'fw-bold text-success';
-                } else if (locationData.distance !== null) {
-                    locationStatus.textContent = 'Di Luar Area Kantor';
-                    locationStatus.className = 'fw-bold text-warning';
-                } else {
-                    locationStatus.textContent = 'Mencari Lokasi...';
-                    locationStatus.className = 'fw-bold text-info loading-pulse';
-                }
-            }
+                console.log('📍 Location updated from maps.js:', { distance, isInRange, accuracy });
+                
+                // Update GPS status
+                document.getElementById('gpsStatus').textContent = 'Active';
+                document.getElementById('gpsStatus').className = 'info-value success';
+                
+                // Update distance
+                document.getElementById('distanceToOffice').textContent = Math.round(distance) + 'm';
+                document.getElementById('distanceToOffice').className = isInRange ? 'info-value success' : 'info-value warning';
+                
+                // Update accuracy
+                document.getElementById('gpsAccuracy').textContent = Math.round(accuracy) + 'm';
+                document.getElementById('gpsAccuracy').className = 'info-value info';
+                
+                // Update location valid status
+                document.getElementById('locationValid').textContent = isInRange ? 'Dalam Area' : 'Di Luar Area';
+                document.getElementById('locationValid').className = isInRange ? 'info-value success' : 'info-value warning';
+                
+                // Update main location status
+                document.getElementById('locationStatus').textContent = isInRange ? 'Dalam Area Kantor' : 'Di Luar Area Kantor';
+                document.getElementById('locationStatus').className = isInRange ? 'fw-bold text-success' : 'fw-bold text-warning';
+                
+                // Update location options
+                updateLocationOptions(isInRange);
+                
+                // Update location info alert
+                updateLocationInfoAlert(isInRange, distance);
+            });
             
-            // Update office name
-            const officeName = document.getElementById('office-name');
-            if (officeName && locationData.officeName) {
-                officeName.textContent = locationData.officeName;
-                officeName.classList.remove('loading-pulse');
-            }
+            // Listen untuk error GPS dari maps.js
+            document.addEventListener('locationError', function(event) {
+                console.warn('❌ Location error from maps.js:', event.detail);
+                
+                document.getElementById('gpsStatus').textContent = 'Error';
+                document.getElementById('gpsStatus').className = 'info-value danger';
+                document.getElementById('locationStatus').textContent = 'GPS Tidak Tersedia';
+                document.getElementById('locationStatus').className = 'fw-bold text-danger';
+                document.getElementById('locationValid').textContent = 'Unknown';
+                document.getElementById('locationValid').className = 'info-value danger';
+                
+                // Show error in location info
+                document.getElementById('location-info').innerHTML = `
+                    <div class="alert alert-danger">
+                                            <strong>❌ GPS Error:</strong> ${event.detail.message || 'Tidak dapat mengakses lokasi'}
+                        <button class="btn btn-sm btn-outline-danger mt-2 w-100" onclick="refreshUserLocation()">
+                            🔄 Coba Lagi
+                        </button>
+                    </div>
+                `;
+            });
             
-            // Update location options (Office vs WFH)
-            updateLocationOptions(locationData.isInRange);
-            
-            // Update submit button state
-            updateSubmitButton(locationData.isInRange);
-        }
+            // Listen untuk office data loaded dari maps.js
+            document.addEventListener('officeDataLoaded', function(event) {
+                console.log('🏢 Office data loaded from maps.js:', event.detail);
+                
+                // Update location info
+                const office = event.detail;
+                document.getElementById('location-info').innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>🏢 ${office.name}</strong><br>
+                        <small>📍 ${office.address}<br>
+                        📏 Radius absensi: ${office.radius}m</small>
+                    </div>
+                `;
+            });
+        });
         
-        // Update location options (Office/WFH)
+        // Update location options based on GPS
         function updateLocationOptions(isInRange) {
             const officeOption = document.getElementById('officeOption');
             const wfhOption = document.getElementById('wfhOption');
             
-            if (officeOption && wfhOption) {
-                if (isInRange) {
-                    // Show office option, hide WFH
-                    officeOption.classList.remove('d-none');
-                    wfhOption.classList.add('d-none');
-                    
-                    // Select office option
-                    const officeCard = officeOption.querySelector('.option-card');
-                    const wfhCard = wfhOption.querySelector('.option-card');
-                    
-                    if (officeCard) officeCard.classList.add('selected');
-                    if (wfhCard) wfhCard.classList.remove('selected');
-                } else {
-                    // Show both options, select WFH
-                    officeOption.classList.remove('d-none');
-                    wfhOption.classList.remove('d-none');
-                    
-                    const officeCard = officeOption.querySelector('.option-card');
-                    const wfhCard = wfhOption.querySelector('.option-card');
-                    
-                    if (officeCard) officeCard.classList.remove('selected');
-                    if (wfhCard) wfhCard.classList.add('selected');
-                }
-            }
-        }
-        
-        // Update submit button based on location
-        function updateSubmitButton(isInRange) {
-            const submitBtn = document.getElementById('submitAbsen');
-            if (!submitBtn || submitBtn.disabled) return;
-            
-            const currentStatus = submitBtn.getAttribute('data-status');
-            
-            if (currentStatus !== 'completed') {
-                // Remove all button classes
-                submitBtn.classList.remove('btn-check-in', 'btn-check-out', 'btn-secondary');
+            if (isInRange) {
+                // Dalam area kantor - show office option, hide WFH
+                officeOption.classList.remove('d-none');
+                wfhOption.classList.add('d-none');
                 
-                if (isInRange) {
-                    // Enable button with appropriate style
-                    submitBtn.disabled = false;
-                    
-                    if (currentStatus === 'not_checked_in') {
-                        submitBtn.classList.add('btn-check-in');
-                        submitBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Click to Check In';
-                    } else if (currentStatus === 'checked_in') {
-                        submitBtn.classList.add('btn-check-out');
-                        submitBtn.innerHTML = '<i class="bi bi-box-arrow-right me-2"></i>Click to Check Out';
-                    }
-                } else {
-                    // Disable button when out of range
-                    submitBtn.disabled = true;
-                    submitBtn.classList.add('btn-secondary');
-                    submitBtn.innerHTML = '<i class="bi bi-ban me-2"></i>Di Luar Radius Kantor';
-                }
+                // Auto select office option
+                const officeCard = officeOption.querySelector('.option-card');
+                officeCard.classList.add('selected');
+                
+                // Remove selection from WFH
+                const wfhCard = wfhOption.querySelector('.option-card');
+                wfhCard.classList.remove('selected');
+                
+            } else {
+                // Di luar area kantor - show both options
+                officeOption.classList.remove('d-none');
+                wfhOption.classList.remove('d-none');
+                
+                // Auto select WFH option
+                const wfhCard = wfhOption.querySelector('.option-card');
+                wfhCard.classList.add('selected');
+                
+                // Remove selection from office
+                const officeCard = officeOption.querySelector('.option-card');
+                officeCard.classList.remove('selected');
             }
         }
         
-        // Handle location error
-        function handleLocationError(error) {
-            console.error('❌ Location error:', error);
-            
-            // Update GPS status
-            const gpsStatus = document.getElementById('gpsStatus');
-            if (gpsStatus) {
-                gpsStatus.innerHTML = `
-                    <span class="status-indicator status-danger"></span>
-                    Error
-                `;
-                gpsStatus.className = 'info-value text-danger';
-            }
-            
-            // Update main location status
-            const locationStatus = document.getElementById('locationStatus');
-            if (locationStatus) {
-                locationStatus.textContent = 'GPS Tidak Tersedia';
-                locationStatus.className = 'fw-bold text-danger';
-                locationStatus.classList.remove('loading-pulse');
-            }
-            
-            // Show error in location info
+        // Update location info alert
+        function updateLocationInfoAlert(isInRange, distance) {
             const locationInfo = document.getElementById('location-info');
-            if (locationInfo) {
-                let errorMessage = 'Terjadi kesalahan saat mengambil lokasi: ';
-                
-                switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                        errorMessage += 'Izin lokasi ditolak. Silakan aktifkan GPS dan berikan izin lokasi.';
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        errorMessage += 'Informasi lokasi tidak tersedia.';
-                        break;
-                    case error.TIMEOUT:
-                        errorMessage += 'Permintaan lokasi timeout. Coba refresh halaman.';
-                        break;
-                    default:
-                        errorMessage += 'Kesalahan tidak diketahui.';
-                        break;
-                }
-                
+            
+            if (isInRange) {
                 locationInfo.innerHTML = `
-                    <div class="alert alert-danger">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
+                    <div class="alert alert-success">
+                        <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <strong>Error GPS:</strong><br>
-                                <small>${errorMessage}</small>
+                                <strong>✅ Dalam Area Kantor</strong><br>
+                                <small>📏 Jarak: ${Math.round(distance)}m dari kantor</small>
+                            </div>
+                            <div class="text-end">
+                                <i class="bi bi-check-circle-fill" style="font-size: 2rem; color: #28a745;"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                locationInfo.innerHTML = `
+                    <div class="alert alert-warning">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <strong>⚠️ Di Luar Area Kantor</strong><br>
+                                <small>📏 Jarak: ${Math.round(distance)}m dari kantor<br>
+                                💼 Anda dapat memilih Work From Home</small>
+                            </div>
+                            <div class="text-end">
+                                <i class="bi bi-exclamation-triangle-fill" style="font-size: 2rem; color: #ffc107;"></i>
                             </div>
                         </div>
                     </div>
@@ -903,219 +767,288 @@ $userProfile = [
             }
         }
         
-        // Initialize dashboard
-        function initializeDashboard() {
-            console.log('🚀 Initializing dashboard...');
-            
-            // Start time updates
-            updateCurrentTime();
-            timeUpdateInterval = setInterval(updateCurrentTime, 1000);
-            
-            // Wait for map to be ready
-            let mapCheckInterval = setInterval(() => {
-                if (window.attendanceMap && window.attendanceMap.officeLocation) {
-                    console.log('✅ AttendanceMap ready, starting location updates...');
-                    clearInterval(mapCheckInterval);
-                    
-                    // Start location updates
-                    locationUpdateInterval = setInterval(() => {
-                        if (window.attendanceMap) {
-                            const locationData = window.attendanceMap.getCurrentLocationForAttendance();
-                            if (locationData) {
-                                updateLocationUI(locationData);
-                            }
-                        }
-                    }, 1000);
-                    
-                } else {
-                    console.log('⏳ Waiting for AttendanceMap...');
-                }
-            }, 500);
-            
-            // Clear interval after 30 seconds if map doesn't load
-            setTimeout(() => {
-                clearInterval(mapCheckInterval);
-                if (!window.attendanceMap) {
-                    console.error('❌ AttendanceMap failed to load within 30 seconds');
-                    handleLocationError({ code: 0, message: 'Map initialization timeout' });
-                }
-            }, 30000);
-        }
-        
-        // Option card selection handlers
-        function initializeOptionCards() {
-            // Health condition selection
-            document.querySelectorAll('[data-type="condition"]').forEach(card => {
-                card.addEventListener('click', function() {
-                    if (this.classList.contains('disabled')) return;
-                    
-                    // Remove selected from all condition cards
-                    document.querySelectorAll('[data-type="condition"]').forEach(c => 
-                        c.classList.remove('selected'));
-                    
-                    // Add selected to clicked card
-                    this.classList.add('selected');
-                });
-            });
-            
-            // Location selection (if manual selection is needed)
-            document.querySelectorAll('[data-type="location"]').forEach(card => {
-                card.addEventListener('click', function() {
-                    if (this.classList.contains('disabled')) return;
-                    
-                    // Remove selected from all location cards
-                    document.querySelectorAll('[data-type="location"]').forEach(c => 
-                        c.classList.remove('selected'));
-                    
-                    // Add selected to clicked card
-                    this.classList.add('selected');
-                });
-            });
-        }
-        
-        // Form validation
-        function validateForm() {
-            const currentStatus = document.getElementById('submitAbsen').getAttribute('data-status');
-            
-            if (currentStatus === 'checked_in') {
-                const activity = document.getElementById('activity').value.trim();
-                if (!activity) {
-                    showAlert('Aktivitas harus diisi untuk check out!', 'warning');
-                    return false;
-                }
-            }
-            
-            return true;
-        }
-        
-        // Show alert function
-        function showAlert(message, type = 'info') {
-            const alertContainer = document.getElementById('alertContainer');
-            if (!alertContainer) return;
-            
-            const alertId = 'alert-' + Date.now();
-            const alertHTML = `
-                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
-                    <i class="bi bi-${type === 'success' ? 'check-circle' : 
-                        type === 'warning' ? 'exclamation-triangle' : 
-                        type === 'danger' ? 'x-circle' : 'info-circle'} me-2"></i>
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-            
-            alertContainer.insertAdjacentHTML('beforeend', alertHTML);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                const alert = document.getElementById(alertId);
-                if (alert) {
-                    alert.remove();
-                }
-            }, 5000);
-        }
-        
-        // Event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🎯 DOM loaded, initializing dashboard...');
-            
-            // Initialize dashboard
-            initializeDashboard();
-            
-            // Initialize option cards
-            initializeOptionCards();
-            
-            // Submit button handler
-            const submitBtn = document.getElementById('submitAbsen');
-            if (submitBtn) {
-                submitBtn.addEventListener('click', function() {
-                    if (this.disabled) return;
-                    
-                    if (validateForm()) {
-                        // Here you would normally submit the form
-                        console.log('📝 Form submitted');
-                        showAlert('Absensi berhasil disimpan!', 'success');
-                    }
-                });
-            }
-            
-            // Logout button handler
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
-                    if (confirm('Apakah Anda yakin ingin logout?')) {
-                        window.location.href = '../logout.php';
-                    }
-                });
-            }
-            
-           // Quick action handlers - Direct navigation to PHP files
-document.getElementById('logbookLink')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    
-    // Show loading indicator
-    this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Membuka Logbook...';
-    this.style.opacity = '0.7';
-    this.style.pointerEvents = 'none';
-    
-    // Redirect to logbook.php
-    setTimeout(() => {
-        window.location.href = 'logbook.php';
-    }, 500);
-});
-
-document.getElementById('historyLink')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    
-    // Show loading indicator
-    this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Membuka Riwayat...';
-    this.style.opacity = '0.7';
-    this.style.pointerEvents = 'none';
-    
-    // Redirect to riwayat_absen.php
-    setTimeout(() => {
-        window.location.href = 'riwayat_absensi.php';
-    }, 500);
-});
-
-        });
-        
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            if (locationUpdateInterval) {
-                clearInterval(locationUpdateInterval);
-            }
-            if (timeUpdateInterval) {
-                clearInterval(timeUpdateInterval);
-            }
-            
-            if (window.attendanceMap && typeof window.attendanceMap.destroy === 'function') {
-                window.attendanceMap.destroy();
+        // Handle location option clicks
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.location-option') && !e.target.closest('.disabled')) {
+                const clickedCard = e.target.closest('.location-option');
+                const allLocationCards = document.querySelectorAll('.location-option');
+                
+                // Remove selected class from all cards
+                allLocationCards.forEach(card => card.classList.remove('selected'));
+                
+                // Add selected class to clicked card
+                clickedCard.classList.add('selected');
+                
+                console.log('📍 Location option selected:', clickedCard.dataset.value);
             }
         });
         
-        // Handle visibility change (when user switches tabs)
-        document.addEventListener('visibilitychange', function() {
-            if (document.hidden) {
-                // Page is hidden, pause updates
-                if (locationUpdateInterval) {
-                    clearInterval(locationUpdateInterval);
-                }
+        // Global functions untuk dipanggil dari button atau maps.js
+        window.refreshUserLocation = function() {
+            console.log('🔄 Refreshing user location from dashboard...');
+            // Panggil function dari maps.js jika tersedia
+            if (typeof getUserLocation === 'function') {
+                getUserLocation();
+            } else if (typeof refreshLocation === 'function') {
+                refreshLocation();
             } else {
-                // Page is visible, resume updates
-                if (window.attendanceMap && !locationUpdateInterval) {
-                    locationUpdateInterval = setInterval(() => {
-                        const locationData = window.attendanceMap.getCurrentLocationForAttendance();
-                        if (locationData) {
-                            updateLocationUI(locationData);
-                        }
-                    }, 1000);
-                }
+                console.warn('⚠️ No refresh function found in maps.js');
             }
-        });
+        };
         
-        console.log('✅ Dashboard script loaded successfully');
+        window.centerToOffice = function() {
+            console.log('🏢 Centering to office from dashboard...');
+            // Panggil function dari maps.js jika tersedia
+            if (typeof centerMapToOffice === 'function') {
+                centerMapToOffice();
+            } else if (typeof centerToOffice === 'function') {
+                centerToOffice();
+            } else {
+                console.warn('⚠️ No center to office function found in maps.js');
+            }
+        };
+        
+        window.checkLocation = function() {
+            console.log('📏 Checking location from dashboard...');
+            // Panggil function dari maps.js jika tersedia
+            if (typeof checkUserLocation === 'function') {
+                checkUserLocation();
+            } else if (typeof calculateDistance === 'function') {
+                calculateDistance();
+            } else {
+                console.warn('⚠️ No check location function found in maps.js');
+                alert('⚠️ Fungsi cek lokasi tidak tersedia. Pastikan maps.js sudah dimuat dengan benar.');
+            }
+        };
+        
+        // Helper function untuk debugging
+        window.debugMapsIntegration = function() {
+            console.log('🔍 Debug Maps Integration:');
+            console.log('- maps.js loaded:', typeof map !== 'undefined');
+            console.log('- getUserLocation available:', typeof getUserLocation === 'function');
+            console.log('- centerToOffice available:', typeof centerToOffice === 'function');
+            console.log('- checkLocation available:', typeof checkLocation === 'function');
+            console.log('- Current location status:', document.getElementById('locationStatus').textContent);
+            console.log('- GPS status:', document.getElementById('gpsStatus').textContent);
+        };
+        
+        // Auto debug setelah 3 detik untuk memastikan maps.js sudah load
+        setTimeout(() => {
+            if (typeof console !== 'undefined' && console.log) {
+                debugMapsIntegration();
+            }
+        }, 3000);
     </script>
+
+    <script>
+// Enhanced integration dengan maps.js
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Dashboard loaded, integrating with maps...');
+    
+    // Tunggu maps.js load
+    setTimeout(function() {
+        // Cek apakah maps.js sudah load
+        if (typeof map !== 'undefined') {
+            console.log('✅ Maps.js detected, setting up integration...');
+            
+            // Override atau extend fungsi di maps.js
+            setupMapsIntegration();
+        } else {
+            console.warn('⚠️ Maps.js not detected, retrying...');
+            // Retry setelah 2 detik
+            setTimeout(arguments.callee, 2000);
+        }
+    }, 1000);
+});
+
+function setupMapsIntegration() {
+    // Monitor perubahan lokasi
+    if (typeof userLocation !== 'undefined' && userLocation) {
+        updateLocationInfo(userLocation);
+    }
+    
+    // Monitor perubahan jarak
+    if (typeof distanceToOffice !== 'undefined' && distanceToOffice) {
+        updateDistanceInfo(distanceToOffice);
+    }
+    
+    // Set interval untuk update berkala
+    setInterval(function() {
+        if (typeof userLocation !== 'undefined' && typeof officeLocation !== 'undefined') {
+            // Hitung jarak terbaru
+            const distance = calculateDistanceFromCoords(
+                userLocation.lat, userLocation.lng,
+                officeLocation.lat, officeLocation.lng
+            );
+            
+            const isInRange = distance <= (officeLocation.radius || 100);
+            const accuracy = userLocation.accuracy || 0;
+            
+            // Update UI
+            updateLocationUI(distance, isInRange, accuracy);
+        }
+    }, 3000); // Update setiap 3 detik
+}
+
+function updateLocationUI(distance, isInRange, accuracy) {
+    // Update Status GPS
+    const gpsStatus = document.getElementById('gpsStatus');
+    if (gpsStatus) {
+        gpsStatus.textContent = 'Active';
+        gpsStatus.className = 'info-value success';
+    }
+    
+    // Update Jarak ke Kantor
+    const distanceElement = document.getElementById('distanceToOffice');
+    if (distanceElement) {
+        distanceElement.textContent = Math.round(distance) + 'm';
+        distanceElement.className = isInRange ? 'info-value success' : 'info-value warning';
+    }
+    
+    // Update Akurasi GPS
+    const accuracyElement = document.getElementById('gpsAccuracy');
+    if (accuracyElement) {
+        accuracyElement.textContent = Math.round(accuracy) + 'm';
+        accuracyElement.className = 'info-value info';
+    }
+    
+    // Update Lokasi Valid
+    const locationValid = document.getElementById('locationValid');
+    if (locationValid) {
+        locationValid.textContent = isInRange ? 'Dalam Area' : 'Di Luar Area';
+        locationValid.className = isInRange ? 'info-value success' : 'info-value warning';
+    }
+    
+    // Update Location Status di header
+    const locationStatus = document.getElementById('locationStatus');
+    if (locationStatus) {
+        locationStatus.textContent = isInRange ? 'Dalam Area Kantor' : 'Di Luar Area Kantor';
+        locationStatus.className = isInRange ? 'fw-bold text-success' : 'fw-bold text-warning';
+    }
+    
+    // Update location options
+    updateLocationOptions(isInRange);
+    
+    // Update location info alert
+    updateLocationInfoAlert(isInRange, distance);
+    
+    console.log('📍 UI Updated:', { distance: Math.round(distance), isInRange, accuracy: Math.round(accuracy) });
+}
+
+function calculateDistanceFromCoords(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c; // Distance in meters
+}
+
+// Override button functions
+window.refreshUserLocation = function() {
+    console.log('🔄 Refreshing location...');
+    
+    // Update status
+    document.getElementById('gpsStatus').textContent = 'Refreshing...';
+    document.getElementById('gpsStatus').className = 'info-value warning';
+    
+    // Panggil function dari maps.js
+    if (typeof getUserLocation === 'function') {
+        getUserLocation();
+    } else if (typeof getLocation === 'function') {
+        getLocation();
+    } else {
+        // Fallback: get location manually
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    console.log('📍 Location refreshed:', position.coords);
+                    // Update maps.js variables if available
+                    if (typeof userLocation !== 'undefined') {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        };
+                    }
+                },
+                function(error) {
+                    console.error('❌ Location refresh failed:', error);
+                    document.getElementById('gpsStatus').textContent = 'Error';
+                    document.getElementById('gpsStatus').className = 'info-value danger';
+                }
+            );
+        }
+    }
+};
+
+window.centerToOffice = function() {
+    console.log('🏢 Centering to office...');
+    if (typeof map !== 'undefined' && typeof officeLocation !== 'undefined') {
+        map.setView([officeLocation.lat, officeLocation.lng], 18);
+    }
+};
+
+window.checkLocation = function() {
+    console.log('📏 Checking location...');
+    if (typeof userLocation !== 'undefined' && typeof officeLocation !== 'undefined') {
+        const distance = calculateDistanceFromCoords(
+            userLocation.lat, userLocation.lng,
+            officeLocation.lat, officeLocation.lng
+        );
+        
+        const isInRange = distance <= (officeLocation.radius || 100);
+        
+        alert(`📍 Jarak Anda ke kantor: ${Math.round(distance)}m\n${isInRange ? '✅ Dalam area kantor' : '❌ Di luar area kantor'}`);
+        
+        // Update UI
+        updateLocationUI(distance, isInRange, userLocation.accuracy || 0);
+    } else {
+        alert('⚠️ Data lokasi belum tersedia. Coba refresh lokasi terlebih dahulu.');
+    }
+};
+
+// Force update setelah 5 detik
+setTimeout(function() {
+    console.log('🔄 Force updating location info...');
+    
+    // Cek apakah ada data dari maps.js
+    if (typeof userLocation !== 'undefined' && typeof officeLocation !== 'undefined') {
+        const distance = calculateDistanceFromCoords(
+            userLocation.lat, userLocation.lng,
+            officeLocation.lat, officeLocation.lng
+        );
+        
+        const isInRange = distance <= (officeLocation.radius || 100);
+        const accuracy = userLocation.accuracy || 0;
+        
+        updateLocationUI(distance, isInRange, accuracy);
+    } else {
+        // Jika belum ada data, coba ambil dari elemen yang ada
+        const mapAlert = document.querySelector('.leaflet-control-container');
+        if (mapAlert) {
+            console.log('📍 Map detected, trying to extract location data...');
+            
+            // Coba parse dari text yang ada
+            const alertText = document.body.innerText;
+            const distanceMatch = alertText.match(/(\d+)m\)/);
+            
+            if (distanceMatch) {
+                const distance = parseInt(distanceMatch[1]);
+                const isInRange = distance <= 100; // Asumsi radius 100m
+                
+                updateLocationUI(distance, isInRange, 50); // Asumsi akurasi 50m
+            }
+        }
+    }
+}, 5000);
+</script>
 </body>
 </html>
 
