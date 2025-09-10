@@ -265,8 +265,14 @@ function calculateDistance() {
     
     // Update UI dengan info jarak
     updateDistanceInfo(distance, isInRange);
+
+    // Dispatch event setelah berhasil hitung
+    document.dispatchEvent(new CustomEvent('locationUpdated', {
+        detail: { distance, isInRange, accuracy }
+    }));
     
     return { distance, isInRange };
+
 }
 
 // Update info jarak di UI
@@ -438,14 +444,14 @@ window.addEventListener('beforeunload', function() {
 });
 
 // Di maps.js, dispatch events seperti ini:
-document.dispatchEvent(new CustomEvent('locationUpdated', {
-    detail: { distance, isInRange, accuracy }
-}));
+// document.dispatchEvent(new CustomEvent('locationUpdated', {
+//     detail: { distance, isInRange, accuracy }
+// }));
 
-document.dispatchEvent(new CustomEvent('locationError', {
-    detail: { message: 'Error message' }
-}));
+// document.dispatchEvent(new CustomEvent('locationError', {
+//     detail: { message: 'Error message' }
+// }));
 
-document.dispatchEvent(new CustomEvent('officeDataLoaded', {
-    detail: officeData
-}));
+// document.dispatchEvent(new CustomEvent('officeDataLoaded', {
+//     detail: officeData
+// }));
