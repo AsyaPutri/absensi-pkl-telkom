@@ -312,11 +312,12 @@ if ($userId) {
     <div class="welcome-banner text-center">
         <div class="container">
             <i class="bi bi-clock me-2"></i>
-            Current Time: <span id="currentTime"><?php echo date('n/j/Y, g:i:s A'); ?></span><br>
+                Current Time: <span id="currentTime"></span><br>
             <i class="bi bi-geo-alt me-2"></i>
-            Location Status: <span id="locationStatus" class="fw-bold">Checking...</span>
+                Location Status: <span id="locationStatus" class="fw-bold">Checking...</span>
         </div>
     </div>
+
 
     <!-- Main Content -->
     <div class="container my-4">
@@ -340,7 +341,7 @@ if ($userId) {
                             </div>
 
                             <!-- Location Info Alert - Will be updated by maps.js -->
-                            <div id="location-info" class="alert alert-info">
+                            <div id="mapStatus" class="alert alert-info">
                                 <div class="d-flex align-items-center">
                                     <div class="loading-spinner me-2"></div>
                                     <strong>📍 Status:</strong> Memuat data lokasi kantor dan mendeteksi posisi Anda...
