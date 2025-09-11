@@ -22,8 +22,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Data Peserta PKL - Telkom Indonesia</title>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
   <style>
     :root {
       --telkom-red: #cc0000;
@@ -58,7 +60,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       transition: 0.3s;
       text-decoration: none;
     }
-    .sidebar a.active, 
+    .sidebar a.active,
     .sidebar a:hover {
       background-color: rgba(255,255,255,0.15);
       color: #fff !important;
@@ -68,8 +70,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
     .sidebar-overlay {
       display: none;
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      top: 0; 
+      left: 0;
+      width: 100%; 
+      height: 100%;
       background: rgba(0,0,0,0.5);
       z-index: 900;
     }
@@ -155,31 +159,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
     </div>
     <hr class="text-white-50">
     <ul class="nav flex-column">
-      <li>
-        <a href="dashboard.php" class="nav-link <?= ($current_page=='dashboard.php')?'active':'' ?>">
-          <i class="bi bi-house-door me-2"></i> Beranda
-        </a>
-      </li>
-      <li>
-        <a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>">
-          <i class="bi bi-journal-text me-2"></i> Data Daftar PKL
-        </a>
-      </li>
-      <li>
-        <a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>">
-          <i class="bi bi-people me-2"></i> Data Peserta
-        </a>
-      </li>
-      <li>
-        <a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>">
-          <i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi
-        </a>
-      </li>
-      <li>
-        <a href="../logout.php" class="nav-link">
-          <i class="bi bi-box-arrow-right me-2"></i> Logout
-        </a>
-      </li>
+      <li><a href="dashboard.php" class="nav-link <?= ($current_page=='dashboard.php')?'active':'' ?>"><i class="bi bi-house-door me-2"></i> Beranda</a></li>
+      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar PKL</a></li>
+      <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
+      <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
+      <li><a href="data_kegiatan.php" class="nav-link <?= ($current_page=='data_kegiatan.php')?'active':'' ?>"><i class="bi bi-clipboard-data me-2"></i> Data_Kegiatan</a></li>
+      <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
     </ul>
   </div>
 
@@ -221,7 +206,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <th>Unit</th>
                 <th>Periode</th>
                 <th>Status</th>
-                <th>Dokumen</th>
                 <th>Aksi</th>
               </tr>
             </thead>
@@ -246,8 +230,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                       <?php endif; ?>
                     </td>
                     <td class="text-center">
-                    </td>
-                    <td class="text-center">
                       <?php if($row['status']=='berlangsung' && date('Y-m-d') <= $row['tgl_selesai']): ?>
                         <!-- Tombol ubah jadi selesai -->
                         <form action="ubah_status.php" method="POST" style="display:inline;">
@@ -256,14 +238,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <i class="bi bi-check2-circle"></i> Selesai
                           </button>
                         </form>
-                      <?php else: ?>
-                        <!-- Tombol download surat & sertifikat -->
-                        <a href="generate_surat.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-primary">
-                          <i class="bi bi-file-earmark-text"></i> Surat
-                        </a>
-                        <a href="generate_sertifikat.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-success">
-                          <i class="bi bi-award"></i> Sertifikat
-                        </a>
                       <?php endif; ?>
                     </td>
                   </tr>

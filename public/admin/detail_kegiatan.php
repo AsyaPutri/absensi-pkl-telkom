@@ -1,41 +1,27 @@
-<?php 
-include "../../includes/auth.php"; 
-checkRole('admin'); 
+<?php
 include "../../config/database.php";
 
-// ==========================
-// Hitung data statistik
-// ==========================
-$pending = $conn->query("SELECT COUNT(*) as total 
-                         FROM daftar_pkl 
-                         WHERE status='pending'")
-                ->fetch_assoc()['total'] ?? 0;
+$user_id = $_GET['user_id'];
+$bulan   = $_GET['bulan'];
+$tahun   = $_GET['tahun'];
 
-$sedang = $conn->query("SELECT COUNT(*) as total 
-                        FROM peserta_pkl 
-                        WHERE status='berlangsung'")
-                ->fetch_assoc()['total'] ?? 0;
-
-$selesai = $conn->query("SELECT COUNT(*) as total 
-                         FROM peserta_pkl 
-                         WHERE status='selesai'")
-                ->fetch_assoc()['total'] ?? 0;
-
-$total_peserta = $conn->query("SELECT COUNT(*) as total 
-                               FROM peserta_pkl")
-                      ->fetch_assoc()['total'] ?? 0;
-
-// Ambil nama file halaman yang sedang dibuka 
-$current_page = basename($_SERVER['PHP_SELF']); 
+// --- Data Mahasiswa ---
+$q = "SELECT id, nama, nis_npm, instansi_pendidikan, unit 
+      FROM peserta_pkl 
+      WHERE id='$user_id'";
+$res = mysqli_query($conn, $q);
+if (!$res) {
+    die("Query Error: " . mysqli_error($conn) . "<br>Query: " . $q);
+}
+$mahasiswa = mysqli_fetch_assoc($res);
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Admin PKL - Telkom Indonesia</title>
-  
+
   <!-- Bootstrap & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
@@ -92,10 +78,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
     .sidebar-overlay {
       display: none;
       position: fixed;
-      top:0;
-      left:0;
-      width:100%;
-      height:100%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background: rgba(0,0,0,0.5);
       z-index: 900;
     }
@@ -125,32 +111,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
       width: auto;
     }
 
-    /* ==========================
-       Card Statistik
-    ========================== */
-    .stats-card {
-      border: none;
-      border-radius: 20px;
-      transition: 0.3s;
-    }
-    .stats-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    }
-    .card-number {
-      font-size: 3rem;
-      font-weight: bold;
-    }
-
-    /* ==========================
-       Welcome Card
-    ========================== */
-    .welcome-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 20px;
-      color: white;
-      padding: 2rem;
-      margin-bottom: 2rem;
+    .table-header-red th {
+      background-color: #cc0000 !important; /* Merah Telkom */
+      color: #fff !important;              /* Tulisan putih */
     }
 
     /* ==========================
@@ -191,7 +154,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
       <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
       <li><a href="data_kegiatan.php" class="nav-link <?= ($current_page=='data_kegiatan.php')?'active':'' ?>"><i class="bi bi-clipboard-data me-2"></i> Data_Kegiatan</a></li>
-      <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page== 'riwayat_peserta.php') ?'active':'' ?> "><i class="bi bi-clock-history me-2"></i> Riwayat Peserta</a></li>
       <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
     </ul>
   </div>
@@ -213,67 +175,98 @@ $current_page = basename($_SERVER['PHP_SELF']);
       <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
     </div>
 
-    <div class="container-fluid p-4">
-      <!-- Statistik -->
-      <div class="row g-4">
-        <div class="col-lg-3 col-md-6 col-12">
-          <div class="card stats-card bg-success text-white text-center p-3">
-            <h6>Sedang Berlangsung</h6>
-            <div class="card-number"><?= $sedang ?></div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6 col-12">
-          <div class="card stats-card bg-warning text-dark text-center p-3">
-            <h6>Menunggu Persetujuan</h6>
-            <div class="card-number"><?= $pending ?></div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6 col-12">
-          <div class="card stats-card bg-info text-white text-center p-3">
-            <h6>Telah Selesai</h6>
-            <div class="card-number"><?= $selesai ?></div>
-          </div>
-        </div>
+    <!-- Rincian Kegiatan -->
+    <div class="container my-4">
+      <h4>Rincian Kegiatan: <?= $mahasiswa['nama'] ?></h4>
+      <p>
+        NIM: <?= $mahasiswa['nis_npm'] ?> | 
+        Universitas: <?= $mahasiswa['instansi_pendidikan'] ?> | 
+        Unit: <?= $mahasiswa['unit'] ?>
+      </p>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover text-center align-middle">
+          <thead class="table-header-red">
+            <tr>
+              <th>Tanggal</th>
+              <th>Jam Masuk</th>
+              <th>Aktivitas Masuk</th>
+              <th>Kendala Masuk</th>
+              <th>Jam Keluar</th>
+              <th>Aktivitas Keluar</th>
+              <th>Kendala Keluar</th>
+              <th>Lokasi Kerja</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php
+            $q2 = "SELECT tanggal, jam_masuk, aktivitas_masuk, kendala_masuk,
+                          jam_keluar, aktivitas_keluar, kendala_keluar, lokasi_kerja
+                   FROM absen
+                   WHERE user_id='$user_id'
+                     AND MONTH(tanggal)='$bulan'
+                     AND YEAR(tanggal)='$tahun'
+                   ORDER BY tanggal ASC";
+            $result = mysqli_query($conn, $q2);
+
+            if (!$result) {
+                echo "<tr><td colspan='8' class='text-danger'>Query Error: " . mysqli_error($conn) . "</td></tr>";
+            } else {
+                while ($row = mysqli_fetch_assoc($result)) { ?>
+                  <tr>
+                    <td><?= $row['tanggal'] ?></td>
+                    <td><?= $row['jam_masuk'] ?></td>
+                    <td><?= $row['aktivitas_masuk'] ?></td>
+                    <td><?= $row['kendala_masuk'] ?></td>
+                    <td><?= $row['jam_keluar'] ?></td>
+                    <td><?= $row['aktivitas_keluar'] ?></td>
+                    <td><?= $row['kendala_keluar'] ?></td>
+                    <td><?= $row['lokasi_kerja'] ?></td>
+                  </tr>
+                <?php }
+            }
+            ?>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
+   <!-- Bootstrap JS -->
+   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Sidebar Toggle Script -->
+<script>
+  const menuToggle = document.getElementById('menuToggle');
+  const sidebar = document.getElementById('sidebarMenu');
+  const overlay = document.getElementById('sidebarOverlay');
 
-  <!-- Sidebar Toggle Script -->
-  <script>
-    const menuToggle = document.getElementById('menuToggle');
-    const sidebar = document.getElementById('sidebarMenu');
-    const overlay = document.getElementById('sidebarOverlay');
+  if(menuToggle){
+    menuToggle.addEventListener('click', ()=>{
+      sidebar.classList.toggle('active');
+      overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+      
+      // Sembunyikan tombol saat sidebar aktif
+      menuToggle.style.display = sidebar.classList.contains('active') ? 'none' : 'inline-block';
+    });
+  }
+  if(overlay){
+    overlay.addEventListener('click', ()=>{
+      sidebar.classList.remove('active');
+      overlay.style.display = 'none';
+      menuToggle.style.display = 'inline-block';
+    });
+  }
 
-    if(menuToggle){
-      menuToggle.addEventListener('click', ()=>{
-        sidebar.classList.toggle('active');
-        overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
-        
-        // Sembunyikan tombol saat sidebar aktif
-        menuToggle.style.display = sidebar.classList.contains('active') ? 'none' : 'inline-block';
-      });
-    }
-    if(overlay){
-      overlay.addEventListener('click', ()=>{
+  // Tutup sidebar otomatis setelah klik menu di mobile
+  document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 768) {
         sidebar.classList.remove('active');
         overlay.style.display = 'none';
         menuToggle.style.display = 'inline-block';
-      });
-    }
-
-    // Tutup sidebar otomatis setelah klik menu di mobile
-    document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-      link.addEventListener('click', () => {
-        if (window.innerWidth <= 768) {
-          sidebar.classList.remove('active');
-          overlay.style.display = 'none';
-          menuToggle.style.display = 'inline-block';
-        }
-      });
+      }
     });
-  </script>
+  });
+</script>
 </body>
 </html>

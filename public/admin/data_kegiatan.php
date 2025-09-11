@@ -1,10 +1,9 @@
-<?php
-include "../../includes/auth.php";
-checkRole('admin');
-
-// untuk highlight menu aktif
-$current_page = basename($_SERVER['PHP_SELF']);
+<?php 
+include "../../includes/auth.php"; 
+checkRole('admin'); 
+include "../../config/database.php";
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -100,10 +99,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
       height: 80px;
       width: auto;
     }
-
+    
     .table-header-red th {
-        background-color: #cc0000 !important; /* Merah Telkom */
-        color: #fff !important;              /* Tulisan putih */
+      background-color: #cc0000 !important; /* Merah Telkom */
+      color: #fff !important;              /* Tulisan putih */
     }
 
     /* ==========================
@@ -143,7 +142,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar PKL</a></li>
       <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
-      <li><a href="data_kegiatan.php" class="nav-link <?= ($current_page=='data_kegiatan.php')?'active':'' ?>"><i class="bi bi-clipboard-data me-2"></i> Data_Kegiatan</a></li>
+      <li><a href="absensi.php" class="nav-link <?= ($current_page=='data_kegiatan.php')?'active':'' ?>"><i class="bi bi-clipboard-data me-2"></i> Data_Kegiatan</a></li>
       <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
     </ul>
   </div>
@@ -164,128 +163,148 @@ $current_page = basename($_SERVER['PHP_SELF']);
       </div>
       <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
     </div>
-
-    <!-- Filter Card -->
-    <div class="card mb-3">
-      <div class="card-body">
-        <form id="filterForm" class="row g-2 align-items-end">
-          <div class="col-md-3">
-            <label class="form-label small">Tanggal Awal</label>
-            <input type="date" name="tgl_awal" class="form-control" required>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label small">Tanggal Akhir</label>
-            <input type="date" name="tgl_akhir" class="form-control" required>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label small">Unit</label>
-            <select name="unit" class="form-select">
-              <option value="">Semua Unit</option>
-              <!-- Isi opsi dari DB -->
-            </select>
-          </div>
-          <div class="col-md-3 d-flex gap-2">
-            <button type="submit" class="btn btn-danger">
-              <i class="bi bi-filter"></i> Filter
-            </button>
-            <button type="button" id="resetBtn" class="btn btn-outline-secondary">Reset</button>
-            <button type="button" id="exportCsv" class="btn btn-outline-success ms-auto">
-              <i class="bi bi-download"></i> Export CSV
-            </button>
-          </div>
-        </form>
+    <div class="card shadow-sm mt-4">
+  <div class="card-header bg-danger text-white">
+    <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i> Rekap Data Kegiatan PKL</h5>
+  </div>
+  <div class="card-body">
+    <!-- Filter -->
+    <form method="GET" class="row g-3 mb-3">
+      <div class="col-md-3">
+        <label class="form-label">Bulan</label>
+        <select name="bulan" class="form-select">
+          <?php for($m=1;$m<=12;$m++): ?>
+            <option value="<?= $m ?>" <?= ($m==($_GET['bulan'] ?? date('m'))) ? 'selected':'' ?>>
+              <?= date("F", mktime(0,0,0,$m,10)) ?>
+            </option>
+          <?php endfor; ?>
+        </select>
       </div>
-    </div>
+      <div class="col-md-2">
+        <label class="form-label">Tahun</label>
+        <select name="tahun" class="form-select">
+          <?php for($y=date('Y');$y>=2022;$y--): ?>
+            <option value="<?= $y ?>" <?= ($y==($_GET['tahun'] ?? date('Y'))) ? 'selected':'' ?>>
+              <?= $y ?>
+            </option>
+          <?php endfor; ?>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Unit</label>
+        <select name="unit" class="form-select">
+          <option value="">Semua Unit</option>
+          <?php
+          $units = mysqli_query($conn,"SELECT DISTINCT unit FROM peserta_pkl");
+          while($u=mysqli_fetch_assoc($units)){
+            $selected = ($u['unit']==($_GET['unit']??'')) ? 'selected':''; 
+            echo "<option value='{$u['unit']}' $selected>{$u['unit']}</option>";
+          }
+          ?>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-danger w-100">
+          <i class="bi bi-search"></i> Tampilkan
+        </button>
+      </div>
+    </form>
 
     <!-- Tabel Rekap -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-white">
-            <h5 class="fw-bold text-danger mb-0"><i class="bi bi-calendar-check me-2"></i> Data Rekap Absensi</h5>
-        </div>
-    </div>
-    <div class="card">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover text-center align-middle" id="rekapTable">
-            <thead class="table-header-red">
-              <tr>
-                <th>No</th>
-                <th>Nama</th>
-                <th>Unit</th>
-                <th>Tgl Mulai</th>
-                <th>Tgl Selesai</th>
-                <th>Hari Kerja</th>
-                <th>Hadir</th>
-                <th>Izin</th>
-                <th>Sakit</th>
-                <th>Alpha</th>
-                <th>% Kehadiran</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="rekapBody">
-              <!-- Diisi oleh server / AJAX -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover text-center align-middle">
+        <thead class="table-header-red">
+          <tr>
+            <th>Nama</th>
+            <th>NIM</th>
+            <th>Universitas</th>
+            <th>Unit Kerja</th>
+            <th>Jumlah Hari Kerja</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php
+          $bulan = $_GET['bulan'] ?? date('m');
+          $tahun = $_GET['tahun'] ?? date('Y');
+          $unit = $_GET['unit'] ?? '';
 
-    <!-- Modal Detail -->
-    <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">
-              Detail Rekap: <span id="modalNama"></span>
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <div class="table-responsive">
-              <table class="table table-sm">
-                <thead>
-                  <tr>
-                    <th>Tanggal</th>
-                    <th>Hari</th>
-                    <th>Jam Masuk</th>
-                    <th>Jam Keluar</th>
-                    <th>Status</th>
-                    <th>Keterangan</th>
-                  </tr>
-                </thead>
-                <tbody id="modalBody">
-                  <!-- Diisi AJAX -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-            <button class="btn btn-primary" id="exportPerPeserta">Export peserta</button>
-          </div>
-        </div>
-      </div>
+          $query = "SELECT p.id as user_id, p.nama, p.nis_npm, p.instansi_pendidikan, p.unit,
+                           COUNT(a.id) as total_hari
+                    FROM peserta_pkl p
+                    LEFT JOIN absen a 
+                      ON p.id = a.user_id 
+                      AND MONTH(a.tanggal)='$bulan' 
+                      AND YEAR(a.tanggal)='$tahun'";
+
+          if ($unit != '') {
+            $query .= " WHERE p.unit='$unit'";
+          }
+
+          $query .= " GROUP BY p.id";
+
+          $result = mysqli_query($conn, $query);
+
+          if (!$result) {
+              echo "<tr><td colspan='6' class='text-danger'>Query Error: " . mysqli_error($conn) . "</td></tr>";
+          } else {
+            while($row = mysqli_fetch_assoc($result)){ ?>
+              <tr>
+                <td><?= $row['nama'] ?></td>
+                <td><?= $row['nis_npm'] ?></td>
+                <td><?= $row['instansi_pendidikan'] ?></td>
+                <td><?= $row['unit'] ?></td>
+                <td><?= $row['total_hari'] ?></td>
+                <td>
+                  <a href="detail_kegiatan.php?user_id=<?= $row['user_id'] ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>" 
+                     class="btn btn-sm btn-danger">
+                    <i class="bi bi-eye"></i> Rincian
+                  </a>
+                </td>
+              </tr>
+            <?php }
+          } ?>
+        </tbody>
+      </table>
     </div>
   </div>
+</div>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Script -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Toggle sidebar di mobile
-    const menuToggle = document.getElementById('menuToggle');
-    const sidebar = document.getElementById('sidebarMenu');
-    const overlay = document.getElementById('sidebarOverlay');
+<!-- Sidebar Toggle Script -->
+<script>
+  const menuToggle = document.getElementById('menuToggle');
+  const sidebar = document.getElementById('sidebarMenu');
+  const overlay = document.getElementById('sidebarOverlay');
 
-    menuToggle.addEventListener('click', () => {
+  if(menuToggle){
+    menuToggle.addEventListener('click', ()=>{
       sidebar.classList.toggle('active');
       overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+      
+      // Sembunyikan tombol saat sidebar aktif
+      menuToggle.style.display = sidebar.classList.contains('active') ? 'none' : 'inline-block';
     });
-
-    overlay.addEventListener('click', () => {
+  }
+  if(overlay){
+    overlay.addEventListener('click', ()=>{
       sidebar.classList.remove('active');
       overlay.style.display = 'none';
+      menuToggle.style.display = 'inline-block';
     });
-  </script>
+  }
+
+  // Tutup sidebar otomatis setelah klik menu di mobile
+  document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove('active');
+        overlay.style.display = 'none';
+        menuToggle.style.display = 'inline-block';
+      }
+    });
+  });
+</script>
 </body>
 </html>

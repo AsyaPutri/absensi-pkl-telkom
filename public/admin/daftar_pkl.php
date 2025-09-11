@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'inser
     exit();
 }
 
-// ================== UPDATE STATUS ==================
+// ================== UPDATE STATUS (dibuat ulang dengan transaction + delete peserta saat ditolak) ==================
 if (isset($_GET['id']) && isset($_GET['status'])) {
   $id     = (int) $_GET['id'];
   $status = $_GET['status'];
@@ -72,91 +72,68 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
       exit;
   }
 
-  // update status di daftar_pkl
-  $upd = $conn->prepare("UPDATE daftar_pkl SET status=? WHERE id=?");
-  if (!$upd) {
-      $_SESSION['error'] = "DB prepare error (update daftar): " . $conn->error;
-      header("Location: daftar_pkl.php");
-      exit;
-  }
-  $upd->bind_param("si", $status, $id);
-  if (!$upd->execute()) {
-      $_SESSION['error'] = "DB execute error (update daftar): " . $upd->error;
-      $upd->close();
-      header("Location: daftar_pkl.php");
-      exit;
-  }
-  $upd->close();
-
-  // ================== JIKA DITERIMA ==================
-  if ($status === 'diterima') {
-      // ambil data peserta dari daftar_pkl
-      $q = $conn->prepare("SELECT * FROM daftar_pkl WHERE id=?");
-      if (!$q) {
-          $_SESSION['error'] = "DB prepare error (select daftar): " . $conn->error;
-          header("Location: daftar_pkl.php");
-          exit;
-      }
+  // mulai transaction
+  $conn->begin_transaction();
+  try {
+      // ambil data pendaftar (lock row untuk safety)
+      $q = $conn->prepare("SELECT * FROM daftar_pkl WHERE id=? FOR UPDATE");
+      if (!$q) throw new Exception("DB prepare error (select daftar): " . $conn->error);
       $q->bind_param("i", $id);
       $q->execute();
       $res = $q->get_result();
       $d   = $res ? $res->fetch_assoc() : null;
       $q->close();
 
-      if ($d) {
-          // 1. cek apakah email sudah ada di users
+      if (!$d) {
+          throw new Exception("Data pendaftar tidak ditemukan.");
+      }
+
+      // update status di daftar_pkl
+      $upd = $conn->prepare("UPDATE daftar_pkl SET status=? WHERE id=?");
+      if (!$upd) throw new Exception("DB prepare error (update daftar): " . $conn->error);
+      $upd->bind_param("si", $status, $id);
+      if (!$upd->execute()) throw new Exception("DB execute error (update daftar): " . $upd->error);
+      $upd->close();
+
+      // Jika diterima -> buat akun (jika belum) + insert ke peserta_pkl (jika belum)
+      if ($status === 'diterima') {
+          // cek user
           $cekUser = $conn->prepare("SELECT id FROM users WHERE email=?");
+          if (!$cekUser) throw new Exception("DB prepare error (cek users): " . $conn->error);
           $cekUser->bind_param("s", $d['email']);
           $cekUser->execute();
-          $rUser   = $cekUser->get_result();
+          $rUser = $cekUser->get_result();
           $userRow = $rUser ? $rUser->fetch_assoc() : null;
           $cekUser->close();
 
           if ($userRow) {
-              $user_id = $userRow['id']; // pakai user lama
+              $user_id = $userRow['id'];
           } else {
-              // buat akun user baru
               $passHash = password_hash($d['nis_npm'], PASSWORD_DEFAULT);
               $role     = "magang";
-
               $insUser = $conn->prepare("INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)");
-              if (!$insUser) {
-                  $_SESSION['error'] = "DB prepare error (insert users): " . $conn->error;
-                  header("Location: daftar_pkl.php");
-                  exit;
-              }
+              if (!$insUser) throw new Exception("DB prepare error (insert users): " . $conn->error);
               $insUser->bind_param("ssss", $d['nama'], $d['email'], $passHash, $role);
-              if (!$insUser->execute()) {
-                  $_SESSION['error'] = "DB execute error (insert users): " . $insUser->error;
-                  $insUser->close();
-                  header("Location: daftar_pkl.php");
-                  exit;
-              }
+              if (!$insUser->execute()) throw new Exception("DB execute error (insert users): " . $insUser->error);
               $user_id = $insUser->insert_id;
               $insUser->close();
           }
 
-          // 2. cek apakah sudah ada di peserta_pkl
+          // cek peserta di peserta_pkl
           $cekPeserta = $conn->prepare("SELECT id FROM peserta_pkl WHERE email=?");
+          if (!$cekPeserta) throw new Exception("DB prepare error (cek peserta): " . $conn->error);
           $cekPeserta->bind_param("s", $d['email']);
           $cekPeserta->execute();
           $rPeserta = $cekPeserta->get_result();
           $already  = $rPeserta && $rPeserta->num_rows > 0;
           $cekPeserta->close();
 
-          // 3. kalau belum ada → insert peserta baru
           if (!$already) {
               $statusPeserta = "berlangsung";
-
               $insPeserta = $conn->prepare("INSERT INTO peserta_pkl 
-                  (user_id, nama, email, instansi_pendidikan, jurusan, nis_npm, unit, no_hp, 
-                   tgl_mulai, tgl_selesai, status) 
+                  (user_id, nama, email, instansi_pendidikan, jurusan, nis_npm, unit, no_hp, tgl_mulai, tgl_selesai, status) 
                   VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-              if (!$insPeserta) {
-                  $_SESSION['error'] = "DB prepare error (insert peserta): " . $conn->error;
-                  header("Location: daftar_pkl.php");
-                  exit;
-              }
+              if (!$insPeserta) throw new Exception("DB prepare error (insert peserta): " . $conn->error);
               $insPeserta->bind_param(
                   "issssssssss",
                   $user_id,
@@ -171,21 +148,47 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
                   $d['tgl_selesai'],
                   $statusPeserta
               );
-
-              if (!$insPeserta->execute()) {
-                  $_SESSION['error'] = "DB execute error (insert peserta): " . $insPeserta->error;
-                  $insPeserta->close();
-                  header("Location: daftar_pkl.php");
-                  exit;
-              }
+              if (!$insPeserta->execute()) throw new Exception("DB execute error (insert peserta): " . $insPeserta->error);
               $insPeserta->close();
           }
       }
+      // Jika ditolak -> HAPUS data peserta_pkl jika ada (sesuai permintaan)
+      elseif ($status === 'ditolak') {
+          $delPeserta = $conn->prepare("DELETE FROM peserta_pkl WHERE email=?");
+          if (!$delPeserta) throw new Exception("DB prepare error (delete peserta): " . $conn->error);
+          $delPeserta->bind_param("s", $d['email']);
+          if (!$delPeserta->execute()) throw new Exception("DB execute error (delete peserta): " . $delPeserta->error);
+          $delPeserta->close();
 
-      $_SESSION['success'] = "✅ Peserta diterima, akun dibuat, dan dipindahkan ke Data Peserta (status: sedang berlangsung).";
-  } else {
-      // kalau pending / ditolak
+          // === Opsi tambahan (pilihan, TIDAK aktif secara default) ===
+          // Kalau mau juga menghapus akun user yang dibuat sebelumnya, gunakan kode berikut
+          // HATI-HATI: hanya lakukan jika yakin tidak merusak relasi/history lain.
+          /*
+          $delUser = $conn->prepare("DELETE FROM users WHERE email=? AND role='magang'");
+          if ($delUser) {
+              $delUser->bind_param("s", $d['email']);
+              $delUser->execute();
+              $delUser->close();
+          }
+          */
+      }
+      // Jika pending -> update status peserta jadi pending (pilihan)
+      elseif ($status === 'pending') {
+          $updPeserta = $conn->prepare("UPDATE peserta_pkl SET status=? WHERE email=?");
+          if ($updPeserta) {
+              $statusPeserta = "pending";
+              $updPeserta->bind_param("ss", $statusPeserta, $d['email']);
+              if (!$updPeserta->execute()) throw new Exception("DB execute error (update peserta): " . $updPeserta->error);
+              $updPeserta->close();
+          }
+      }
+
+      // commit
+      $conn->commit();
       $_SESSION['success'] = "✅ Status berhasil diubah menjadi $status";
+  } catch (Exception $e) {
+      $conn->rollback();
+      $_SESSION['error'] = "❌ Gagal mengubah status: " . $e->getMessage();
   }
 
   header("Location: daftar_pkl.php");
@@ -332,6 +335,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Daftar PKL</a></li>
       <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
+      <li><a href="data_kegiatan.php" class="nav-link <?= ($current_page=='data_kegiatan.php')?'active':'' ?>"><i class="bi bi-clipboard-data me-2"></i> Data_Kegiatan</a></li>
       <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
     </ul>
   </div>
@@ -412,7 +416,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                   <td class="text-center">
                     <!-- status buttons -->
                     <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=diterima" class="btn btn-success btn-sm">✔ Terima</a>
-                    <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=pending" class="btn btn-warning btn-sm">⏳ Pending</a>
                     <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=ditolak" class="btn btn-danger btn-sm">❌ Tolak</a>
                   </td>
                   <!-- Detail -->
