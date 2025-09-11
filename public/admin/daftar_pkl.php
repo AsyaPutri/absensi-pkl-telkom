@@ -152,26 +152,23 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
               $insPeserta->close();
           }
       }
-      // Jika ditolak -> HAPUS data peserta_pkl jika ada (sesuai permintaan)
+      // Jika ditolak -> HAPUS data peserta_pkl dan user akun (jika ada)
       elseif ($status === 'ditolak') {
-          $delPeserta = $conn->prepare("DELETE FROM peserta_pkl WHERE email=?");
-          if (!$delPeserta) throw new Exception("DB prepare error (delete peserta): " . $conn->error);
-          $delPeserta->bind_param("s", $d['email']);
-          if (!$delPeserta->execute()) throw new Exception("DB execute error (delete peserta): " . $delPeserta->error);
-          $delPeserta->close();
-
-          // === Opsi tambahan (pilihan, TIDAK aktif secara default) ===
-          // Kalau mau juga menghapus akun user yang dibuat sebelumnya, gunakan kode berikut
-          // HATI-HATI: hanya lakukan jika yakin tidak merusak relasi/history lain.
-          /*
-          $delUser = $conn->prepare("DELETE FROM users WHERE email=? AND role='magang'");
-          if ($delUser) {
-              $delUser->bind_param("s", $d['email']);
-              $delUser->execute();
-              $delUser->close();
-          }
-          */
+        // hapus dari peserta_pkl
+        $delPeserta = $conn->prepare("DELETE FROM peserta_pkl WHERE email=?");
+        if (!$delPeserta) throw new Exception("DB prepare error (delete peserta): " . $conn->error);
+        $delPeserta->bind_param("s", $d['email']);
+        if (!$delPeserta->execute()) throw new Exception("DB execute error (delete peserta): " . $delPeserta->error);
+        $delPeserta->close();
+        
+        // hapus juga akun user role=magang
+        $delUser = $conn->prepare("DELETE FROM users WHERE email=? AND role='magang'");
+        if (!$delUser) throw new Exception("DB prepare error (delete user): " . $conn->error);
+        $delUser->bind_param("s", $d['email']);
+        if (!$delUser->execute()) throw new Exception("DB execute error (delete user): " . $delUser->error);
+        $delUser->close();
       }
+
       // Jika pending -> update status peserta jadi pending (pilihan)
       elseif ($status === 'pending') {
           $updPeserta = $conn->prepare("UPDATE peserta_pkl SET status=? WHERE email=?");
