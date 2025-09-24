@@ -1,3 +1,54 @@
+<?php
+session_start();
+require '../../config/database.php'; // file koneksi DB
+
+// Pastikan user login
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+$userId = $_SESSION['user_id'];
+
+// Ambil data profil user (join users + peserta_pkl)
+$queryUser = mysqli_query($conn, "
+    SELECT 
+        p.nama,
+        p.instansi_pendidikan AS instansi, 
+        p.unit 
+    FROM peserta_pkl p
+    INNER JOIN users u ON u.id = p.user_id
+    WHERE u.id = '$userId'
+");
+
+if (!$queryUser) {
+    die("Query User Error: " . mysqli_error($conn));
+}
+$userProfile = mysqli_fetch_assoc($queryUser);
+
+// Ambil data logbook/absen
+$queryLogbook = mysqli_query($conn, "
+    SELECT 
+        id,
+        tanggal,
+        aktivitas_masuk,
+        kendala_masuk,
+        aktivitas_keluar,
+        kendala_keluar
+    FROM absen
+    WHERE user_id = '$userId'
+    ORDER BY tanggal ASC
+");
+
+if (!$queryLogbook) {
+    die("Query Logbook Error: " . mysqli_error($conn));
+}
+
+$logbookData = [];
+while ($row = mysqli_fetch_assoc($queryLogbook)) {
+    $logbookData[] = $row;
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -6,7 +57,6 @@
     <title>Logbook Aktivitas - PT Telkom Indonesia</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Tambahkan jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -94,12 +144,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 5px;
             gap: 0;
         }
         
         .telkom-logo-img {
-            height: 80px;
+            height: 150px;
             width: auto;
             max-width: 200px;
             object-fit: contain;
@@ -527,7 +577,7 @@
 <body>
     <div class="container-fluid">
         <div class="main-container">
-            <!-- Header Section - Putih dengan logo gambar -->
+            <!-- Header -->
             <div class="header-section">
                 <div class="content">
                     <div class="telkom-logo-container">
@@ -538,43 +588,30 @@
                 </div>
             </div>
 
-            <!-- Profile Section -->
+            <!-- Profile -->
             <div class="profile-section">
-                <h5><i class="fas fa-user-circle"></i>Informasi Peserta</h5>
+                <h5><i class="fas fa-user-circle"></i> Informasi Peserta</h5>
                 <div class="profile-info">
-                    <div class="profile-item">
-                        <strong>Nama:</strong>
-                        <span id="profileName">John Doe</span>
-                    </div>
-                    <div class="profile-item">
-                        <strong>NIM/ID:</strong>
-                        <span id="profileId">123456789</span>
-                    </div>
-                    <div class="profile-item">
-                        <strong>Asal Instansi:</strong>
-                        <span id="profileInstitution">Universitas ABC</span>
-                    </div>
-                    <div class="profile-item">
-                        <strong>Unit Kerja:</strong>
-                        <span id="profileUnit">IT Development</span>
-                    </div>
+                    <div class="profile-item"><strong>Nama:</strong> <span id="profileName"><?= $userProfile['nama'] ?? '-' ?></span></div>
+                    <div class="profile-item"><strong>Asal Instansi:</strong> <span id="profileInstitution"><?= $userProfile['instansi'] ?? '-' ?></span></div>
+                    <div class="profile-item"><strong>Unit Kerja:</strong> <span id="profileUnit"><?= $userProfile['unit'] ?? '-' ?></span></div>
                 </div>
             </div>
-            
-            <!-- Table Section -->
+
+            <!-- Table -->
             <div class="table-container">
                 <div class="table-header">
-                    <h5 class="mb-0 text-dark"><i class="fas fa-table me-2 text-danger"></i>Data Logbook Aktivitas</h5>
+                    <h5 class="mb-0 text-dark"><i class="fas fa-table me-2 text-danger"></i> Data Logbook Aktivitas</h5>
                     <div class="header-controls">
                         <button class="btn btn-telkom btn-sm" onclick="exportToPDF()">
                             <i class="fas fa-file-pdf me-2"></i>Export PDF
                         </button>
                         <span class="badge badge-info" id="totalRecords">
-                            <i class="fas fa-database me-1"></i>Total: 0 Records
+                            <i class="fas fa-database me-1"></i>Total: <?= count($logbookData) ?> Records
                         </span>
                     </div>
                 </div>
-                
+
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
@@ -587,354 +624,73 @@
                                 <th class="col-constraint-out">Kendala Keluar</th>
                             </tr>
                         </thead>
-                        <tbody id="logbookTableBody">
-                            <!-- Data akan diisi oleh JavaScript -->
+                        <tbody>
+                            <?php if (empty($logbookData)): ?>
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                                        <h5 class="text-muted">Tidak ada data yang ditemukan</h5>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($logbookData as $i => $log): ?>
+                                    <tr>
+                                        <td><div class="number-cell"><?= $i + 1 ?></div></td>
+                                        <td class="date-info">
+                                            <div class="date-main"><?= date('d-m-Y', strtotime($log['tanggal'])) ?></div>
+                                            <div class="date-day"><?= strftime('%A', strtotime($log['tanggal'])) ?></div>
+                                        </td>
+                                        <td><div class="activity-text"><span class="status-dot status-masuk"></span><?= $log['aktivitas_masuk'] ?: 'Tidak ada aktivitas' ?></div></td>
+                                        <td><div class="constraint-text"><?= $log['kendala_masuk'] ?: '<div class="constraint-ok"><i class="fas fa-check-circle me-1"></i>Tidak ada kendala</div>' ?></div></td>
+                                        <td><div class="activity-text"><span class="status-dot status-keluar"></span><?= $log['aktivitas_keluar'] ?: '<span class="no-data-cell">Belum ada aktivitas</span>' ?></div></td>
+                                        <td><div class="constraint-text"><?= $log['kendala_keluar'] ?: '<div class="constraint-ok"><i class="fas fa-check-circle me-1"></i>OK</div>' ?></div></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Pagination -->
-                <nav aria-label="Pagination" class="mt-4">
-                    <ul class="pagination justify-content-center" id="pagination">
-                        <!-- Pagination akan diisi oleh JavaScript -->
-                    </ul>
-                </nav>
             </div>
         </div>
     </div>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Data profil pengguna
-        const userProfile = {
-            name: "Asya Herawati Putri",
-            id: "123456789",
-            institution: "Universitas Bina Sarana Informatika",
-            unit: "Finance dan HC"
-        };
 
-        // Data dummy untuk demonstrasi
-        let logbookData = [
-            {
-                id: 1,
-                date: '2024-01-15',
-                activityIn: 'Melakukan pengecekan sistem server Telkom dan database pagi hari, memastikan semua service backbone network berjalan normal dengan monitoring real-time',
-                constraintIn: 'Server database core network mengalami delay response pada segm en Jakarta-Bandung',
-                activityOut: 'Menyelesaikan backup data harian sistem billing dan membuat laporan aktivitas network monitoring untuk tim management',
-                constraintOut: 'Tidak ada kendala'
-            },
-            {
-                id: 2,
-                date: '2024-01-16',
-                activityIn: 'Koordinasi dengan team network operation untuk maintenance fiber optic link Surabaya-Malang dan persiapan dokumentasi',
-                constraintIn: 'Tidak ada kendala',
-                activityOut: 'Testing konektivitas setelah maintenance dan dokumentasi perubahan konfigurasi router core network',
-                constraintOut: 'Packet loss 0.2% pada link backup'
-            },
-            {
-                id: 3,
-                date: '2024-01-17',
-                activityIn: 'Melakukan monitoring traffic network dan analisis performa sistem core banking Telkom untuk memastikan stabilitas layanan',
-                constraintIn: 'Tidak ada kendala',
-                activityOut: 'Membuat laporan harian dan dokumentasi incident yang terjadi selama shift kerja',
-                constraintOut: 'Tidak ada kendala'
-            }
-        ];
-        
-        let currentPage = 1;
-        const itemsPerPage = 10;
-
-        // Initialize profile data
-        function initializeProfile() {
-            document.getElementById('profileName').textContent = userProfile.name;
-            document.getElementById('profileId').textContent = userProfile.id;
-            document.getElementById('profileInstitution').textContent = userProfile.institution;
-            document.getElementById('profileUnit').textContent = userProfile.unit;
-        }
-        
-        function renderTable(data = logbookData) {
-            console.log('Rendering table with data:', data);
-            
-            const tbody = document.getElementById('logbookTableBody');
-            const start = (currentPage - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
-            const paginatedData = data.slice(start, end);
-            
-            tbody.innerHTML = '';
-            
-            if (paginatedData.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-5">
-                            <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
-                            <h5 class="text-muted">Tidak ada data yang ditemukan</h5>
-                            <p class="text-muted mb-0">Silakan tambah entry baru untuk memulai</p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            paginatedData.forEach((item, index) => {
-                const row = `
-                    <tr>
-                        <td>
-                            <div class="number-cell">${start + index + 1}</div>
-                        </td>
-                        <td class="date-info">
-                            <div class="date-main">${formatDate(item.date)}</div>
-                            <div class="date-day">${getDayName(item.date)}</div>
-                        </td>
-                        <td>
-                            <div class="activity-text">
-                                <span class="status-dot status-masuk"></span>
-                                ${item.activityIn || 'Tidak ada aktivitas'}
-                            </div>
-                        </td>
-                        <td>
-                            <div class="constraint-text">
-                                ${item.constraintIn === 'Tidak ada kendala' || !item.constraintIn 
-                                    ? '<div class="constraint-ok"><i class="fas fa-check-circle me-1"></i>Tidak ada kendala</div>'
-                                    : `<div class="constraint-issue"><i class="fas fa-exclamation-triangle me-1"></i>${item.constraintIn}</div>`
-                                }
-                            </div>
-                        </td>
-                        <td>
-                            <div class="activity-text">
-                                <span class="status-dot status-keluar"></span>
-                                ${item.activityOut || '<span class="no-data-cell">Belum ada aktivitas</span>'}
-                            </div>
-                        </td>
-                        <td>
-                            <div class="constraint-text">
-                                ${item.constraintOut === 'Tidak ada kendala' || !item.constraintOut
-                                    ? '<div class="constraint-ok"><i class="fas fa-check-circle me-1"></i>OK</div>'
-                                    : `<div class="constraint-issue"><i class="fas fa-exclamation-triangle me-1"></i>${item.constraintOut}</div>`
-                                }
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                tbody.innerHTML += row;
-            });
-            
-            updateTotalRecords(data.length);
-            renderPagination(data.length);
-        }
-        
-        function formatDate(dateString) {
-            try {
-                const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
-                return new Date(dateString).toLocaleDateString('id-ID', options);
-            } catch (error) {
-                console.error('Error formatting date:', error);
-                return dateString;
-            }
-        }
-        
-        function getDayName(dateString) {
-            try {
-                const options = { weekday: 'long' };
-                return new Date(dateString).toLocaleDateString('id-ID', options);
-            } catch (error) {
-                console.error('Error getting day name:', error);
-                return '';
-            }
-        }
-        
-        function updateTotalRecords(count) {
-            const totalRecordsElement = document.getElementById('totalRecords');
-            if (totalRecordsElement) {
-                totalRecordsElement.innerHTML = `
-                    <i class="fas fa-database me-1"></i>Total: ${count} Records
-                `;
-            }
-        }
-        
-        function renderPagination(totalItems) {
-            const pagination = document.getElementById('pagination');
-            const totalPages = Math.ceil(totalItems / itemsPerPage);
-            
-            pagination.innerHTML = '';
-            
-            if (totalPages <= 1) return;
-            
-            // Previous button
-            pagination.innerHTML += `
-                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                    <a class="page-link" href="#" onclick="changePage(${currentPage - 1})" style="color: var(--telkom-red);">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                </li>
-            `;
-            
-            // Page numbers
-            for (let i = 1; i <= totalPages; i++) {
-                pagination.innerHTML += `
-                    <li class="page-item ${currentPage === i ? 'active' : ''}">
-                        <a class="page-link" href="#" onclick="changePage(${i})" 
-                           style="${currentPage === i ? 'background-color: var(--telkom-red); border-color: var(--telkom-red);' : 'color: var(--telkom-red);'}">${i}</a>
-                    </li>
-                `;
-            }
-            
-            // Next button
-            pagination.innerHTML += `
-                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                    <a class="page-link" href="#" onclick="changePage(${currentPage + 1})" style="color: var(--telkom-red);">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                </li>
-            `;
-        }
-        
-        function changePage(page) {
-            const totalPages = Math.ceil(logbookData.length / itemsPerPage);
-            if (page < 1 || page > totalPages) return;
-            
-            currentPage = page;
-            renderTable();
-        }
-        
-        // Fungsi export ke PDF - Diperbaiki untuk mengatasi kolom terpotong
+<script>
 function exportToPDF() {
     const { jsPDF } = window.jspdf;
-    // Gunakan orientasi landscape untuk lebih banyak ruang horizontal
     const doc = new jsPDF('landscape', 'mm', 'a4');
 
-    // Header PDF
     doc.setFontSize(16);
     doc.text("Logbook Aktivitas - PT Telkom Indonesia", 14, 20);
 
-    // Data Profil
     doc.setFontSize(12);
-    doc.text("Informasi Peserta:", 14, 35);
-    
-    doc.setFontSize(11);
-    doc.text(`Nama: ${userProfile.name}`, 14, 45);
-    doc.text(`NIM/ID: ${userProfile.id}`, 14, 52);
-    doc.text(`Asal Instansi: ${userProfile.institution}`, 14, 59);
-    doc.text(`Unit Kerja: ${userProfile.unit}`, 14, 66);
+    doc.text("Informasi Peserta", 14, 35);
+    doc.text("Nama: <?= $userProfile['nama'] ?? '-' ?>", 14, 42);
+    doc.text("Asal Instansi: <?= $userProfile['instansi'] ?? '-' ?>", 14, 48);
+    doc.text("Unit Kerja: <?= $userProfile['unit'] ?? '-' ?>", 14, 54);
 
-    // Tanggal Export
-    const currentDate = new Date().toLocaleDateString('id-ID', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-    doc.text(`Tanggal Export: ${currentDate}`, 14, 73);
+    const tableData = [
+        <?php foreach ($logbookData as $i => $log): ?>
+        [
+            "<?= $i+1 ?>",
+            "<?= date('d-m-Y', strtotime($log['tanggal'])) ?>",
+            "<?= substr(addslashes($log['aktivitas_masuk']),0,100) ?>",
+            "<?= substr(addslashes($log['kendala_masuk']),0,50) ?>",
+            "<?= substr(addslashes($log['aktivitas_keluar']),0,100) ?>",
+            "<?= substr(addslashes($log['kendala_keluar']),0,50) ?>"
+        ],
+        <?php endforeach; ?>
+    ];
 
-    // Persiapkan data untuk tabel dengan text yang dipendekkan jika perlu
-    const tableData = logbookData.map((item, index) => [
-        index + 1,
-        formatDate(item.date),
-        // Batasi panjang text untuk aktivitas
-        (item.activityIn || 'Tidak ada aktivitas').length > 100 
-            ? (item.activityIn || 'Tidak ada aktivitas').substring(0, 100) + '...'
-            : (item.activityIn || 'Tidak ada aktivitas'),
-        (item.constraintIn || 'Tidak ada kendala').length > 50
-            ? (item.constraintIn || 'Tidak ada kendala').substring(0, 50) + '...'
-            : (item.constraintIn || 'Tidak ada kendala'),
-        (item.activityOut || 'Belum ada aktivitas').length > 100
-            ? (item.activityOut || 'Belum ada aktivitas').substring(0, 100) + '...'
-            : (item.activityOut || 'Belum ada aktivitas'),
-        (item.constraintOut || 'Tidak ada kendala').length > 50
-            ? (item.constraintOut || 'Tidak ada kendala').substring(0, 50) + '...'
-            : (item.constraintOut || 'Tidak ada kendala')
-    ]);
-
-    // Buat tabel dengan autoTable - disesuaikan untuk landscape
     doc.autoTable({
         head: [['No', 'Tanggal', 'Aktivitas Masuk', 'Kendala Masuk', 'Aktivitas Keluar', 'Kendala Keluar']],
         body: tableData,
-        startY: 85,
-        margin: { left: 14, right: 14 }, // Margin kiri dan kanan
-        styles: {
-            fontSize: 8,
-            cellPadding: 2,
-            overflow: 'linebreak',
-            halign: 'left',
-            valign: 'top',
-            lineColor: [200, 200, 200],
-            lineWidth: 0.1
-        },
-        headStyles: {
-            fillColor: [230, 0, 18],
-            textColor: [255, 255, 255],
-            fontSize: 9,
-            fontStyle: 'bold',
-            halign: 'center'
-        },
-        // Sesuaikan lebar kolom untuk landscape (total lebar sekitar 267mm)
-        columnStyles: {
-            0: { cellWidth: 15, halign: 'center' }, // No
-            1: { cellWidth: 25, halign: 'center' }, // Tanggal  
-            2: { cellWidth: 75 }, // Aktivitas Masuk
-            3: { cellWidth: 40 }, // Kendala Masuk
-            4: { cellWidth: 75 }, // Aktivitas Keluar
-            5: { cellWidth: 37 }  // Kendala Keluar
-        },
-        alternateRowStyles: {
-            fillColor: [248, 249, 250]
-        },
-        tableWidth: 'auto',
-        theme: 'grid'
+        startY: 80,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [230, 0, 18] }
     });
 
-    // Footer
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(128, 128, 128);
-        // Sesuaikan posisi footer untuk landscape
-        doc.text(`Halaman ${i} dari ${pageCount}`, 250, 200);
-        doc.text('PT Telkom Indonesia - Logbook Aktivitas', 14, 200);
-    }
-
-    // Simpan PDF
-    const fileName = `Logbook_${userProfile.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
-    
-    showToast('Data berhasil di-export ke PDF!', 'success');
+    doc.save("Logbook_Peserta.pdf");
 }
-
-        function showToast(message, type = 'success') {
-            const toastContainer = document.createElement('div');
-            toastContainer.className = 'position-fixed top-0 end-0 p-3';
-            toastContainer.style.zIndex = '1055';
-            
-            const bgColor = type === 'success' ? 'var(--telkom-red)' : '#dc3545';
-            
-            toastContainer.innerHTML = `
-                <div class="toast show" role="alert">
-                    <div class="toast-header text-white" style="background: ${bgColor};">
-                        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-                        <strong class="me-auto">PT Telkom Indonesia</strong>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-                    </div>
-                    <div class="toast-body">
-                        ${message}
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(toastContainer);
-            
-            setTimeout(() => {
-                if (document.body.contains(toastContainer)) {
-                    document.body.removeChild(toastContainer);
-                }
-            }, 3000);
-        }
-        
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing...');
-            initializeProfile();
-            renderTable();
-        });
-    </script>
+</script>
 </body>
 </html>

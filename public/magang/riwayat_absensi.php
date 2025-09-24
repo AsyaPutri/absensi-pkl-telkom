@@ -1,5 +1,6 @@
 <?php
 session_start();
+require '../../config/database.php'; // file koneksi DB
 
 // Redirect jika belum login
 if (!isset($_SESSION['user_id'])) {
@@ -82,7 +83,7 @@ if (!isset($_SESSION['user_id'])) {
       font-size: 0.8rem;
     }
     .badge-sehat { background: linear-gradient(135deg, #28a745, #20c997); color: white; }
-    .badge-kurang_fit { background: linear-gradient(135deg, #ffc107, #fd7e14); color: #000; }
+    .badge-kurang-fit { background: linear-gradient(135deg, #ffc107, #fd7e14); color: #000; }
     .badge-sakit { background: linear-gradient(135deg, #6f42c1, #5a2d91); color: white; }
 
     .foto-absen {
@@ -214,7 +215,7 @@ if (!isset($_SESSION['user_id'])) {
       }
     }
 
-    // Load data absensi
+    
     // Load data absensi (tanpa filter)
 async function loadAttendanceData() {
   try {
@@ -268,9 +269,8 @@ async function loadAttendanceData() {
                 <th><i class="bi bi-heart-pulse me-1"></i>Kondisi</th>
                 <th><i class="bi bi-geo-alt me-1"></i>Lokasi Kerja</th>
                 <th><i class="bi bi-clock me-1"></i>Jam Keluar</th>
-                <th><i class="bi bi-stopwatch me-1"></i>Durasi</th>
+                <th><i class="bi bi-stopwatch me-1"></i>Durasi Kerja</th>
                 <th><i class="bi bi-image me-1"></i>Foto</th>
-                <th><i class="bi bi-info-circle me-1"></i>Detail</th>
               </tr>
             </thead>
             <tbody>
@@ -283,11 +283,6 @@ async function loadAttendanceData() {
                   <td>${record.timeOut}</td>
                   <td>${record.durasi_kerja}</td>
                   <td>${getPhotoCell(record.photo)}</td>
-                  <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="showDetail(${record.id})">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -300,7 +295,7 @@ async function loadAttendanceData() {
     function getConditionBadge(condition) {
       const map = {
         'sehat': { class: 'badge-sehat', label: '😊 Sehat' },
-        'kurang_fit': { class: 'badge-kurang_fit', label: '😐 Kurang Fit' },
+        'kurang-fit': { class: 'badge-kurang-fit', label: '😐 Kurang Fit' },
         'sakit': { class: 'badge-sakit', label: '😷 Sakit' }
       };
       const config = map[condition] || map['sehat'];
@@ -316,16 +311,19 @@ async function loadAttendanceData() {
     }
 
     function getPhotoCell(photo) {
-      if (!photo) return '-';
-      
-      // Handle multiple photos (checkin|checkout)
-      const photos = photo.split('|');
-      return photos.map((p, index) => 
-        `<img src="uploads/photos/${p}" class="foto-absen me-1" 
-              onclick="showPhoto('uploads/photos/${p}')" 
-              title="${index === 0 ? 'Check-in' : 'Check-out'}">`
-      ).join('');
-    }
+  if (!photo) return '-';
+
+  const photos = photo.split('|');
+  return photos.map((p, index) => {
+    // kalau p sudah mengandung 'uploads/', langsung pakai
+    const path = p.includes('../../uploads/') ? p : `../../uploads/absensi/${p}`;
+    return `<img src="${path}" class="foto-absen me-1"
+                 onclick="showPhoto('${path}')"
+                 title="${index === 0 ? 'Check-in' : 'Check-out'}">`;
+  }).join('');
+}
+
+
 
     function formatDate(dateStr) {
       const options = { day: '2-digit', month: 'short', year: 'numeric' };
@@ -338,13 +336,6 @@ async function loadAttendanceData() {
       new bootstrap.Modal(document.getElementById('photoModal')).show();
     }
 
-    // Show detail (bisa dikembangkan lebih lanjut)
-    function showDetail(recordId) {
-      const record = attendanceData.find(r => r.id == recordId);
-      if (record) {
-        alert(`Detail untuk ${formatDate(record.date)}:\n\nAktivitas Masuk: ${record.aktivitas_masuk}\nAktivitas Keluar: ${record.aktivitas_keluar}\nKendala: ${record.kendala_masuk || 'Tidak ada'}`);
-      }
-    }
 
     // Download PDF
     function downloadPDF() {
