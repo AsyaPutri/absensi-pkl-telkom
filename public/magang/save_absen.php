@@ -14,17 +14,8 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$userId = $_SESSION['user_id'];
-
-// Ambil data dari request
-$input = json_decode(file_get_contents("php://input"), true);
-
-if (!$input || !isset($input['action'])) {
-    echo json_encode(["success" => false, "message" => "Request tidak valid"]);
-    exit;
-}
-
-$action  = $input['action'];
+$userId  = $_SESSION['user_id'];
+$input   = json_decode(file_get_contents("php://input"), true);
 $tanggal = date("Y-m-d");
 $waktu   = date("H:i:s");
 
@@ -33,11 +24,11 @@ $response = ["success" => false, "message" => ""];
 // ===================================================
 // PROSES CHECKIN
 // ===================================================
-if ($action === "checkin") {
-    $aktivitas = $input['aktivitas'] ?? "";
-    $kendala   = $input['kendala'] ?? "";
-    $lokasi    = $input['lokasi'] ?? "";
-    $kondisi   = $input['kondisi'] ?? "";
+if ($input['action'] === "checkin") {
+    $aktivitas  = $input['aktivitas'] ?? "";
+    $kendala    = $input['kendala'] ?? "";
+    $lokasi     = $input['lokasi'] ?? "";
+    $kondisi    = $input['kondisi'] ?? "";
     $fotoBase64 = $input['foto'] ?? "";
 
     // 🚨 Batasi jam check-in sebelum jam 11:00:00
@@ -56,7 +47,26 @@ if ($action === "checkin") {
         exit;
     }
 
-    // Simpan foto
+    // ===================================================
+    // 🚨 Auto Update Kemarin jika belum checkout
+    // ===================================================
+    $kemarin = date("Y-m-d", strtotime("-1 day"));
+    $cekKemarin = $conn->prepare("SELECT id FROM absen WHERE user_id = ? AND tanggal = ? AND jam_keluar IS NULL");
+    $cekKemarin->bind_param("is", $userId, $kemarin);
+    $cekKemarin->execute();
+    $hasilKemarin = $cekKemarin->get_result();
+    if ($hasilKemarin->num_rows > 0) {
+        $jamKeluarAuto = "23:59:00";
+        $update = $conn->prepare("UPDATE absen SET jam_keluar = ? WHERE user_id = ? AND tanggal = ? AND jam_keluar IS NULL");
+        $update->bind_param("sis", $jamKeluarAuto, $userId, $kemarin);
+        $update->execute();
+        $update->close();
+    }
+    $cekKemarin->close();
+
+    // ===================================================
+    // Simpan foto checkin
+    // ===================================================
     $fotoPath = null;
     if (!empty($fotoBase64)) {
         $fotoData = explode(",", $fotoBase64);
@@ -70,10 +80,13 @@ if ($action === "checkin") {
             }
 
             file_put_contents($savePath, $decodedImage);
-            $fotoPath = $fotoName; // simpan nama file ke DB
+            $fotoPath = $fotoName;
         }
     }
 
+    // ===================================================
+    // Simpan data absen (Check-in)
+    // ===================================================
     $stmt = $conn->prepare("
         INSERT INTO absen 
         (user_id, tanggal, jam_masuk, aktivitas_masuk, kendala_masuk, lokasi_kerja, kondisi_kesehatan, foto_absen) 
@@ -92,7 +105,7 @@ if ($action === "checkin") {
 // ===================================================
 // PROSES CHECKOUT
 // ===================================================
-elseif ($action === "checkout") {
+elseif ($input['action'] === "checkout") {
     $aktivitasKeluar = $input['aktivitas_keluar'] ?? "";
     $kendalaKeluar   = $input['kendala_keluar'] ?? "";
 
@@ -114,7 +127,7 @@ elseif ($action === "checkout") {
 // ===================================================
 // PROSES CHECKOUT PENDING
 // ===================================================
-elseif ($action === "checkout_pending") {
+elseif ($input['action'] === "checkout_pending") {
     $targetDate = $input['target_date'] ?? "";
     $aktivitasKeluar = $input['aktivitas_keluar'] ?? "";
     $kendalaKeluar   = $input['kendala_keluar'] ?? "";

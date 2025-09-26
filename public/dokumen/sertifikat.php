@@ -1,100 +1,78 @@
 <?php
 session_start();
-require('../../config/database.php');
-require('fpdf/fpdf.php');
+require_once __DIR__ . '/../../config/database.php'; 
+require_once __DIR__ . '/fpdf/fpdf.php';
 
-// cek login
+// Cek login
 if (!isset($_SESSION['role'])) {
     die("Anda harus login dulu!");
 }
 
-$role = $_SESSION['role'];
+$role   = $_SESSION['role'];
 $userId = $_SESSION['user_id'] ?? null;
 
-// ------------ Ambil data peserta ------------
+// Ambil data peserta
 if ($role === 'admin') {
-    // admin bisa pilih id peserta via GET
     if (!isset($_GET['id'])) {
         die("ID peserta tidak ditemukan!");
     }
     $id = $_GET['id'];
-    $query = mysqli_query($conn, "
-        SELECT nama, unit_witel, tgl_mulai, tgl_selesai, status_sertifikat
-        FROM peserta_pkl
+    $sql = "
+        SELECT nama, instansi_pendidikan AS instansi, judul_pkl AS judul, tanggal_mulai, tanggal_selesai 
+        FROM peserta_pkl 
         WHERE id = '$id'
-    ");
+    ";
 } else {
-    // peserta hanya bisa ambil datanya sendiri
-    $query = mysqli_query($conn, "
-        SELECT nama, unit_witel, tgl_mulai, tgl_selesai, status_sertifikat
-        FROM peserta_pkl
+    if (!$userId) {
+        die("User ID tidak ditemukan!");
+    }
+    $sql = "
+        SELECT nama, instansi_pendidikan AS instansi, judul_pkl AS judul, tanggal_mulai, tanggal_selesai 
+        FROM peserta_pkl 
         WHERE user_id = '$userId'
-    ");
+    ";
 }
 
-$data = mysqli_fetch_assoc($query);
+$query = mysqli_query($conn, $sql) or die("Query Error: " . mysqli_error($conn));
+$data  = mysqli_fetch_assoc($query);
+
 if (!$data) {
-    die("Data sertifikat tidak ditemukan!");
+    die("Data peserta tidak ditemukan!");
 }
 
-// ------------ Cek validasi sertifikat ------------
-if ($data['status_sertifikat'] == 0 && $role !== 'admin') {
-    die("<h3>Sertifikat Anda belum tersedia. Hubungi admin.</h3>");
-}
-
-// ------------ Ambil variabel ------------
-$nama       = $data['nama'];
-$unit       = $data['unit_witel'];
-$tglMulai   = new DateTime($data['tgl_mulai']);
-$tglSelesai = new DateTime($data['tgl_selesai']);
-
-// hitung durasi
-$interval    = $tglMulai->diff($tglSelesai);
-$durasiBulan = $interval->m + ($interval->y * 12);
-
-if ($durasiBulan > 0) {
-    $durasi = $durasiBulan . " (" . ucwords(terbilang($durasiBulan)) . ") bulan";
-} else {
-    $durasi = $interval->d . " (" . ucwords(terbilang($interval->d)) . ") hari";
-}
-
-$tglMulaiStr   = $tglMulai->format("d F Y");
-$tglSelesaiStr = $tglSelesai->format("d F Y");
-
-// ------------ Generate PDF ------------
-$pdf = new FPDF('L','mm','A4');
+// Buat sertifikat dengan FPDF
+$pdf = new FPDF('L', 'mm', 'A4');
 $pdf->AddPage();
-$pdf->Image('cindy.png', 0, 0, 297, 210);
 
-// nama
-$pdf->SetFont('Times','B',32);
-$pdf->SetTextColor(184,134,11);
-$pdf->SetXY(0, 105);
-$pdf->Cell(297,10,$nama,0,1,'C');
+// Background sertifikat (opsional, bisa pakai gambar template)
+$pdf->Image(__DIR__ . '/template/cindy.png', 0, 0, 297, 210);
 
-// keterangan
-$pdf->SetFont('Arial','',14);
-$pdf->SetTextColor(0,0,0);
-$pdf->SetXY(20, 125);
-$pdf->MultiCell(257,8,
-    "Yang telah menyelesaikan program Praktik Kerja Lapangan (PKL) di PT Telkom Indonesia (Persero) Tbk, pada unit Witel $unit selama $durasi\n".
-    "terhitung mulai tanggal $tglMulaiStr s/d $tglSelesaiStr\n".
-    "dengan hasil \"Sangat Baik\"",
-    0,'C'
+// Judul
+$pdf->SetFont('Arial', 'B', 30);
+$pdf->Cell(0, 40, 'SERTIFIKAT', 0, 1, 'C');
+
+// Nama peserta
+$pdf->Ln(20);
+$pdf->SetFont('Arial', 'B', 20);
+$pdf->Cell(0, 10, strtoupper($data['nama']), 0, 1, 'C');
+
+// Isi keterangan
+$pdf->Ln(10);
+$pdf->SetFont('Arial', '', 14);
+$pdf->MultiCell(0, 10, 
+    "Telah melaksanakan Praktek Kerja Lapangan di " . $data['instansi'] . 
+    " dengan judul \"" . $data['judul'] . "\"\n" .
+    "Pada periode " . date('d M Y', strtotime($data['tanggal_mulai'])) . 
+    " sampai dengan " . date('d M Y', strtotime($data['tanggal_selesai'])), 
+    0, 'C'
 );
 
-$pdf->Output("I", "sertifikat_$nama.pdf");
+// Tanda tangan (opsional)
+$pdf->Ln(30);
+$pdf->Cell(0, 10, 'Bekasi, ' . date('d M Y'), 0, 1, 'R');
+$pdf->Ln(20);
+$pdf->Cell(0, 10, 'Pimpinan', 0, 1, 'R');
 
-// ------------ Fungsi terbilang ------------
-function terbilang($angka) {
-    $bilangan = ["","satu","dua","tiga","empat","lima","enam","tujuh","delapan","sembilan","sepuluh","sebelas"];
-    if ($angka < 12) {
-        return $bilangan[$angka];
-    } elseif ($angka < 20) {
-        return $bilangan[$angka-10] . " belas";
-    } elseif ($angka < 100) {
-        return $bilangan[floor($angka/10)] . " puluh " . $bilangan[$angka%10];
-    }
-    return $angka;
-}
+// Output PDF
+$pdf->Output('I', 'sertifikat_' . $data['nama'] . '.pdf');
 ?>
