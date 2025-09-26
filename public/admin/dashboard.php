@@ -41,9 +41,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
   <style>
-    /* ==========================
-       Warna tema Telkom
-    ========================== */
     :root {
       --telkom-red: #cc0000;
       --telkom-red-dark: #990000;
@@ -55,9 +52,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       min-height: 100vh;
     }
 
-    /* ==========================
-       Sidebar
-    ========================== */
+    /* Sidebar */
     .sidebar {
       width: 280px;
       min-height: 100vh;
@@ -100,18 +95,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
       z-index: 900;
     }
 
-    /* ==========================
-       Konten utama
-    ========================== */
+    /* Konten utama */
     .main-content {
       margin-left: 280px;
       min-height: 100vh;
       transition: margin-left 0.3s ease;
     }
 
-    /* ==========================
-       Header
-    ========================== */
+    /* Header */
     .header {
       background: #fff;
       border-bottom: 1px solid #eee;
@@ -125,13 +116,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
       width: auto;
     }
 
-    /* ==========================
-       Card Statistik
-    ========================== */
+    /* Card Statistik */
     .stats-card {
       border: none;
       border-radius: 20px;
       transition: 0.3s;
+      cursor: pointer;
     }
     .stats-card:hover {
       transform: translateY(-6px);
@@ -142,25 +132,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
       font-weight: bold;
     }
 
-    /* ==========================
-       Welcome Card
-    ========================== */
-    .welcome-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 20px;
-      color: white;
-      padding: 2rem;
-      margin-bottom: 2rem;
-    }
-
-    /* ==========================
-       Responsiveness
-    ========================== */
     @media (max-width: 768px) {
       .sidebar { left: -280px; }
       .sidebar.active { left: 0; }
       .main-content { margin-left: 0; }
-
       .telkom-logo { height: 70px; }
       .card-number { font-size: 2rem; }
     }
@@ -190,7 +165,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar PKL</a></li>
       <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
-      <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page== 'riwayat_peserta.php') ?'active':'' ?> "><i class="bi bi-clock-history me-2"></i> Riwayat Peserta</a></li>
+      <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page== 'riwayat_peserta.php') ?'active':'' ?>"><i class="bi bi-clock-history me-2"></i> Riwayat Peserta</a></li>
       <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
     </ul>
   </div>
@@ -233,6 +208,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <div class="card-number"><?= $selesai ?></div>
           </div>
         </div>
+
+        <!-- 🚀 Card Upload Pengumuman -->
+        <div class="col-lg-3 col-md-6 col-12">
+          <a href="admin_upload.php" style="text-decoration:none;">
+            <div class="card stats-card bg-danger text-white text-center p-3">
+              <h6>Upload Pengumuman</h6>
+              <div class="card-number">
+                <i class="bi bi-upload"></i>
+              </div>
+            </div>
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -250,8 +237,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
       menuToggle.addEventListener('click', ()=>{
         sidebar.classList.toggle('active');
         overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
-        
-        // Sembunyikan tombol saat sidebar aktif
         menuToggle.style.display = sidebar.classList.contains('active') ? 'none' : 'inline-block';
       });
     }

@@ -9,8 +9,8 @@ const ConditionalAttendanceSystem = {
     },
     
     currentFormData: {
-        condition: 'sehat',
-        location: 'office',
+        condition: '',
+        location: '',
         activity: '',
         kendala: ''
     },
@@ -178,9 +178,12 @@ const ConditionalAttendanceSystem = {
         let alertType = 'info';
         
         if (condition === 'sakit') {
-            message = `🏥 Karena kondisi Anda ${conditionText}, lokasi kerja otomatis dipilih: ${locationText}. Jaga kesehatan dan istirahat yang cukup!`;
+            message = `🏥 Karena kondisi Anda ${conditionText}, Lokasi kerja: ${locationText}. Jaga kesehatan dan istirahat yang cukup!`;
             alertType = 'danger';
-        } else if (condition === 'sehat') {
+        } else if (condition === 'kurang-fit') {
+            message = `😐 Kondisi Anda ${conditionText}, Anda bisa memilih lokasi kerja: ${locationText}.`;
+            alertType = 'warning';
+        }else if (condition === 'sehat') {
             message = `💪 Kondisi Anda ${conditionText}, lokasi kerja: ${locationText}. Semangat bekerja!`;
             alertType = 'success';
         }
@@ -241,9 +244,17 @@ const ConditionalAttendanceSystem = {
         });
     },
     
-    // Set default selections
+    // ✅ FIXED: Set default selections hanya kalau belum checkin
     setDefaultSelections: function() {
-        // Set default condition to 'sehat'
+        const status = document.getElementById("submitAbsen")?.dataset.status;
+
+        // ❌ Jangan override default kalau sudah checkin
+        if (status !== "not_checked_in") {
+            console.log("⏩ User sudah checkin, skip default condition/location.");
+            return;
+        }
+
+        // ✅ Kalau belum checkin, kasih default sehat + office
         const defaultConditionCard = document.querySelector('[data-type="condition"][data-value="sehat"]');
         if (defaultConditionCard && !defaultConditionCard.classList.contains('selected')) {
             defaultConditionCard.classList.add('selected');

@@ -1,0 +1,122 @@
+<?php
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cetak Surat</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .card {
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: linear-gradient(90deg, #c1121f, #dc3545);
+      font-weight: 600;
+      font-size: 1.2rem;
+      letter-spacing: 0.5px;
+    }
+    .list-group-item {
+      border: none;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      padding: 16px;
+      font-size: 1rem;
+      transition: all 0.2s ease-in-out;
+    }
+    .list-group-item:hover {
+      background-color: #f1f1f1;
+      transform: scale(1.02);
+    }
+    .icon-box {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+      font-size: 1.3rem;
+    }
+    .icon-red { background: #fde2e2; color: #dc3545; }
+    .icon-green { background: #e0f7e9; color: #198754; }
+    .icon-blue { background: #e0f0ff; color: #0d6efd; }
+    .icon-purple { background: #f3e8ff; color: #6f42c1; }
+  </style>
+</head>
+<body>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+      <div class="card shadow-lg">
+        <div class="card-header text-white text-center py-3">
+          <i class="bi bi-file-earmark-text me-2"></i> Cetak Surat Resmi
+        </div>
+        <div class="card-body p-4">
+          <p class="text-secondary text-center mb-4">
+            Silakan pilih jenis surat yang ingin dicetak. Surat akan otomatis 
+            digenerate dalam bentuk PDF dengan kop surat resmi.
+          </p>
+          <div class="list-group">
+            <!-- Surat Balasan -->
+            <a href="generate_surat.php?jenis=balasan" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
+              <div class="icon-box icon-red">
+                <i class="bi bi-envelope-open"></i>
+              </div>
+              <div>
+                <div class="fw-semibold">Surat Balasan</div>
+                <small class="text-muted">Cetak surat balasan permohonan PKL</small>
+              </div>
+            </a>
+            <!-- Surat Konfirmasi -->
+            <a href="generate_surat.php?jenis=konfirmasi" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
+              <div class="icon-box icon-green">
+                <i class="bi bi-check2-square"></i>
+              </div>
+              <div>
+                <div class="fw-semibold">Surat Konfirmasi</div>
+                <small class="text-muted">Cetak surat konfirmasi penerimaan PKL</small>
+              </div>
+            </a>
+            <!-- Surat Selesai -->
+            <a href="generate_surat.php?jenis=selesai" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
+              <div class="icon-box icon-blue">
+                <i class="bi bi-flag"></i>
+              </div>
+              <div>
+                <div class="fw-semibold">Surat Selesai</div>
+                <small class="text-muted">Cetak surat selesai kegiatan PKL</small>
+              </div>
+            </a>
+            <!-- Sertifikat -->
+            <a href="../dokumen/sertifikat.php" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
+              <div class="icon-box icon-purple">
+                <i class="bi bi-award"></i>
+              </div>
+              <div>
+                <div class="fw-semibold">Sertifikat</div>
+                <small class="text-muted">Cetak sertifikat penyelesaian PKL</small>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body> 
+</html>

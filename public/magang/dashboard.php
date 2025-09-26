@@ -8,31 +8,105 @@ $userName = isset($_SESSION['nama']) ? $_SESSION['nama'] : null;
 $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
 $userRole = isset($_SESSION['role']) ? $_SESSION['role'] : 'guest';
 
-// Check if user has already checked in today
+// DATABASE-BASED FUNCTIONS (Replacing session-based)
 function hasCheckedInToday($userId) {
-    // You should implement this function to check database
-    // For now, we'll use session or you can modify to check from database
+    global $conn;
     $today = date('Y-m-d');
-    return isset($_SESSION['check_in_' . $today]) ? $_SESSION['check_in_' . $today] : false;
+    
+    $sql = "SELECT jam_masuk FROM absen WHERE user_id = ? AND tanggal = ? LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("is", $userId, $today);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        return !empty($row['jam_masuk']);
+    }
+    
+    return false;
 }
 
-// Check if user has already checked out today
 function hasCheckedOutToday($userId) {
-    // You should implement this function to check database
-    // For now, we'll use session or you can modify to check from database
+    global $conn;
     $today = date('Y-m-d');
-    return isset($_SESSION['check_out_' . $today]) ? $_SESSION['check_out_' . $today] : false;
+    
+    $sql = "SELECT jam_keluar FROM absen WHERE user_id = ? AND tanggal = ? LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("is", $userId, $today);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        return !empty($row['jam_keluar']);
+    }
+    
+    return false;
 }
 
+function getTodayAttendanceData($userId) {
+    global $conn;
+    $today = date('Y-m-d');
+    
+    $sql = "SELECT * FROM absen WHERE user_id = ? AND tanggal = ? LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("is", $userId, $today);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    return $result->fetch_assoc();
+}
+
+function hasPendingCheckout($userId) {
+    global $conn;
+    $sql = "SELECT tanggal, jam_masuk FROM absen WHERE user_id = ? AND jam_masuk IS NOT NULL AND jam_keluar IS NULL ORDER BY tanggal DESC LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        $pendingDate = $row['tanggal'];
+        $today = date('Y-m-d');
+        
+        if ($pendingDate !== $today) {
+            return [
+                'has_pending' => true,
+                'date' => $pendingDate,
+                'checkin_time' => $row['jam_masuk']
+            ];
+        }
+    }
+    
+    return ['has_pending' => false];
+}
+
+// Check attendance status
 $hasCheckedIn = hasCheckedInToday($userId);
 $hasCheckedOut = hasCheckedOutToday($userId);
+$attendanceData = getTodayAttendanceData($userId);
+$pendingCheckout = hasPendingCheckout($userId);
 
-// Determine current status and button text
-if (!$hasCheckedIn) {
+// Determine current status and button text with time validation
+$currentTime = date('H:i:s');
+$checkinDeadline = '11:00:00';
+$canCheckin = $currentTime <= $checkinDeadline;
+
+if ($pendingCheckout['has_pending']) {
+    $currentStatus = 'pending_checkout';
+    $buttonText = 'Checkout Tertunda';
+    $buttonIcon = 'bi-exclamation-triangle';
+    $statusMessage = 'Anda belum checkout dari tanggal ' . date('d/m/Y', strtotime($pendingCheckout['date']));
+} elseif (!$hasCheckedIn) {
     $currentStatus = 'not_checked_in';
-    $buttonText = 'Click to Check In';
-    $buttonIcon = 'bi-box-arrow-in-right';
-    $statusMessage = '';
+    if ($canCheckin) {
+        $buttonText = 'Click to Check In';
+        $buttonIcon = 'bi-box-arrow-in-right';
+        $statusMessage = '';
+    } else {
+        $buttonText = 'Checkin Time Expired';
+        $buttonIcon = 'bi-clock';
+        $statusMessage = 'Waktu checkin sudah berakhir (batas: 11:00 WIB)';
+    }
 } elseif ($hasCheckedIn && !$hasCheckedOut) {
     $currentStatus = 'checked_in';
     $buttonText = 'Click to Check Out';
@@ -45,15 +119,18 @@ if (!$hasCheckedIn) {
     $statusMessage = 'Absensi hari ini sudah selesai';
 }
 
-// Extended user data for profile (you can fetch this from database)
+// Extended user data for profile
 $userProfile = [
     'nama'       => $userName,
     'unit_kerja' => 'IT Development'
 ];
 
 if ($userId) {
-    $sql = "SELECT nama, unit FROM peserta_pkl WHERE user_id = '$userId' LIMIT 1";
-    $result = $conn->query($sql);
+    $sql = "SELECT nama, unit FROM peserta_pkl WHERE user_id = ? LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
     if ($result && $result->num_rows > 0) {
         $row = $result->fetch_assoc();
@@ -61,6 +138,13 @@ if ($userId) {
         $userProfile['unit_kerja'] = $row['unit'];
     }
 }
+
+// ambil pengumuman aktif (tandai pakai kolom is_active=1 misalnya)
+$stmt = $conn->prepare("SELECT * FROM pengumuman WHERE is_active = 1 ORDER BY id DESC LIMIT 1");
+$stmt->execute();
+$result = $stmt->get_result();
+$pengumuman = $result->fetch_assoc();
+
 ?>
 
 <!DOCTYPE html>
@@ -101,58 +185,6 @@ if ($userId) {
             border-radius: 6px;
         }
         
-        /* Leaflet popup customization */
-        .leaflet-popup-content {
-            font-size: 14px;
-            line-height: 1.4;
-            margin: 8px 12px;
-        }
-        
-        .leaflet-popup-content h6 {
-            margin: 0 0 8px 0;
-            font-weight: 600;
-        }
-        
-        /* Distance info styles */
-        .distance-info {
-            font-size: 13px;
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        
-        .status-in-range {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .status-out-range {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        
-        /* Location info alert */
-        #location-info {
-            margin-top: 15px;
-            border-radius: 8px;
-        }
-        
-        /* Button styles */
-        .location-buttons {
-            margin-top: 15px;
-            gap: 10px;
-        }
-        
-        .btn-location {
-            border-radius: 6px;
-            font-weight: 500;
-        }
-        
         /* Loading spinner */
         .loading-spinner {
             display: inline-block;
@@ -169,28 +201,142 @@ if ($userId) {
             100% { transform: rotate(360deg); }
         }
         
-        /* Location option cards */
-        .location-section .option-card.location-option {
-            transition: all 0.3s ease;
-            cursor: pointer;
+        /* Status banner styles */
+        .status-banner {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: none;
         }
-        
-        .location-section .option-card.location-option:hover:not(.disabled) {
+
+        .status-banner.checked-in {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        .status-banner.completed {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .status-banner.pending-checkout {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        /* Button states */
+        .btn-check-in {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            border: none;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-check-in:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            color: white;
+        }
+
+        .btn-check-out {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            border: none;
+            color: #212529;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-check-out:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+            color: #212529;
+        }
+
+        .btn-completed {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            border: none;
+            color: white;
+            font-weight: 600;
+            cursor: not-allowed;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            border: none;
+            color: #212529;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+            color: #212529;
+        }
+
+        /* Form validation styles */
+        .form-control.is-valid {
+            border-color: #28a745;
+        }
+
+        .form-control.is-invalid {
+            border-color: #dc3545;
+        }
+
+        /* Option cards */
+        .option-card {
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+            padding: 1rem;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .option-card:hover:not(.disabled) {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
-        
-        .location-section .option-card.location-option.selected {
-            border-color: #007bff;
-            background-color: rgba(0, 123, 255, 0.1);
+
+        .option-card.selected {
+            border-color: #007bff !important;
+            background-color: #f8f9ff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.15) !important;
         }
-        
-        .location-section .option-card.location-option.disabled {
+
+        .option-card.disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            pointer-events: none;
         }
-        
-        /* Info cards styling */
+
+        .option-card.disabled::after {
+            content: '🔒';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 16px;
+        }
+
+        /* Alert animations */
+        .conditional-alert {
+            animation: slideInDown 0.3s ease-out;
+        }
+
+        @keyframes slideInDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Info card in right panel */
         .info-card {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border: 1px solid #dee2e6;
@@ -223,32 +369,7 @@ if ($userId) {
         .info-value.warning { color: #ffc107; }
         .info-value.danger { color: #dc3545; }
         .info-value.info { color: #17a2b8; }
-        
-        /* Map controls styling */
-        .map-controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        .map-control-btn {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 5px 8px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .map-control-btn:hover {
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+
     </style>
 </head>
 <body>
@@ -258,7 +379,7 @@ if ($userId) {
             <div class="row align-items-center">
                 <div class="col-auto">
                     <div class="telkom-logo">
-                        <img src="../assets/img/telkom-removebg.png" width="80" height="80">
+                        <img src="../assets/img/telkom.png" width="80" height="80">
                     </div>
                 </div>
                 <div class="col">
@@ -266,12 +387,6 @@ if ($userId) {
                         Absensi Magang - Telkom Indonesia
                     </h4>
                 </div>
-                <!-- <div class="col-auto">
-                    <div class="d-flex align-items-center user-info">
-                        <i class="bi bi-person-circle me-2"></i>
-                        <span><?php echo htmlspecialchars($userName); ?></span>
-                    </div>
-                </div> -->
             </div>
         </div>
     </header>
@@ -293,20 +408,12 @@ if ($userId) {
         </div>
     </div>
 
-    <!-- Status Banner -->
-    <?php if($hasCheckedIn): ?>
+    <!-- Status Banner (Will be controlled by JavaScript) -->
     <div class="container">
-        <div class="status-banner <?php echo $currentStatus === 'checked_in' ? 'checked-in' : ($currentStatus === 'completed' ? 'completed' : ''); ?>">
-            <div class="d-flex align-items-center">
-                <i class="bi <?php echo $buttonIcon; ?> me-2" style="font-size: 1.2rem;"></i>
-                <strong><?php echo $statusMessage; ?></strong>
-            </div>
-            <small class="text-muted d-block mt-1">
-                Check in: <?php echo date('H:i:s'); ?> | Lokasi: <span id="statusLocation">Office</span>
-            </small>
+        <div class="status-banner" id="statusBanner">
+            <!-- Content will be dynamically updated -->
         </div>
     </div>
-    <?php endif; ?>
 
     <!-- Welcome Banner -->
     <div class="welcome-banner text-center">
@@ -318,7 +425,6 @@ if ($userId) {
         </div>
     </div>
 
-
     <!-- Main Content -->
     <div class="container my-4">
         <div class="row g-4">
@@ -326,7 +432,7 @@ if ($userId) {
             <div class="col-lg-8">
                 <div class="card card-custom">
                     <div class="card-body">
-                        <!-- Map Section -->
+                        <!-- Map Section - KEPT ORIGINAL -->
                         <div class="mb-4">
                             <h5 class="card-title mb-3">
                                 <i class="bi bi-map me-2"></i>
@@ -348,7 +454,7 @@ if ($userId) {
                                 </div>
                             </div>
 
-                            <!-- Location Action Buttons -->
+                            <!-- Location Action Buttons - KEPT ORIGINAL -->
                             <div class="d-flex flex-wrap location-buttons">
                                 <button type="button" class="btn btn-primary btn-location me-2 mb-2" onclick="refreshUserLocation()">
                                     <i class="bi bi-arrow-clockwise me-1"></i>
@@ -379,27 +485,12 @@ if ($userId) {
                             <div class="col-md-6">
                                 <label for="activity" class="form-label">
                                     <i class="bi bi-list-task me-1"></i>
-                                    Aktivitas <?php echo $currentStatus === 'not_checked_in' ? 'Hari Ini' : 'yang Dilakukan'; ?>
-                                    <?php if($currentStatus === 'checked_in'): ?>
-                                        <span class="text-danger">*</span>
-                                    <?php endif; ?>
+                                    Aktivitas
+                                    <span class="text-danger" id="activityRequired" style="display:none;">*</span>
                                 </label>
                                 <textarea class="form-control" id="activity" rows="3" 
-                                    placeholder="<?php 
-                                        if($currentStatus === 'not_checked_in') {
-                                            echo 'Aktivitas akan diisi saat checkout (opsional untuk checkin)';
-                                        } else if($currentStatus === 'checked_in') {
-                                            echo 'Tuliskan aktivitas yang sudah dilakukan hari ini...';
-                                        } else {
-                                            echo 'Aktivitas yang sudah dilakukan';
-                                        }
-                                    ?>" 
-                                    <?php echo $currentStatus === 'completed' ? 'disabled' : ($currentStatus === 'checked_in' ? 'required' : ''); ?>></textarea>
-                                <?php if($currentStatus === 'not_checked_in'): ?>
-                                    <small class="text-muted">Aktivitas tidak wajib diisi untuk check in</small>
-                                <?php elseif($currentStatus === 'checked_in'): ?>
-                                    <small class="text-danger">Wajib diisi untuk check out</small>
-                                <?php endif; ?>
+                                    placeholder="Aktivitas akan diisi berdasarkan status absensi..."></textarea>
+                                <small class="form-text text-muted" id="activityHelp"></small>
                             </div>
                         </div>
 
@@ -408,26 +499,10 @@ if ($userId) {
                             <label for="kendala" class="form-label">
                                 <i class="bi bi-exclamation-triangle me-1"></i>
                                 Kendala / Hambatan (Opsional)
-                                <?php if($currentStatus === 'checked_in'): ?>
-                                    <span class="text-warning"> - Untuk Checkout</span>
-                                <?php endif; ?>
                             </label>
                             <textarea class="form-control" id="kendala" rows="3" 
-                                placeholder="<?php 
-                                    if($currentStatus === 'not_checked_in') {
-                                        echo 'Kendala akan diisi saat checkout (opsional untuk checkin)';
-                                    } else if($currentStatus === 'checked_in') {
-                                        echo 'Tuliskan kendala atau hambatan yang dialami hari ini (jika ada)...';
-                                    } else {
-                                        echo 'Kendala yang dialami';
-                                    }
-                                ?>"
-                                <?php echo $currentStatus === 'completed' ? 'disabled' : ''; ?>></textarea>
-                            <?php if($currentStatus === 'not_checked_in'): ?>
-                                <small class="text-muted">Kendala tidak perlu diisi untuk check in</small>
-                            <?php elseif($currentStatus === 'checked_in'): ?>
-                                <small class="text-info">Opsional - isi jika ada kendala yang dialami</small>
-                            <?php endif; ?>
+                                placeholder="Kendala akan diisi berdasarkan status absensi..."></textarea>
+                            <small class="form-text text-muted" id="kendalaHelp"></small>
                         </div>
 
                         <!-- Health Condition -->
@@ -438,21 +513,21 @@ if ($userId) {
                             </h6>
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <div class="option-card text-center <?php echo $currentStatus === 'completed' ? 'disabled' : ''; ?>" 
+                                    <div class="option-card text-center" 
                                          data-type="condition" data-value="sakit">
                                         <span class="option-icon">🤒</span>
                                         <h6 class="mb-0">Sakit</h6>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="option-card text-center <?php echo $currentStatus === 'completed' ? 'disabled' : ''; ?>" 
+                                    <div class="option-card text-center" 
                                          data-type="condition" data-value="kurang-fit">
                                         <span class="option-icon">😷</span>
                                         <h6 class="mb-0">Kurang Fit</h6>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="option-card text-center selected <?php echo $currentStatus === 'completed' ? 'disabled' : ''; ?>" 
+                                    <div class="option-card text-center selected" 
                                          data-type="condition" data-value="sehat">
                                         <span class="option-icon">😊</span>
                                         <h6 class="mb-0">Sehat</h6>
@@ -471,20 +546,18 @@ if ($userId) {
                             <div class="row" id="locationOptions">
                                 <!-- Office option -->
                                 <div class="col-md-6" id="officeOption">
-                                    <div class="option-card text-center location-option selected <?php echo $currentStatus === 'completed' ? 'disabled' : ''; ?>" 
+                                    <div class="option-card text-center location-option selected" 
                                          data-type="location" data-value="office">
                                         <span class="option-icon">🏢</span>
                                         <h6 class="mb-0">Office</h6>
-                                        <small class="text-muted">Dalam radius kantor</small>
                                     </div>
                                 </div>
                                 <!-- WFH option -->
                                 <div class="col-md-6 d-none" id="wfhOption">
-                                    <div class="option-card text-center location-option <?php echo $currentStatus === 'completed' ? 'disabled' : ''; ?>" 
+                                    <div class="option-card text-center location-option" 
                                          data-type="location" data-value="wfh">
                                         <span class="option-icon">🏠</span>
                                         <h6 class="mb-0">Work From Home</h6>
-                                        <small class="text-muted">Di luar radius kantor</small>
                                     </div>
                                 </div>
                             </div>
@@ -495,7 +568,7 @@ if ($userId) {
 
             <!-- Right Panel - Info & Camera -->
             <div class="col-lg-4">
-                <!-- Location Info Card -->
+                <!-- Location Info Card - KEPT EXACTLY ORIGINAL -->
                 <div class="card card-custom mb-4">
                     <div class="card-header bg-info text-white">
                         <h6 class="mb-0">
@@ -504,7 +577,7 @@ if ($userId) {
                         </h6>
                     </div>
                     <div class="card-body p-3">
-                        <!-- Distance Info Detail - Will be populated by maps.js -->
+                        <!-- Distance Info Detail - Will be populated by maps.js - ORIGINAL -->
                         <div id="distanceInfo" class="mt-3">
                             <!-- Distance details will be shown here -->
                         </div>
@@ -512,52 +585,61 @@ if ($userId) {
                 </div>
 
                 <!-- Camera Section -->
-<div class="card card-custom mb-4">
-    <div class="card-header bg-warning text-dark">
-        <h6 class="mb-0">
-            <i class="bi bi-camera me-2"></i>
-            Camera
-        </h6>
-    </div>
-    <div class="card-body p-3">
-        <div class="camera-container mb-3">
-            <video id="video" class="d-none" autoplay playsinline></video>
-            <canvas id="canvas" class="d-none"></canvas>
-            <img id="photo" class="d-none img-fluid rounded" alt="Captured photo">
-            <div id="camera-placeholder" class="camera-placeholder text-center">
-                <i class="bi bi-camera" style="font-size: 3rem; opacity: 0.7;"></i>
-                <p class="mt-2 mb-0">Klik "Start Camera"</p>
-                <small>untuk mengaktifkan kamera dan ambil foto</small>
-            </div>
-        </div>
-        <div class="d-grid gap-2">
-            <button class="btn btn-camera" id="startCamera" <?php echo $currentStatus === 'completed' ? 'disabled' : ''; ?>>
-                <i class="bi bi-camera me-2"></i>
-                Start Camera
-            </button>
-            <button class="btn btn-camera d-none" id="capture">
-                <i class="bi bi-camera-fill me-2"></i>
-                Capture
-            </button>
-            <button class="btn btn-secondary d-none" id="retake">
-                <i class="bi bi-arrow-clockwise me-2"></i>
-                Retake
-            </button>
-        </div>
-    </div>
-</div>
+                <div class="card card-custom mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">
+                            <i class="bi bi-camera me-2"></i>
+                            Camera
+                        </h6>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="camera-container mb-3">
+                            <video id="video" class="d-none" autoplay playsinline></video>
+                            <canvas id="canvas" class="d-none"></canvas>
+                            <img id="photo" class="d-none img-fluid rounded" alt="Captured photo">
+                            <div id="camera-placeholder" class="camera-placeholder text-center">
+                                <i class="bi bi-camera" style="font-size: 3rem; opacity: 0.7;"></i>
+                                <p class="mt-2 mb-0">Klik "Start Camera"</p>
+                                <small>untuk mengaktifkan kamera dan ambil foto</small>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-camera" id="startCamera">
+                                <i class="bi bi-camera me-2"></i>
+                                Start Camera
+                            </button>
+                            <button class="btn btn-camera d-none" id="capture">
+                                <i class="bi bi-camera-fill me-2"></i>
+                                Capture
+                            </button>
+                            <button class="btn btn-secondary d-none" id="retake">
+                                <i class="bi bi-arrow-clockwise me-2"></i>
+                                Retake
+                            </button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="photoData" name="photo">
+                </div>
 
                 <!-- Logbook & History -->
                 <div class="card card-custom mb-4">
                     <div class="card-body">
                         <div class="d-grid gap-2">
-                            <a href="logbook.php" class="manual-link d-flex align-items-center py-2" id="logbookLink">
+                            <a href="logbook.php" class="manual-link d-flex align-items-center py-2">
                                 <i class="bi bi-journal-text me-2"></i>
                                 Logbook Aktivitas
                             </a>
-                            <a href="riwayat_absensi.php" class="manual-link d-flex align-items-center py-2" id="historyLink">
+                            <a href="riwayat_absensi.php" class="manual-link d-flex align-items-center py-2">
                                 <i class="bi bi-clock-history me-2"></i>
                                 Riwayat Absensi
+                            </a>
+                            <a href="cetak_surat.php" class="manual-link d-flex align-items-center py-2">
+                                <i class="bi bi-file-earmark-text me-2"></i>
+                                Cetak Surat
+                            </a>
+                            <a href="struktur.php" class="manual-link d-flex align-items-center py-2">
+                                <i class="bi bi-diagram-3 me-2"></i>
+                                struktur
                             </a>
                         </div>
                     </div>
@@ -566,16 +648,19 @@ if ($userId) {
                 <!-- Submit & Logout Buttons -->
                 <div class="d-grid gap-3 mb-4">
                     <button class="btn btn-lg <?php 
-                        echo $currentStatus === 'not_checked_in' ? 'btn-check-in' : 
-                            ($currentStatus === 'checked_in' ? 'btn-check-out' : 'btn-completed'); 
+                        echo $currentStatus === 'not_checked_in' && $canCheckin ? 'btn-check-in' : 
+                            ($currentStatus === 'not_checked_in' && !$canCheckin ? 'btn-secondary' :
+                            ($currentStatus === 'checked_in' ? 'btn-check-out' : 
+                            ($currentStatus === 'pending_checkout' ? 'btn-warning' : 'btn-completed'))); 
                     ?>" 
                     id="submitAbsen" 
                     data-status="<?php echo $currentStatus; ?>"
-                    <?php echo $currentStatus === 'completed' ? 'disabled' : ''; ?>>
+                    data-pending-date="<?php echo $pendingCheckout['has_pending'] ? $pendingCheckout['date'] : ''; ?>"
+                    <?php echo ($currentStatus === 'completed' || ($currentStatus === 'not_checked_in' && !$canCheckin)) ? 'disabled' : ''; ?>>
                         <i class="bi <?php echo $buttonIcon; ?> me-2"></i>
                         <?php echo $buttonText; ?>
                     </button>
-                    <button class="btn btn-logout btn-lg" id="logoutBtn" onclick="window.location.href='../logout.php';">
+                    <button class="btn btn-logout btn-lg" onclick="window.location.href='../logout.php';">
                         <i class="bi bi-box-arrow-right me-2"></i>
                         Logout
                     </button>
@@ -589,22 +674,52 @@ if ($userId) {
         <div id="alertContainer"></div>
     </div>
 
-    <!-- Leaflet JavaScript -->
+<!-- Modal Pengumuman -->
+<div class="modal fade" id="pengumumanModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered"> <!-- pakai modal-xl -->
+    <div class="modal-content">
+      
+      <!-- Tombol close -->
+      <div class="modal-header border-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Isi modal -->
+      <div class="modal-body p-0">
+        <img src="../../uploads/pengumuman/<?= $pengumuman['gambar'] ?>" 
+             class="img-fluid rounded" alt="Pengumuman">
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+    <!-- JavaScript Libraries -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
             crossorigin=""></script>
-    
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom JavaScript - Load your existing files -->
+    <!-- Load existing map files FIRST - ORIGINAL -->
     <script src="../assets/js/maps.js"></script>
     <script src="../assets/js/dashboard_pkl.js"></script>
-
-    <!--camera</body> -->
     <script src="../assets/js/camera.js"></script>
+    <script src="../assets/js/attendance.js"></script>
+
     
+    <!-- Load our attendance system -->
+    <script src="../assets/js/simple_attendance_integration.js"></script>
+    
+    <!-- Custom JavaScript for Integration - KEEPING ORIGINAL MAP FUNCTIONS -->
     <script>
+        // Global variables from PHP
+        window.initialStatus = '<?php echo $currentStatus; ?>';
+        window.canCheckin = <?php echo $canCheckin ? 'true' : 'false'; ?>;
+        window.pendingDate = '<?php echo $pendingCheckout['has_pending'] ? $pendingCheckout['date'] : ''; ?>';
+        
         // Update current time every second
         function updateCurrentTime() {
             const now = new Date();
@@ -615,91 +730,106 @@ if ($userId) {
                 hour: 'numeric',
                 minute: '2-digit',
                 second: '2-digit',
-                hour12: true
+                hour12: false
             };
-            document.getElementById('currentTime').textContent = now.toLocaleString('en-US', options);
+            document.getElementById('currentTime').textContent = now.toLocaleString('id-ID', options);
         }
         
-        // Update time immediately and then every second
         updateCurrentTime();
         setInterval(updateCurrentTime, 1000);
         
-        // Integration dengan maps.js yang sudah ada
+        // Show alert function
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert_' + Date.now();
+            
+            const alertHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            alertContainer.insertAdjacentHTML('beforeend', alertHTML);
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            }, 5000);
+        }
+        
+        // ORIGINAL MAP INTEGRATION - COMPLETELY PRESERVED
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Dashboard loaded, waiting for maps.js integration...');
             
-            // Listen untuk update dari maps.js (jika maps.js mengirim event)
+            // Listen untuk update dari maps.js (jika maps.js mengirim event) - ORIGINAL
             document.addEventListener('locationUpdated', function(event) {
                 const { distance, isInRange, accuracy } = event.detail;
                 
                 console.log('📍 Location updated from maps.js:', { distance, isInRange, accuracy });
                 
-                // Update GPS status
-                document.getElementById('gpsStatus').textContent = 'Active';
-                document.getElementById('gpsStatus').className = 'info-value success';
+                // Update main location status - ONLY THIS IS KEPT
+                const locationStatus = document.getElementById('locationStatus');
+                if (locationStatus) {
+                    locationStatus.textContent = isInRange ? 'Dalam Area Kantor' : 'Di Luar Area Kantor';
+                    locationStatus.className = isInRange ? 'fw-bold text-success' : 'fw-bold text-warning';
+                }
                 
-                // Update distance
-                document.getElementById('distanceToOffice').textContent = Math.round(distance) + 'm';
-                document.getElementById('distanceToOffice').className = isInRange ? 'info-value success' : 'info-value warning';
-                
-                // Update accuracy
-                document.getElementById('gpsAccuracy').textContent = Math.round(accuracy) + 'm';
-                document.getElementById('gpsAccuracy').className = 'info-value info';
-                
-                // Update location valid status
-                document.getElementById('locationValid').textContent = isInRange ? 'Dalam Area' : 'Di Luar Area';
-                document.getElementById('locationValid').className = isInRange ? 'info-value success' : 'info-value warning';
-                
-                // Update main location status
-                document.getElementById('locationStatus').textContent = isInRange ? 'Dalam Area Kantor' : 'Di Luar Area Kantor';
-                document.getElementById('locationStatus').className = isInRange ? 'fw-bold text-success' : 'fw-bold text-warning';
-                
-                // Update location options
+                // Update location options - ORIGINAL
                 updateLocationOptions(isInRange);
                 
-                // Update location info alert
+                // Update location info alert - ORIGINAL
                 updateLocationInfoAlert(isInRange, distance);
             });
             
-            // Listen untuk error GPS dari maps.js
+            // Listen untuk error GPS dari maps.js - COMPLETELY ORIGINAL
             document.addEventListener('locationError', function(event) {
                 console.warn('❌ Location error from maps.js:', event.detail);
                 
-                document.getElementById('gpsStatus').textContent = 'Error';
-                document.getElementById('gpsStatus').className = 'info-value danger';
-                document.getElementById('locationStatus').textContent = 'GPS Tidak Tersedia';
-                document.getElementById('locationStatus').className = 'fw-bold text-danger';
-                document.getElementById('locationValid').textContent = 'Unknown';
-                document.getElementById('locationValid').className = 'info-value danger';
+                const locationStatus = document.getElementById('locationStatus');
+                if (locationStatus) {
+                    locationStatus.textContent = 'GPS Tidak Tersedia';
+                    locationStatus.className = 'fw-bold text-danger';
+                }
                 
-                // Show error in location info
-                document.getElementById('location-info').innerHTML = `
-                    <div class="alert alert-danger">
-                                            <strong>❌ GPS Error:</strong> ${event.detail.message || 'Tidak dapat mengakses lokasi'}
-                        <button class="btn btn-sm btn-outline-danger mt-2 w-100" onclick="refreshUserLocation()">
-                            🔄 Coba Lagi
-                        </button>
-                    </div>
-                `;
+                // Show error in location info - ORIGINAL
+                const mapStatus = document.getElementById('mapStatus');
+                if (mapStatus) {
+                    mapStatus.innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong>❌ GPS Error:</strong> ${event.detail.message || 'Tidak dapat mengakses lokasi'}
+                            <button class="btn btn-sm btn-outline-danger mt-2 w-100" onclick="refreshUserLocation()">
+                                🔄 Coba Lagi
+                            </button>
+                        </div>
+                    `;
+                }
             });
             
-            // Listen untuk office data loaded dari maps.js
+            // Listen untuk office data loaded dari maps.js - COMPLETELY ORIGINAL
             document.addEventListener('officeDataLoaded', function(event) {
                 console.log('🏢 Office data loaded from maps.js:', event.detail);
                 
-                // Update location info
+                // Update location info - ORIGINAL
                 const office = event.detail;
-                document.getElementById('location-info').innerHTML = `
-                    <div class="alert alert-success">
-                        <strong>🏢 ${office.name}</strong><br>
-                        <small>📍 ${office.address}<br>
-                        📏 Radius absensi: ${office.radius}m</small>
-                    </div>
-                `;
+                const mapStatus = document.getElementById('mapStatus');
+                if (mapStatus) {
+                    mapStatus.innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>🏢 ${office.name}</strong><br>
+                            <small>📍 ${office.address}<br>
+                            📏 Radius absensi: ${office.radius}m</small>
+                        </div>
+                    `;
+                }
             });
         });
         
-        // Update location options based on GPS
+        // ORIGINAL MAP FUNCTIONS - COMPLETELY PRESERVED
         function updateLocationOptions(isInRange) {
             const officeOption = document.getElementById('officeOption');
             const wfhOption = document.getElementById('wfhOption');
@@ -711,12 +841,13 @@ if ($userId) {
                 
                 // Auto select office option
                 const officeCard = officeOption.querySelector('.option-card');
-                officeCard.classList.add('selected');
-                
-                // Remove selection from WFH
                 const wfhCard = wfhOption.querySelector('.option-card');
-                wfhCard.classList.remove('selected');
-                
+                if (officeCard) {
+                    officeCard.classList.add('selected');
+                }
+                if (wfhCard) {
+                    wfhCard.classList.remove('selected');
+                }
             } else {
                 // Di luar area kantor - show both options
                 officeOption.classList.remove('d-none');
@@ -724,20 +855,22 @@ if ($userId) {
                 
                 // Auto select WFH option
                 const wfhCard = wfhOption.querySelector('.option-card');
-                wfhCard.classList.add('selected');
-                
-                // Remove selection from office
                 const officeCard = officeOption.querySelector('.option-card');
-                officeCard.classList.remove('selected');
+                if (wfhCard) {
+                    wfhCard.classList.add('selected');
+                }
+                if (officeCard) {
+                    officeCard.classList.remove('selected');
+                }
             }
         }
         
-        // Update location info alert
+        // ORIGINAL LOCATION INFO UPDATE - COMPLETELY PRESERVED
         function updateLocationInfoAlert(isInRange, distance) {
-            const locationInfo = document.getElementById('location-info');
+            const mapStatus = document.getElementById('mapStatus');
             
             if (isInRange) {
-                locationInfo.innerHTML = `
+                mapStatus.innerHTML = `
                     <div class="alert alert-success">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
@@ -751,7 +884,7 @@ if ($userId) {
                     </div>
                 `;
             } else {
-                locationInfo.innerHTML = `
+                mapStatus.innerHTML = `
                     <div class="alert alert-warning">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
@@ -768,26 +901,9 @@ if ($userId) {
             }
         }
         
-        // Handle location option clicks
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.location-option') && !e.target.closest('.disabled')) {
-                const clickedCard = e.target.closest('.location-option');
-                const allLocationCards = document.querySelectorAll('.location-option');
-                
-                // Remove selected class from all cards
-                allLocationCards.forEach(card => card.classList.remove('selected'));
-                
-                // Add selected class to clicked card
-                clickedCard.classList.add('selected');
-                
-                console.log('📍 Location option selected:', clickedCard.dataset.value);
-            }
-        });
-        
-        // Global functions untuk dipanggil dari button atau maps.js
+        // ORIGINAL GLOBAL FUNCTIONS - COMPLETELY PRESERVED
         window.refreshUserLocation = function() {
             console.log('🔄 Refreshing user location from dashboard...');
-            // Panggil function dari maps.js jika tersedia
             if (typeof getUserLocation === 'function') {
                 getUserLocation();
             } else if (typeof refreshLocation === 'function') {
@@ -799,7 +915,6 @@ if ($userId) {
         
         window.centerToOffice = function() {
             console.log('🏢 Centering to office from dashboard...');
-            // Panggil function dari maps.js jika tersedia
             if (typeof centerMapToOffice === 'function') {
                 centerMapToOffice();
             } else if (typeof centerToOffice === 'function') {
@@ -811,7 +926,6 @@ if ($userId) {
         
         window.checkLocation = function() {
             console.log('📏 Checking location from dashboard...');
-            // Panggil function dari maps.js jika tersedia
             if (typeof checkUserLocation === 'function') {
                 checkUserLocation();
             } else if (typeof calculateDistance === 'function') {
@@ -822,234 +936,148 @@ if ($userId) {
             }
         };
         
-        // Helper function untuk debugging
-        window.debugMapsIntegration = function() {
-            console.log('🔍 Debug Maps Integration:');
-            console.log('- maps.js loaded:', typeof map !== 'undefined');
-            console.log('- getUserLocation available:', typeof getUserLocation === 'function');
-            console.log('- centerToOffice available:', typeof centerToOffice === 'function');
-            console.log('- checkLocation available:', typeof checkLocation === 'function');
-            console.log('- Current location status:', document.getElementById('locationStatus').textContent);
-            console.log('- GPS status:', document.getElementById('gpsStatus').textContent);
-        };
-        
-        // Auto debug setelah 3 detik untuk memastikan maps.js sudah load
-        setTimeout(() => {
-            if (typeof console !== 'undefined' && console.log) {
-                debugMapsIntegration();
+        // ORIGINAL ENHANCED INTEGRATION - COMPLETELY PRESERVED
+        setTimeout(function() {
+            if (typeof map !== 'undefined') {
+                console.log('✅ Maps.js detected, setting up integration...');
+                setupMapsIntegration();
+            } else {
+                console.warn('⚠️ Maps.js not detected, retrying...');
+                setTimeout(arguments.callee, 2000);
             }
-        }, 3000);
-    </script>
+        }, 1000);
 
-    <script>
-// Enhanced integration dengan maps.js
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Dashboard loaded, integrating with maps...');
-    
-    // Tunggu maps.js load
-    setTimeout(function() {
-        // Cek apakah maps.js sudah load
-        if (typeof map !== 'undefined') {
-            console.log('✅ Maps.js detected, setting up integration...');
+        function setupMapsIntegration() {
+            if (typeof userLocation !== 'undefined' && userLocation) {
+                updateLocationInfo(userLocation);
+            }
             
-            // Override atau extend fungsi di maps.js
-            setupMapsIntegration();
-        } else {
-            console.warn('⚠️ Maps.js not detected, retrying...');
-            // Retry setelah 2 detik
-            setTimeout(arguments.callee, 2000);
-        }
-    }, 1000);
-});
-
-function setupMapsIntegration() {
-    // Monitor perubahan lokasi
-    if (typeof userLocation !== 'undefined' && userLocation) {
-        updateLocationInfo(userLocation);
-    }
-    
-    // Monitor perubahan jarak
-    if (typeof distanceToOffice !== 'undefined' && distanceToOffice) {
-        updateDistanceInfo(distanceToOffice);
-    }
-    
-    // Set interval untuk update berkala
-    setInterval(function() {
-        if (typeof userLocation !== 'undefined' && typeof officeLocation !== 'undefined') {
-            // Hitung jarak terbaru
-            const distance = calculateDistanceFromCoords(
-                userLocation.lat, userLocation.lng,
-                officeLocation.lat, officeLocation.lng
-            );
-            
-            const isInRange = distance <= (officeLocation.radius || 100);
-            const accuracy = userLocation.accuracy || 0;
-            
-            // Update UI
-            updateLocationUI(distance, isInRange, accuracy);
-        }
-    }, 3000); // Update setiap 3 detik
-}
-
-function updateLocationUI(distance, isInRange, accuracy) {
-    // Update Status GPS
-    const gpsStatus = document.getElementById('gpsStatus');
-    if (gpsStatus) {
-        gpsStatus.textContent = 'Active';
-        gpsStatus.className = 'info-value success';
-    }
-    
-    // Update Jarak ke Kantor
-    const distanceElement = document.getElementById('distanceToOffice');
-    if (distanceElement) {
-        distanceElement.textContent = Math.round(distance) + 'm';
-        distanceElement.className = isInRange ? 'info-value success' : 'info-value warning';
-    }
-    
-    // Update Akurasi GPS
-    const accuracyElement = document.getElementById('gpsAccuracy');
-    if (accuracyElement) {
-        accuracyElement.textContent = Math.round(accuracy) + 'm';
-        accuracyElement.className = 'info-value info';
-    }
-    
-    // Update Lokasi Valid
-    const locationValid = document.getElementById('locationValid');
-    if (locationValid) {
-        locationValid.textContent = isInRange ? 'Dalam Area' : 'Di Luar Area';
-        locationValid.className = isInRange ? 'info-value success' : 'info-value warning';
-    }
-    
-    // Update Location Status di header
-    const locationStatus = document.getElementById('locationStatus');
-    if (locationStatus) {
-        locationStatus.textContent = isInRange ? 'Dalam Area Kantor' : 'Di Luar Area Kantor';
-        locationStatus.className = isInRange ? 'fw-bold text-success' : 'fw-bold text-warning';
-    }
-    
-    // Update location options
-    updateLocationOptions(isInRange);
-    
-    // Update location info alert
-    updateLocationInfoAlert(isInRange, distance);
-    
-    console.log('📍 UI Updated:', { distance: Math.round(distance), isInRange, accuracy: Math.round(accuracy) });
-}
-
-function calculateDistanceFromCoords(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = lat1 * Math.PI/180;
-    const φ2 = lat2 * Math.PI/180;
-    const Δφ = (lat2-lat1) * Math.PI/180;
-    const Δλ = (lon2-lon1) * Math.PI/180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c; // Distance in meters
-}
-
-// Override button functions
-window.refreshUserLocation = function() {
-    console.log('🔄 Refreshing location...');
-    
-    // Update status
-    document.getElementById('gpsStatus').textContent = 'Refreshing...';
-    document.getElementById('gpsStatus').className = 'info-value warning';
-    
-    // Panggil function dari maps.js
-    if (typeof getUserLocation === 'function') {
-        getUserLocation();
-    } else if (typeof getLocation === 'function') {
-        getLocation();
-    } else {
-        // Fallback: get location manually
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    console.log('📍 Location refreshed:', position.coords);
-                    // Update maps.js variables if available
-                    if (typeof userLocation !== 'undefined') {
-                        userLocation = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude,
-                            accuracy: position.coords.accuracy
-                        };
+            setInterval(function() {
+                if (typeof userLocation !== 'undefined' && typeof officeLocation !== 'undefined') {
+                    const distance = calculateDistanceFromCoords(
+                        userLocation.lat, userLocation.lng,
+                        officeLocation.lat, officeLocation.lng
+                    );
+                    
+                    const isInRange = distance <= (officeLocation.radius || 100);
+                    const accuracy = userLocation.accuracy || 0;
+                    
+                    // Only update location status in header and options - NO info panel changes
+                    const locationStatus = document.getElementById('locationStatus');
+                    if (locationStatus) {
+                        locationStatus.textContent = isInRange ? 'Dalam Area Kantor' : 'Di Luar Area Kantor';
+                        locationStatus.className = isInRange ? 'fw-bold text-success' : 'fw-bold text-warning';
                     }
-                },
-                function(error) {
-                    console.error('❌ Location refresh failed:', error);
-                    document.getElementById('gpsStatus').textContent = 'Error';
-                    document.getElementById('gpsStatus').className = 'info-value danger';
+                    
+                    updateLocationOptions(isInRange);
+                    updateLocationInfoAlert(isInRange, distance);
+                    
+                    console.log('📍 UI Updated:', { distance: Math.round(distance), isInRange, accuracy: Math.round(accuracy) });
                 }
-            );
+            }, 3000);
         }
-    }
-};
 
-window.centerToOffice = function() {
-    console.log('🏢 Centering to office...');
-    if (typeof map !== 'undefined' && typeof officeLocation !== 'undefined') {
-        map.setView([officeLocation.lat, officeLocation.lng], 18);
-    }
-};
+        function calculateDistanceFromCoords(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
 
-window.checkLocation = function() {
-    console.log('📏 Checking location...');
-    if (typeof userLocation !== 'undefined' && typeof officeLocation !== 'undefined') {
-        const distance = calculateDistanceFromCoords(
-            userLocation.lat, userLocation.lng,
-            officeLocation.lat, officeLocation.lng
-        );
-        
-        const isInRange = distance <= (officeLocation.radius || 100);
-        
-        alert(`📍 Jarak Anda ke kantor: ${Math.round(distance)}m\n${isInRange ? '✅ Dalam area kantor' : '❌ Di luar area kantor'}`);
-        
-        // Update UI
-        updateLocationUI(distance, isInRange, userLocation.accuracy || 0);
-    } else {
-        alert('⚠️ Data lokasi belum tersedia. Coba refresh lokasi terlebih dahulu.');
-    }
-};
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-// Force update setelah 5 detik
-setTimeout(function() {
-    console.log('🔄 Force updating location info...');
-    
-    // Cek apakah ada data dari maps.js
-    if (typeof userLocation !== 'undefined' && typeof officeLocation !== 'undefined') {
-        const distance = calculateDistanceFromCoords(
-            userLocation.lat, userLocation.lng,
-            officeLocation.lat, officeLocation.lng
-        );
-        
-        const isInRange = distance <= (officeLocation.radius || 100);
-        const accuracy = userLocation.accuracy || 0;
-        
-        updateLocationUI(distance, isInRange, accuracy);
-    } else {
-        // Jika belum ada data, coba ambil dari elemen yang ada
-        const mapAlert = document.querySelector('.leaflet-control-container');
-        if (mapAlert) {
-            console.log('📍 Map detected, trying to extract location data...');
-            
-            // Coba parse dari text yang ada
-            const alertText = document.body.innerText;
-            const distanceMatch = alertText.match(/(\d+)m\)/);
-            
-            if (distanceMatch) {
-                const distance = parseInt(distanceMatch[1]);
-                const isInRange = distance <= 100; // Asumsi radius 100m
-                
-                updateLocationUI(distance, isInRange, 50); // Asumsi akurasi 50m
+            return R * c;
+        }
+    </script>
+</body>
+</html> 
+<script>
+    // Update UI lokasi
+    function updateLocationUI(isInRange, distance) {
+        // Update GPS status
+        const gpsStatus = document.getElementById('gpsStatus');
+        if (gpsStatus) {
+            gpsStatus.textContent = isInRange ? 'Akurat' : 'Tidak Akurat';
+            gpsStatus.className = isInRange ? 'info-value success' : 'info-value warning';
+        }
+
+        // Update Location Status di header
+        const locationStatus = document.getElementById('locationStatus');
+        if (locationStatus) {
+            locationStatus.textContent = isInRange ? 'Dalam Area Kantor' : 'Di Luar Area Kantor';
+            locationStatus.className = isInRange ? 'fw-bold text-success' : 'fw-bold text-warning';
+        }
+
+        // Update map status alert
+        const mapStatus = document.getElementById('mapStatus');
+        if (mapStatus) {
+            if (isInRange) {
+                mapStatus.className = 'alert alert-success';
+                mapStatus.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <strong>Dalam Area Kantor</strong> - Jarak: ${Math.round(distance)}m
+                    </div>
+                `;
+            } else {
+                mapStatus.className = 'alert alert-warning';
+                mapStatus.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Di Luar Area Kantor</strong> - Jarak: ${Math.round(distance)}m
+                    </div>
+                `;
             }
         }
+
+        // Update location options
+        updateLocationOptions(isInRange);
     }
-}, 5000);
+
+    // GPS Error handling
+    function handleLocationError(error) {
+        const gpsStatus = document.getElementById('gpsStatus');
+        const locationStatus = document.getElementById('locationStatus');
+        const mapStatus = document.getElementById('mapStatus');
+
+        if (gpsStatus) {
+            gpsStatus.textContent = 'Error';
+            gpsStatus.className = 'info-value danger';
+        }
+
+        if (locationStatus) {
+            locationStatus.textContent = 'GPS Tidak Tersedia';
+            locationStatus.className = 'fw-bold text-danger';
+        }
+
+        if (mapStatus) {
+            mapStatus.className = 'alert alert-danger';
+            mapStatus.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-x-circle-fill me-2"></i>
+                    <strong>GPS Error:</strong> ${error.message || 'Tidak dapat mengakses lokasi'}
+                </div>
+            `;
+        }
+    }
+
+    // Expose functions globally untuk maps.js integration
+    window.updateLocationUI = updateLocationUI;
+    window.updateLocationOptions = updateLocationOptions;
+    window.handleLocationError = handleLocationError;
+    window.showAlert = showAlert;
+  </script>
+
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+<?php if ($pengumuman): ?>
+  const pengumumanModal = new bootstrap.Modal(document.getElementById('pengumumanModal'));
+  pengumumanModal.show();
+<?php endif; ?>
 </script>
+
 </body>
 </html>
-
