@@ -154,6 +154,7 @@ $mahasiswa = mysqli_fetch_assoc($res);
       <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
       <li><a href="data_kegiatan.php" class="nav-link <?= ($current_page=='data_kegiatan.php')?'active':'' ?>"><i class="bi bi-clipboard-data me-2"></i> Data_Kegiatan</a></li>
+      <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page== 'riwayat_peserta.php') ?'active':'' ?> "><i class="bi bi-clock-history me-2"></i> Riwayat Peserta</a></li>
       <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
     </ul>
   </div>
@@ -194,7 +195,7 @@ $mahasiswa = mysqli_fetch_assoc($res);
               <th>Kendala Masuk</th>
               <th>Jam Keluar</th>
               <th>Aktivitas Keluar</th>
-              <th>Kendala Keluar</th>
+              <th>Kendala Keluar</th>                                                 
               <th>Lokasi Kerja</th>
             </tr>
           </thead>

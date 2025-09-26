@@ -1,31 +1,47 @@
 <?php
+// ============================
+// Include file authentication & database
+// ============================
 include "../../includes/auth.php"; 
 checkRole('admin'); 
 include "../../config/database.php";
 
-// Ambil data peserta PKL
-$sql = "SELECT p.id, p.nama, p.instansi_pendidikan AS sekolah, p.jurusan, 
-               p.nis_npm, p.no_hp, p.unit,
-               p.tgl_mulai, p.tgl_selesai, p.status, u.email
-        FROM peserta_pkl p
-        JOIN users u ON p.user_id = u.id
-        ORDER BY p.tgl_mulai DESC";
+// AMBIL DATA PESERTA PKL
+// ============================
+// Query untuk mengambil data peserta PKL dengan join ke daftar_pkl
+$sql = "
+  SELECT 
+    p.id AS peserta_id,
+    p.nama, d.email, p.nis_npm, p.no_hp,
+    p.instansi_pendidikan, p.jurusan,
+    p.tgl_mulai, p.tgl_selesai, p.status,
+    d.skill, d.durasi, d.alamat,
+    d.upload_foto, d.upload_kartu_identitas, d.upload_surat_permohonan,
+    p.tgl_mulai, p.tgl_selesai, p.status,
+    u.nama_unit
+  FROM peserta_pkl p
+  LEFT JOIN daftar_pkl d on p.email = d.email
+  LEFT JOIN unit_pkl u ON p.unit_id = u.id
+  ORDER BY p.tgl_mulai DESC";
 $result = $conn->query($sql);
-
-// Ambil nama file halaman aktif
+// ============================
+// Ambil nama file halaman aktif (untuk set active menu di sidebar)
+// ============================
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <!-- Meta & Judul Halaman -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Data Peserta PKL - Telkom Indonesia</title>
 
+  <!-- Bootstrap & Icon -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
+  <!-- Style Custom -->
   <style>
     :root {
       --telkom-red: #cc0000;
@@ -147,10 +163,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
   </style>
 </head>
 <body>
-  <!-- Overlay mobile -->
+  <!-- Overlay mobile (untuk menutup sidebar saat mode HP) -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-  <!-- Sidebar -->
+  <!-- Sidebar Navigasi -->
   <div class="sidebar" id="sidebarMenu">
     <div class="text-center py-3">
       <i class="bi bi-person-circle fs-1 text-white"></i>
@@ -163,16 +179,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
       <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar PKL</a></li>
       <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
-      <li><a href="data_kegiatan.php" class="nav-link <?= ($current_page=='data_kegiatan.php')?'active':'' ?>"><i class="bi bi-clipboard-data me-2"></i> Data_Kegiatan</a></li>
+      <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page=='riwayat_peserta.php')?'active':'' ?>"><i class="bi bi-clock-history me-2"></i> Riwayat Peserta</a></li>
       <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
     </ul>
   </div>
 
   <!-- Main Content -->
   <div class="main-content">
-    <!-- Header -->
+    <!-- Header atas -->
     <div class="header">
       <div class="d-flex align-items-center">
+        <!-- Tombol toggle sidebar di HP -->
         <button class="btn btn-outline-secondary d-md-none me-2" id="menuToggle">
           <i class="bi bi-list"></i>
         </button>
@@ -181,6 +198,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
           <small class="text-muted">Sistem Manajemen Praktik Kerja Lapangan</small>
         </div>
       </div>
+      <!-- Logo -->
       <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
     </div>
 
@@ -193,6 +211,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       </div>
       <div class="card">
         <div class="card-body table-responsive">
+          <!-- Tabel peserta PKL -->
           <table class="table table-bordered table-hover align-middle">
             <thead>
               <tr>
@@ -204,7 +223,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <th>Email</th>
                 <th>No.HP</th>
                 <th>Unit</th>
-                <th>Periode</th>
+                <th>Rincian</th>
                 <th>Status</th>
                 <th>Aksi</th>
               </tr>
@@ -215,13 +234,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
                   <tr>
                     <td class="text-center"><?= $no++ ?></td>
                     <td><?= htmlspecialchars($row['nama']) ?></td>
-                    <td><?= htmlspecialchars($row['sekolah']) ?></td>
+                    <td><?= htmlspecialchars($row['instansi_pendidikan']) ?></td>
                     <td><?= htmlspecialchars($row['jurusan']) ?></td>
                     <td><?= htmlspecialchars($row['nis_npm']) ?></td>
                     <td><?= htmlspecialchars($row['email']) ?></td>
                     <td><?= htmlspecialchars($row['no_hp']) ?></td>
-                    <td><?= htmlspecialchars($row['unit']) ?></td>
-                    <td class="text-center"><?= $row['tgl_mulai']." s/d ".$row['tgl_selesai'] ?></td>
+                    <td><?= htmlspecialchars($row['nama_unit']) ?></td>
+                    <!-- Tombol detail peserta -->
+                    <td class="text-center">
+                      <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal<?= $row['peserta_id']; ?>" title="Rincian">🔍</button>
+                    </td>
+                    <!-- Status peserta -->
                     <td class="text-center">
                       <?php if($row['status']=='selesai' || date('Y-m-d') > $row['tgl_selesai']): ?>
                         <span class="badge bg-secondary">Selesai</span>
@@ -229,11 +252,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <span class="badge bg-success">Berlangsung</span>
                       <?php endif; ?>
                     </td>
+                    <!-- Tombol aksi ubah status -->
                     <td class="text-center">
                       <?php if($row['status']=='berlangsung' && date('Y-m-d') <= $row['tgl_selesai']): ?>
-                        <!-- Tombol ubah jadi selesai -->
                         <form action="ubah_status.php" method="POST" style="display:inline;">
-                          <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                          <input type="hidden" name="id" value="<?= $row['peserta_id'] ?>">
                           <button type="submit" name="selesai" class="btn btn-sm btn-warning">
                             <i class="bi bi-check2-circle"></i> Selesai
                           </button>
@@ -254,13 +277,81 @@ $current_page = basename($_SERVER['PHP_SELF']);
     </div>
   </div>
 
+  <?php
+  // ============================
+  // MODAL DETAIL PESERTA
+  // ============================
+  if ($result && $result->num_rows > 0):
+    $result->data_seek(0); // reset pointer query
+    while($row = $result->fetch_assoc()):
+  ?>
+  <div class="modal fade" id="detailModal<?= $row['peserta_id']; ?>" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <!-- Header Modal -->
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Rincian Peserta PKL</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <!-- Body Modal -->
+        <div class="modal-body">
+          <!-- Data pribadi peserta -->
+          <div class="row mb-2">
+            <div class="col-md-6"><strong>Nama:</strong> <?= $row['nama']; ?></div>
+            <div class="col-md-6"><strong>Email:</strong> <?= $row['email']; ?></div>
+            <div class="col-md-6"><strong>No HP:</strong> <?= $row['no_hp']; ?></div>
+            <div class="col-md-6"><strong>NIS/NPM:</strong> <?= $row['nis_npm']; ?></div>
+            <div class="col-md-6"><strong>Instansi:</strong> <?= $row['instansi_pendidikan']; ?></div>
+            <div class="col-md-6"><strong>Jurusan:</strong> <?= $row['jurusan']; ?></div>
+            <div class="col-md-6"><strong>Skill:</strong> <?= $row['skill']; ?></div>
+            <div class="col-md-6"><strong>Durasi:</strong> <?= $row['durasi']; ?></div>
+            <div class="col-md-12"><strong>Alamat:</strong> <?= $row['alamat']; ?></div>
+          </div>
+          <hr>
+          <!-- Data PKL -->
+          <div class="row mb-2">
+            <div class="col-md-6"><strong>Unit:</strong> <?= $row['nama_unit']; ?></div>
+            <div class="col-md-3"><strong>Tgl Mulai:</strong> <?= $row['tgl_mulai']; ?></div>
+            <div class="col-md-3"><strong>Tgl Selesai:</strong> <?= $row['tgl_selesai']; ?></div>
+          </div>
+          <hr>
+          <!-- Dokumen peserta -->
+          <p><strong>Dokumen:</strong></p>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <p><strong>Foto</strong></p>
+              <a href="../../uploads/<?= $row['upload_foto']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+            </div>
+            <div class="col-md-4">
+              <p><strong>Kartu Identitas</strong></p>
+              <a href="../../uploads/<?= $row['upload_kartu_identitas']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+            </div>
+            <div class="col-md-4">
+              <p><strong>Surat Permohonan</strong></p>
+              <a href="../../uploads/<?= $row['upload_surat_permohonan']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+            </div>
+          </div>
+        </div>
+        <!-- Footer Modal -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <?php endwhile; endif; ?>
+
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // ============================
+    // Script Sidebar Toggle untuk mobile
+    // ============================
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebarMenu');
     const overlay = document.getElementById('sidebarOverlay');
 
+    // Tombol toggle sidebar
     if(menuToggle){
       menuToggle.addEventListener('click', ()=>{
         sidebar.classList.toggle('active');
@@ -269,16 +360,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
       });
     }
 
-    if(overlay){
-      overlay.addEventListener('click', ()=>{
+    // Klik overlay untuk menutup sidebar
+    if (overlay) {
+      overlay.addEventListener('click', () => {
         sidebar.classList.remove('active');
         overlay.style.display = 'none';
         menuToggle.style.display = 'inline-block';
       });
     }
 
-    document.querySelectorAll('.sidebar .nav-link').forEach(link=>{
-      link.addEventListener('click', ()=>{
+    // Tutup sidebar otomatis saat klik menu di HP
+    document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+      link.addEventListener('click', () => {
         if (window.innerWidth <= 768) {
           sidebar.classList.remove('active');
           overlay.style.display = 'none';
