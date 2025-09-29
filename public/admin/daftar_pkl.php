@@ -4,8 +4,14 @@ checkRole('admin');
 include "../../config/database.php";
 
 $upload_dir = "../../uploads/";
-if (!is_dir($upload_dir)) @mkdir($upload_dir, 0755, true);
+$foto_dir    = $upload_dir . "Foto_daftarpkl/"; 
+$ktm_dir     = $upload_dir . "Foto_Kartuidentitas/"; 
+$surat_dir   = $upload_dir . "Surat_Permohonan/"; 
+foreach ([$upload_dir, $foto_dir, $ktm_dir, $surat_dir] as $dir) {
+  if (!is_dir($dir)) @mkdir($dir, 0755, true);
+}
 
+// ================== Helper ==================
 function safe($v){ return htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); }
 
 function uploadFileUnique($fileKey, $upload_dir){
@@ -13,9 +19,12 @@ function uploadFileUnique($fileKey, $upload_dir){
     $name = basename($_FILES[$fileKey]['name']);
     $name = preg_replace('/[^A-Za-z0-9._-]/','_',$name);
     $newname = time() . "_" . $name;
-    if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $upload_dir . $newname)) return $newname;
+    if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $upload_dir . $newname)) {
+        return $newname;
+    }
     return '';
 }
+
 
 // ================== INSERT DATA ==================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'insert') {
@@ -38,9 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'inser
   $user_id = $_SESSION['user_id'] ?? null; // default null kalau gak login
 
   // Upload file
-  $foto  = uploadFileUnique('upload_foto', $upload_dir);
-  $ktm   = uploadFileUnique('upload_kartu_identitas', $upload_dir);
-  $surat = uploadFileUnique('upload_surat_permohonan', $upload_dir);
+  $foto  = uploadFileUnique('upload_foto', $foto_dir);
+  $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
+  $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
 
   // Query insert
   $stmt = $conn->prepare("INSERT INTO daftar_pkl
@@ -242,9 +251,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
   $tgl_selesai= $_POST['tgl_selesai'] ?? null;
 
   // === Upload file baru (jika ada) ===
-  $fotoNew  = uploadFileUnique('upload_foto', $upload_dir);
-  $ktmNew   = uploadFileUnique('upload_kartu_identitas', $upload_dir);
-  $suratNew = uploadFileUnique('upload_surat_permohonan', $upload_dir);
+  $fotoNew  = uploadFileUnique('upload_foto', $foto_dir);
+  $ktmNew   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
+  $suratNew = uploadFileUnique('upload_surat_permohonan', $surat_dir);
 
   // === Tentukan file final untuk DB ===
   $fotoDB  = $fotoNew ?: $oldFoto;
@@ -606,9 +615,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <p><strong>Alamat:</strong> <?= safe($row['alamat']); ?></p>
                         <p><strong>Periode:</strong> <?= safe($row['tgl_mulai']); ?> — <?= safe($row['tgl_selesai']); ?></p>
                         <div class="row g-3">
-                          <div class="col-md-4"><strong>Foto</strong><br><?= $row['upload_foto'] ? '<a href="'. $upload_dir . safe($row['upload_foto']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
-                          <div class="col-md-4"><strong>KTM</strong><br><?= $row['upload_kartu_identitas'] ? '<a href="'. $upload_dir . safe($row['upload_kartu_identitas']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
-                          <div class="col-md-4"><strong>Surat</strong><br><?= $row['upload_surat_permohonan'] ? '<a href="'. $upload_dir . safe($row['upload_surat_permohonan']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
+                          <div class="col-md-4"><strong>Foto</strong><br><?= $row['upload_foto'] ? '<a href="'. $foto_dir . safe($row['upload_foto']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
+                          <div class="col-md-4"><strong>KTM</strong><br><?= $row['upload_kartu_identitas'] ? '<a href="'. $ktm_dir . safe($row['upload_kartu_identitas']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
+                          <div class="col-md-4"><strong>Surat</strong><br><?= $row['upload_surat_permohonan'] ? '<a href="'. $surat_dir . safe($row['upload_surat_permohonan']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
                         </div>
                       </div>
                       <div class="modal-footer">

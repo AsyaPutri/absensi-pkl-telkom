@@ -320,15 +320,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
           <div class="row g-3">
             <div class="col-md-4">
               <p><strong>Foto</strong></p>
-              <a href="../../uploads/<?= $row['upload_foto']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+              <a href="../../uploads/Foto_daftarpkl/<?= $row['upload_foto']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
             </div>
             <div class="col-md-4">
               <p><strong>Kartu Identitas</strong></p>
-              <a href="../../uploads/<?= $row['upload_kartu_identitas']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+              <a href="../../uploads/Foto_Kartuidentitas/<?= $row['upload_kartu_identitas']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
             </div>
             <div class="col-md-4">
               <p><strong>Surat Permohonan</strong></p>
-              <a href="../../uploads/<?= $row['upload_surat_permohonan']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+              <a href="../../uploads/Surat_Permohonan/<?= $row['upload_surat_permohonan']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
             </div>
           </div>
         </div>

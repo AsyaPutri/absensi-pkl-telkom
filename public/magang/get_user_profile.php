@@ -22,9 +22,10 @@ $sql = "SELECT
             p.nama AS nama, 
             p.nis_npm AS nim, 
             p.instansi_pendidikan AS asal_instansi, 
-            p.unit AS unit_kerja
+            up.nama_unit AS unit_kerja
         FROM users u
         JOIN peserta_pkl p ON u.id = p.user_id
+        LEFT JOIN unit_pkl up ON p.unit_id = up.id
         WHERE u.id = ?";
 
 $stmt = $conn->prepare($sql);

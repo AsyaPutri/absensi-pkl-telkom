@@ -126,8 +126,12 @@ $userProfile = [
 ];
 
 if ($userId) {
-    $sql = "SELECT nama, unit FROM peserta_pkl WHERE user_id = ? LIMIT 1";
+    $sql = "SELECT nama, unit_id FROM peserta_pkl WHERE user_id = ? LIMIT 1";
     $stmt = $conn->prepare($sql);
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        die("Prepare failed: (" . $conn->errno . ") " . $conn->error . " | SQL: " . $sql);
+    }
     $stmt->bind_param("i", $userId);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -135,7 +139,7 @@ if ($userId) {
     if ($result && $result->num_rows > 0) {
         $row = $result->fetch_assoc();
         $userProfile['nama'] = $row['nama'];
-        $userProfile['unit_kerja'] = $row['unit'];
+        $userProfile['unit_kerja'] = $row['unit_id'];
     }
 }
 

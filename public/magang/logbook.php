@@ -15,9 +15,10 @@ $queryUser = mysqli_query($conn, "
     SELECT 
         p.nama,
         p.instansi_pendidikan AS instansi, 
-        p.unit 
+        up.nama_unit AS unit
     FROM peserta_pkl p
     INNER JOIN users u ON u.id = p.user_id
+    LEFT JOIN unit_pkl up ON p.unit_id = up.id
     WHERE u.id = '$userId'
 ");
 
@@ -638,7 +639,6 @@ while ($row = mysqli_fetch_assoc($queryLogbook)) {
                                         <td><div class="number-cell"><?= $i + 1 ?></div></td>
                                         <td class="date-info">
                                             <div class="date-main"><?= date('d-m-Y', strtotime($log['tanggal'])) ?></div>
-                                            <div class="date-day"><?= strftime('%A', strtotime($log['tanggal'])) ?></div>
                                         </td>
                                         <td><div class="activity-text"><span class="status-dot status-masuk"></span><?= $log['aktivitas_masuk'] ?: 'Tidak ada aktivitas' ?></div></td>
                                         <td><div class="constraint-text"><?= $log['kendala_masuk'] ?: '<div class="constraint-ok"><i class="fas fa-check-circle me-1"></i>Tidak ada kendala</div>' ?></div></td>
