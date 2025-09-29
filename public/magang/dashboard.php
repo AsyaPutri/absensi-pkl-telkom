@@ -126,8 +126,13 @@ $userProfile = [
 ];
 
 if ($userId) {
-    $sql = "SELECT nama, unit_id FROM peserta_pkl WHERE user_id = ? LIMIT 1";
-    $stmt = $conn->prepare($sql);
+    $sql = "
+        SELECT p.nama, u.nama_unit 
+        FROM peserta_pkl p
+        JOIN unit_pkl u ON p.unit_id = u.id
+        WHERE p.user_id = ? 
+        LIMIT 1
+    ";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         die("Prepare failed: (" . $conn->errno . ") " . $conn->error . " | SQL: " . $sql);
@@ -139,9 +144,10 @@ if ($userId) {
     if ($result && $result->num_rows > 0) {
         $row = $result->fetch_assoc();
         $userProfile['nama'] = $row['nama'];
-        $userProfile['unit_kerja'] = $row['unit_id'];
+        $userProfile['unit_kerja'] = $row['nama_unit']; // ✅ sudah pakai nama unit
     }
 }
+
 
 // ambil pengumuman aktif (tandai pakai kolom is_active=1 misalnya)
 $stmt = $conn->prepare("SELECT * FROM pengumuman WHERE is_active = 1 ORDER BY id DESC LIMIT 1");

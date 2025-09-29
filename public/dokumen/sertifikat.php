@@ -18,7 +18,7 @@ if (!isset($_SESSION['role']) || !isset($_SESSION['user_id'])) {
 $role   = $_SESSION['role'];
 $userId = intval($_SESSION['user_id']);
 
-// --- Ambil data peserta + daftar_pkl (JOIN via email) ---
+// --- Ambil data peserta + daftar_pkl + unit_pkl ---
 if ($role === 'admin') {
     if (!isset($_GET['id'])) {
         die("ID peserta tidak ditemukan. Admin harus memanggil ?id=ID_PESERTA");
@@ -27,9 +27,11 @@ if ($role === 'admin') {
     $sql = "
         SELECT 
             p.*, 
-            d.tgl_mulai, d.tgl_selesai, d.durasi
+            d.tgl_mulai, d.tgl_selesai, d.durasi,
+            u.nama_unit
         FROM peserta_pkl p
         LEFT JOIN daftar_pkl d ON p.email = d.email
+        LEFT JOIN unit_pkl u ON p.unit_id = u.id
         WHERE p.id = $id
         LIMIT 1
     ";
@@ -37,9 +39,11 @@ if ($role === 'admin') {
     $sql = "
         SELECT 
             p.*, 
-            d.tgl_mulai, d.tgl_selesai, d.durasi
+            d.tgl_mulai, d.tgl_selesai, d.durasi,
+            u.nama_unit
         FROM peserta_pkl p
         LEFT JOIN daftar_pkl d ON p.email = d.email
+        LEFT JOIN unit_pkl u ON p.unit_id = u.id
         WHERE p.user_id = $userId
         LIMIT 1
     ";
@@ -62,7 +66,7 @@ if ($status == 0 && $role !== 'admin') {
 
 // --- Ambil field ---
 $nama   = getFirstValue($data, ['nama','nama_lengkap','full_name'], 'Nama Tidak Diketahui');
-$unit   = getFirstValue($data, ['unit_witel','unit','witel','unit_wilayah'], 'Unit Tidak Diisi');
+$unit   = !empty($data['nama_unit']) ? $data['nama_unit'] : 'Unit Tidak Diisi';
 $durasi = getFirstValue($data, ['durasi'], '-');
 
 $tglMulaiRaw   = getFirstValue($data, ['tgl_mulai'], null);
@@ -106,24 +110,20 @@ $keterangan = "Yang telah menyelesaikan program Praktik Kerja Lapangan (PKL) di 
 $pdf->MultiCell(247, 8, $keterangan, 0, 'C');
 
 // TTD
-// Tambahkan TTD
 $ttdPath = __DIR__ . '/template/ttdmanager.png';
 if (file_exists($ttdPath)) {
-    // Posisi tanda tangan di kiri agak ke atas
-    $pdf->Image($ttdPath, 35, 135, 45); // X=35 (kiri), Y=135 (lebih atas), width=45mm
+    $pdf->Image($ttdPath, 35, 135, 45);
 }
 
 // Nama Manajer
 $pdf->SetFont('Arial','B',12);
-$pdf->SetXY(30, 170); // geser lebih ke atas
-$pdf->Cell(0, 6, 'ROSANA INTAN PERMATASARI', 0, 1, 'L'); // rata kiri
+$pdf->SetXY(30, 170);
+$pdf->Cell(0, 6, 'ROSANA INTAN PERMATASARI', 0, 1, 'L');
 
 // Jabatan
 $pdf->SetFont('Arial','',11);
-$pdf->SetXY(30, 178); // posisikan sedikit di bawah nama
-$pdf->Cell(0, 6, 'MANAGER SHARED SERVICE & GENERAL SUPPORT', 0, 1, 'L'); // rata kiri
-
-
+$pdf->SetXY(30, 178);
+$pdf->Cell(0, 6, 'MANAGER SHARED SERVICE & GENERAL SUPPORT', 0, 1, 'L');
 
 // Output
 $filenameSafe = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nama);
