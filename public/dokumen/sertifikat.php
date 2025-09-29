@@ -1,78 +1,132 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../config/database.php'; 
-require_once __DIR__ . '/fpdf/fpdf.php';
+require('../../config/database.php');
+require(__DIR__ . '/fpdf/fpdf.php');
 
-// Cek login
-if (!isset($_SESSION['role'])) {
-    die("Anda harus login dulu!");
+function getFirstValue(array $row, array $candidates, $default = '') {
+    foreach ($candidates as $k) {
+        if (isset($row[$k]) && $row[$k] !== null && $row[$k] !== '') {
+            return $row[$k];
+        }
+    }
+    return $default;
 }
 
+if (!isset($_SESSION['role']) || !isset($_SESSION['user_id'])) {
+    die("Anda harus login terlebih dahulu.");
+}
 $role   = $_SESSION['role'];
-$userId = $_SESSION['user_id'] ?? null;
+$userId = intval($_SESSION['user_id']);
 
-// Ambil data peserta
+// --- Ambil data peserta + daftar_pkl (JOIN via email) ---
 if ($role === 'admin') {
     if (!isset($_GET['id'])) {
-        die("ID peserta tidak ditemukan!");
+        die("ID peserta tidak ditemukan. Admin harus memanggil ?id=ID_PESERTA");
     }
-    $id = $_GET['id'];
+    $id = intval($_GET['id']);
     $sql = "
-        SELECT nama, instansi_pendidikan AS instansi, judul_pkl AS judul, tanggal_mulai, tanggal_selesai 
-        FROM peserta_pkl 
-        WHERE id = '$id'
+        SELECT 
+            p.*, 
+            d.tgl_mulai, d.tgl_selesai, d.durasi
+        FROM peserta_pkl p
+        LEFT JOIN daftar_pkl d ON p.email = d.email
+        WHERE p.id = $id
+        LIMIT 1
     ";
 } else {
-    if (!$userId) {
-        die("User ID tidak ditemukan!");
-    }
     $sql = "
-        SELECT nama, instansi_pendidikan AS instansi, judul_pkl AS judul, tanggal_mulai, tanggal_selesai 
-        FROM peserta_pkl 
-        WHERE user_id = '$userId'
+        SELECT 
+            p.*, 
+            d.tgl_mulai, d.tgl_selesai, d.durasi
+        FROM peserta_pkl p
+        LEFT JOIN daftar_pkl d ON p.email = d.email
+        WHERE p.user_id = $userId
+        LIMIT 1
     ";
 }
 
-$query = mysqli_query($conn, $sql) or die("Query Error: " . mysqli_error($conn));
-$data  = mysqli_fetch_assoc($query);
-
+$result = mysqli_query($conn, $sql);
+if (!$result) {
+    die("Query Error: " . mysqli_error($conn) . " -- SQL: " . $sql);
+}
+$data = mysqli_fetch_assoc($result);
 if (!$data) {
-    die("Data peserta tidak ditemukan!");
+    die("Data peserta tidak ditemukan.");
 }
 
-// Buat sertifikat dengan FPDF
-$pdf = new FPDF('L', 'mm', 'A4');
+// --- Cek status sertifikat ---
+$status = getFirstValue($data, ['status_sertifikat','status','sertifikat_status'], 0);
+if ($status == 0 && $role !== 'admin') {
+    die("<h3>Sertifikat Anda belum tersedia. Silakan hubungi admin.</h3>");
+}
+
+// --- Ambil field ---
+$nama   = getFirstValue($data, ['nama','nama_lengkap','full_name'], 'Nama Tidak Diketahui');
+$unit   = getFirstValue($data, ['unit_witel','unit','witel','unit_wilayah'], 'Unit Tidak Diisi');
+$durasi = getFirstValue($data, ['durasi'], '-');
+
+$tglMulaiRaw   = getFirstValue($data, ['tgl_mulai'], null);
+$tglSelesaiRaw = getFirstValue($data, ['tgl_selesai'], null);
+
+try {
+    $tglMulai   = $tglMulaiRaw   ? new DateTime($tglMulaiRaw)   : new DateTime();
+    $tglSelesai = $tglSelesaiRaw ? new DateTime($tglSelesaiRaw) : new DateTime();
+} catch (Exception $e) {
+    $tglMulai   = new DateTime();
+    $tglSelesai = new DateTime();
+}
+
+$tglMulaiStr   = $tglMulai->format("d F Y");
+$tglSelesaiStr = $tglSelesai->format("d F Y");
+
+// --- Generate PDF ---
+$pdf = new FPDF('L','mm','A4');
 $pdf->AddPage();
 
-// Background sertifikat (opsional, bisa pakai gambar template)
-$pdf->Image(__DIR__ . '/template/cindy.png', 0, 0, 297, 210);
+// background
+$bgPath = __DIR__ . '/template/templatesertifikat.png';
+if (file_exists($bgPath)) {
+    $pdf->Image($bgPath, 0, 0, 297, 210);
+}
 
-// Judul
-$pdf->SetFont('Arial', 'B', 30);
-$pdf->Cell(0, 40, 'SERTIFIKAT', 0, 1, 'C');
+// Nama
+$pdf->SetFont('Times','B',36);
+$pdf->SetTextColor(184,134,11);
+$pdf->SetXY(0, 100);
+$pdf->Cell(297, 12, mb_strtoupper($nama, 'UTF-8'), 0, 1, 'C');
 
-// Nama peserta
-$pdf->Ln(20);
-$pdf->SetFont('Arial', 'B', 20);
-$pdf->Cell(0, 10, strtoupper($data['nama']), 0, 1, 'C');
+// Keterangan
+$pdf->SetFont('Arial','',14);
+$pdf->SetTextColor(0,0,0);
+$pdf->SetXY(25, 122);
+$keterangan = "Yang telah menyelesaikan program Praktik Kerja Lapangan (PKL) di PT Telkom Indonesia 
+              (Persero) Tbk, pada unit Witel $unit selama $durasi\n" .
+              "terhitung mulai tanggal $tglMulaiStr s/d $tglSelesaiStr\n" .
+              "dengan hasil \"Sangat Baik\"";
+$pdf->MultiCell(247, 8, $keterangan, 0, 'C');
 
-// Isi keterangan
-$pdf->Ln(10);
-$pdf->SetFont('Arial', '', 14);
-$pdf->MultiCell(0, 10, 
-    "Telah melaksanakan Praktek Kerja Lapangan di " . $data['instansi'] . 
-    " dengan judul \"" . $data['judul'] . "\"\n" .
-    "Pada periode " . date('d M Y', strtotime($data['tanggal_mulai'])) . 
-    " sampai dengan " . date('d M Y', strtotime($data['tanggal_selesai'])), 
-    0, 'C'
-);
+// TTD
+// Tambahkan TTD
+$ttdPath = __DIR__ . '/template/ttdmanager.png';
+if (file_exists($ttdPath)) {
+    // Posisi tanda tangan di kiri agak ke atas
+    $pdf->Image($ttdPath, 35, 135, 45); // X=35 (kiri), Y=135 (lebih atas), width=45mm
+}
 
-// Tanda tangan (opsional)
-$pdf->Ln(30);
-$pdf->Cell(0, 10, 'Bekasi, ' . date('d M Y'), 0, 1, 'R');
-$pdf->Ln(20);
-$pdf->Cell(0, 10, 'Pimpinan', 0, 1, 'R');
+// Nama Manajer
+$pdf->SetFont('Arial','B',12);
+$pdf->SetXY(30, 170); // geser lebih ke atas
+$pdf->Cell(0, 6, 'ROSANA INTAN PERMATASARI', 0, 1, 'L'); // rata kiri
 
-// Output PDF
-$pdf->Output('I', 'sertifikat_' . $data['nama'] . '.pdf');
+// Jabatan
+$pdf->SetFont('Arial','',11);
+$pdf->SetXY(30, 178); // posisikan sedikit di bawah nama
+$pdf->Cell(0, 6, 'MANAGER SHARED SERVICE & GENERAL SUPPORT', 0, 1, 'L'); // rata kiri
+
+
+
+// Output
+$filenameSafe = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nama);
+$pdf->Output('I', "sertifikat_{$filenameSafe}.pdf");
+exit;
 ?>
