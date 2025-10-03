@@ -1,112 +1,197 @@
 <?php
-// ============================
-// detail_absensi.php
-// ============================
-
 include "../../includes/auth.php";
 checkRole('admin');
 include "../../config/database.php";
 
 header('Content-Type: application/json; charset=utf-8');
 
-// ============================
-// Ambil parameter dari request
-// ============================
+$debug = isset($_GET['debug']) && $_GET['debug'] === '1';
+if ($debug) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+} else {
+    error_reporting(0);
+    ini_set('display_errors', '0');
+}
+
 $user_id   = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
 $tgl_awal  = isset($_GET['tgl_awal']) && $_GET['tgl_awal'] !== '' ? date('Y-m-d', strtotime($_GET['tgl_awal'])) : null;
 $tgl_akhir = isset($_GET['tgl_akhir']) && $_GET['tgl_akhir'] !== '' ? date('Y-m-d', strtotime($_GET['tgl_akhir'])) : null;
 
-// Validasi user_id
 if ($user_id <= 0) {
-    echo json_encode([
-        'error' => true,
-        'message' => 'Parameter user_id tidak valid'
-    ], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['error' => true, 'message' => 'Parameter user_id tidak valid'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// ============================
-// Query info peserta PKL
-// ============================
-$sqlPeserta = "
-    SELECT 
-        p.id, 
-        p.nama, 
-        p.nis_npm, 
-        p.instansi_pendidikan, 
-        u.nama_unit AS unit,
-        p.tgl_mulai,
-        p.tgl_selesai
+/* ---------- deteksi kolom peserta_pkl (pk candidate) ---------- */
+$pkCandidates = ['id','user_id','peserta_id'];
+$pkPeserta = null;
+$colsPeserta = [];
+$colRes = $conn->query("SHOW COLUMNS FROM `peserta_pkl`");
+if ($colRes) {
+    while ($c = $colRes->fetch_assoc()) $colsPeserta[] = $c['Field'];
+    foreach ($pkCandidates as $cand) {
+        if (in_array($cand, $colsPeserta)) { $pkPeserta = $cand; break; }
+    }
+}
+if (!$pkPeserta) {
+    echo json_encode(['error'=>true, 'message'=>'Tidak menemukan kolom primary key yang cocok pada tabel peserta_pkl','debug'=>['cols_peserta_pkl'=>$colsPeserta]], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/* ---------- ambil info peserta — coba 2 cara: cari by pk atau by user_id (kalau param adalah users.id) ---------- */
+$peserta = null;
+$sqlP = "
+    SELECT p.*, u.nama_unit
     FROM peserta_pkl p
     LEFT JOIN unit_pkl u ON p.unit_id = u.id
-    WHERE p.id = $user_id
+    WHERE p.$pkPeserta = {$user_id}
     LIMIT 1
 ";
-$resPeserta = $conn->query($sqlPeserta);
-$peserta = $resPeserta ? $resPeserta->fetch_assoc() : null;
+$resP = $conn->query($sqlP);
 
-if (!$peserta) {
-    echo json_encode([
-        'error' => true,
-        'message' => 'Peserta tidak ditemukan'
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
+if ($resP && $resP->num_rows > 0) {
+    $peserta = $resP->fetch_assoc();
+} else {
+    // fallback cari berdasarkan user_id aja
+    $sqlP2 = "
+        SELECT p.*, u.nama_unit
+        FROM peserta_pkl p
+        LEFT JOIN unit_pkl u ON p.unit_id = u.id
+        WHERE p.user_id = {$user_id}
+        LIMIT 1
+    ";
+    $resP2 = $conn->query($sqlP2);
+    if ($resP2 && $resP2->num_rows > 0) {
+        $peserta = $resP2->fetch_assoc();
+    }
 }
 
-// ============================
-// Filter tanggal (opsional)
-// ============================
+if (!$peserta) {
+    // tidak abort — kita tetap bisa mencoba mencari absen berdasarkan user_id langsung
+    // tapi akan beri info bahwa peserta tidak ditemukan
+    $infoPeserta = null;
+} else {
+    $infoPeserta = [
+        'id' => $peserta[$pkPeserta] ?? null,
+        'nama' => $peserta['nama'] ?? null,
+        'nis_npm' => $peserta['nis_npm'] ?? ($peserta['nim'] ?? null),
+        'instansi_pendidikan' => $peserta['instansi_pendidikan'] ?? ($peserta['instansi'] ?? null),
+        'unit' => $peserta['nama_unit'] ?? '-',
+        'tgl_mulai' => $peserta['tgl_mulai'] ?? null,
+        'tgl_selesai' => $peserta['tgl_selesai'] ?? null,
+        // tetap sertakan user_id jika ada
+        'user_id' => $peserta['user_id'] ?? null
+    ];
+}
+
+/* ---------- filter tanggal (jika ada) ---------- */
 $whereDate = "";
 if ($tgl_awal && $tgl_akhir) {
     $tgl_awal_esc  = $conn->real_escape_string($tgl_awal);
     $tgl_akhir_esc = $conn->real_escape_string($tgl_akhir);
-    $whereDate = "AND a.tanggal BETWEEN '$tgl_awal_esc' AND '$tgl_akhir_esc'";
+    $whereDate = " AND a.tanggal BETWEEN '$tgl_awal_esc' AND '$tgl_akhir_esc'";
 }
 
-// ============================
-// Query absensi peserta
-// ============================
-$sqlAbsensi = "
-    SELECT 
+/* ---------- deteksi kolom di tabel absen ---------- */
+$colsAbsen = [];
+$colRes2 = $conn->query("SHOW COLUMNS FROM `absen`");
+if ($colRes2) {
+    while ($c = $colRes2->fetch_assoc()) $colsAbsen[] = $c['Field'];
+}
+
+/* ---------- bangun kondisi pencarian absen secara fleksibel ---------- */
+$conds = [];
+$uid = intval($user_id);
+
+if (in_array('user_id', $colsAbsen))    $conds[] = "a.user_id = {$uid}";
+if (in_array('peserta_id', $colsAbsen)) $conds[] = "a.peserta_id = {$uid}";
+if (in_array('peserta', $colsAbsen))    $conds[] = "a.peserta = {$uid}";
+
+// jika kita menemukan row peserta, tambahkan mapping dari peserta ke absen (contoh: absen.user_id = peserta.user_id)
+if ($peserta) {
+    if (!empty($peserta['user_id']) && in_array('user_id', $colsAbsen)) {
+        $conds[] = "a.user_id = " . intval($peserta['user_id']);
+    }
+    if (isset($peserta[$pkPeserta]) && in_array('peserta_id', $colsAbsen)) {
+        $conds[] = "a.peserta_id = " . intval($peserta[$pkPeserta]);
+    }
+}
+
+// unique & fallback
+$conds = array_values(array_unique($conds));
+if (empty($conds)) {
+    // ultimate fallback (jika tabel absen aneh), coba a.user_id
+    $conds[] = "a.user_id = {$uid}";
+}
+
+$whereAbsen = "(" . implode(" OR ", $conds) . ")";
+
+/* ---------- query absen (gunakan COALESCE untuk menangani nama kolom alternatif) ---------- */
+$sqlAbsen = "
+    SELECT
         a.tanggal,
-        DATE_FORMAT(a.tanggal, '%W') AS hari, -- contoh: Monday, Tuesday
+        DAYNAME(a.tanggal) AS hari,
         a.jam_masuk,
         a.jam_keluar,
-        a.kondisi,
-        a.keterangan,
-        a.lokasi_kerja,
-        a.foto,
-        TIMEDIFF(a.jam_keluar, a.jam_masuk) AS durasi
+        COALESCE(a.kondisi_kesehatan, a.kondisi_kesehatan) AS kondisi_kesehatan,
+        COALESCE(a.lokasi_kerja, a.lokasi_kerja) AS lokasi_kerja,
+        COALESCE(a.foto_absen, a.foto_absen) AS foto_absen,
+        a.aktivitas_masuk,
+        a.kendala_masuk,
+        a.aktivitas_keluar,
+        a.kendala_keluar,
+        IFNULL(TIMEDIFF(a.jam_keluar, a.jam_masuk), '-') AS durasi
     FROM absen a
-    WHERE a.user_id = $user_id
-    $whereDate
+    WHERE {$whereAbsen}
+    {$whereDate}
     ORDER BY a.tanggal ASC
 ";
 
-$resAbsensi = $conn->query($sqlAbsensi);
+$resAbsensi = $conn->query($sqlAbsen);
+if (!$resAbsensi) {
+    $out = ['error'=>true,'message'=>'Query absen gagal','debug'=>$conn->error];
+    if ($debug) $out['debug'] = ['sqlAbsen'=>$sqlAbsen, 'conds'=>$conds, 'cols_absen'=>$colsAbsen, 'cols_peserta'=>$colsPeserta];
+    echo json_encode($out, JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 $absensi = [];
-if ($resAbsensi) {
+if ($resAbsensi->num_rows > 0) {
     while ($row = $resAbsensi->fetch_assoc()) {
         $absensi[] = [
-            'tanggal'     => $row['tanggal'],
-            'hari'        => $row['hari'], // hasil bahasa Inggris, bisa diparsing ke Indo di frontend
-            'jam_masuk'   => $row['jam_masuk'] ?: '-',
-            'jam_keluar'  => $row['jam_keluar'] ?: '-',
-            'kondisi'     => $row['kondisi'],
-            'keterangan'  => $row['keterangan'] ?? '',
-            'lokasi_kerja'=> $row['lokasi_kerja'] ?? '-',
-            'durasi'      => $row['durasi'] ?? '-',
-            'foto'        => $row['foto'] ?? null
+            'tanggal' => $row['tanggal'],
+            'hari'    => $row['hari'],
+            'jam_masuk' => $row['jam_masuk'] ?: '-',
+            'jam_keluar'=> $row['jam_keluar'] ?: '-',
+            // sediakan beberapa key supaya frontend tidak bingung
+            'kondisi_kesehatan' => $row['kondisi_kesehatan'] ?? '-',
+            'lokasi_kerja' => $row['lokasi_kerja'] ?? '-',
+            'lokasi' => $row['lokasi_kerja'] ?? '-',
+            'foto_absen' => $row['foto_absen'] ?? null,
+            'foto' => $row['foto_absen'] ?? null,
+            'aktivitas_masuk' => $row['aktivitas_masuk'] ?? '',
+            'kendala_masuk'   => $row['kendala_masuk'] ?? '',
+            'aktivitas_keluar'=> $row['aktivitas_keluar'] ?? '',
+            'kendala_keluar'  => $row['kendala_keluar'] ?? '',
+            'durasi' => $row['durasi'] ?? '-'
         ];
     }
 }
 
-// ============================
-// Output JSON
-// ============================
-echo json_encode([
-    'info'    => $peserta,
+$output = [
+    'info' => $infoPeserta,
     'absensi' => $absensi
-], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+];
+
+if ($debug) {
+    $output['debug'] = [
+        'pkPeserta' => $pkPeserta,
+        'conds' => $conds,
+        'cols_absen' => $colsAbsen,
+        'cols_peserta' => $colsPeserta,
+        'sqlAbsen' => $sqlAbsen
+    ];
+}
+echo json_encode($output, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 exit;

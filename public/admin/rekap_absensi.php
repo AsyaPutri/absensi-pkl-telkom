@@ -1,7 +1,4 @@
 <?php
-// ============================
-// rekap_absensi.php (versi fix pakai kondisi_kesehatan)
-// ============================
 include "../../includes/auth.php";
 checkRole('admin');
 include "../../config/database.php";
@@ -19,46 +16,38 @@ $tgl_akhir_esc = $tgl_akhir ? $conn->real_escape_string($tgl_akhir) : null;
 $unit_esc      = $conn->real_escape_string($unit);
 
 // ============================
-// Filter tambahan (unit & tanggal)
+// Filter tambahan (unit & tanggal absen)
 // ============================
 $whereUnit = ($unit !== '' && $unit !== 'all') ? "AND p.unit_id = '{$unit_esc}'" : "";
-$whereDate = "";
-
-// filter periode PKL berdasarkan tgl_awal & tgl_akhir
+$joinAbsenDate = "";
 if ($tgl_awal_esc && $tgl_akhir_esc) {
-    $whereDate = "AND (
-        (p.tgl_mulai BETWEEN '$tgl_awal_esc' AND '$tgl_akhir_esc') 
-        OR (p.tgl_selesai BETWEEN '$tgl_awal_esc' AND '$tgl_akhir_esc')
-    )";
+    $joinAbsenDate = " AND DATE(a.tanggal) BETWEEN '$tgl_awal_esc' AND '$tgl_akhir_esc'";
 }
 
 // ============================
 // Query utama: peserta + rekap absensi
 // ============================
 $sql = "
-    SELECT 
-        p.id AS user_id,
-        p.nama,
-        p.nis_npm,
-        p.instansi_pendidikan,
-        u.nama_unit AS unit,
-        p.tgl_mulai,
-        p.tgl_selesai,
-        COALESCE(SUM(CASE WHEN a.kondisi_kesehatan IN ('sehat','kurang_fit_office') THEN 1 ELSE 0 END),0) AS hadir_office,
-        COALESCE(SUM(CASE WHEN a.kondisi_kesehatan IN ('sakit','kurang_fit_wfh') THEN 1 ELSE 0 END),0) AS hadir_wfh,
-        COALESCE(SUM(CASE WHEN a.kondisi_kesehatan = 'alpha' THEN 1 ELSE 0 END),0) AS alpha,
-        COALESCE(COUNT(a.id),0) AS total_absen,
-        GROUP_CONCAT(DISTINCT a.kondisi_kesehatan) AS kondisi_ditemukan
-    FROM peserta_pkl p
-    LEFT JOIN unit_pkl u ON p.unit_id = u.id
-    LEFT JOIN absen a ON a.user_id = p.id
-    WHERE 1=1
-    $whereUnit
-    $whereDate
-    GROUP BY 
-        p.id, p.nama, p.nis_npm, p.instansi_pendidikan, 
-        u.nama_unit, p.tgl_mulai, p.tgl_selesai
-    ORDER BY p.nama ASC
+SELECT 
+    p.id AS user_id,
+    p.nama,
+    p.nis_npm,
+    u.nama_unit AS unit,
+    p.tgl_mulai,
+    p.tgl_selesai,
+    COALESCE(SUM(CASE WHEN LOWER(TRIM(a.kondisi_kesehatan)) IN ('sehat','hadir','masuk','kurang_fit_office') THEN 1 ELSE 0 END),0) AS hadir_office,
+    COALESCE(SUM(CASE WHEN LOWER(TRIM(a.kondisi_kesehatan)) IN ('sakit','wfh','work_from_home','kurang_fit_wfh') THEN 1 ELSE 0 END),0) AS hadir_wfh,
+    COALESCE(SUM(CASE WHEN LOWER(TRIM(a.kondisi_kesehatan)) IN ('alpha','absen','tidak_hadir') THEN 1 ELSE 0 END),0) AS alpha,
+    COALESCE(SUM(CASE WHEN LOWER(TRIM(a.kondisi_kesehatan)) NOT IN ('alpha','izin','cuti','tidak_hadir') THEN 1 ELSE 0 END),0) AS jumlah_hadir,
+    COALESCE(COUNT(a.id),0) AS total_absen,
+    GROUP_CONCAT(DISTINCT LOWER(TRIM(a.kondisi_kesehatan))) AS kondisi_ditemukan
+FROM peserta_pkl p
+LEFT JOIN unit_pkl u ON p.unit_id = u.id
+LEFT JOIN absen a ON a.user_id = p.id {$joinAbsenDate}
+WHERE 1=1
+{$whereUnit}
+GROUP BY p.id, p.nama, p.nis_npm, u.nama_unit, p.tgl_mulai, p.tgl_selesai
+ORDER BY p.nama ASC
 ";
 
 $result = $conn->query($sql);
@@ -82,9 +71,7 @@ $data  = [];
 $today = strtotime(date('Y-m-d'));
 
 while ($row = $result->fetch_assoc()) {
-    // --------------------------
-    // Hitung hari kerja (Senin–Jumat)
-    // --------------------------
+    // Hitung hari kerja
     $p_start = $row['tgl_mulai'] ? strtotime($row['tgl_mulai']) : null;
     $p_end   = $row['tgl_selesai'] ? strtotime($row['tgl_selesai']) : null;
     $hariKerja = 0;
@@ -113,38 +100,30 @@ while ($row = $result->fetch_assoc()) {
         }
     }
 
-    // --------------------------
-    // Ambil rekap hadir
-    // --------------------------
     $hadir_office = (int) $row['hadir_office'];
     $hadir_wfh    = (int) $row['hadir_wfh'];
     $alpha        = (int) $row['alpha'];
-    $total_hadir  = $hadir_office + $hadir_wfh;
+    $jumlahHadir  = (int) $row['jumlah_hadir'];
+    $jumlahTidakHadir = max(0, $hariKerja - $jumlahHadir);
 
-    // --------------------------
-    // Hitung persentase kehadiran
-    // --------------------------
-    $persen = ($hariKerja > 0) ? round(($total_hadir / $hariKerja) * 100, 2) : 0;
+    $persen = ($hariKerja > 0) ? round(($jumlahHadir / $hariKerja) * 100, 2) : 0;
 
-    // --------------------------
-    // Simpan hasil untuk JSON
-    // --------------------------
     $data[] = [
-        'user_id'            => (int) $row['user_id'],
-        'nama'               => $row['nama'],
-        'nis_npm'            => $row['nis_npm'],
-        'instansi_pendidikan'=> $row['instansi_pendidikan'],
-        'unit'               => $row['unit'],
-        'tgl_mulai'          => $row['tgl_mulai'],
-        'tgl_selesai'        => $row['tgl_selesai'],
-        'hari_kerja'         => $hariKerja,
-        'hadir_office'       => $hadir_office,
-        'hadir_wfh'          => $hadir_wfh,
-        'alpha'              => $alpha,
-        'total_hadir'        => $total_hadir,
-        'persen'             => $persen,
-        'total_absen'        => (int) $row['total_absen'],
-        'kondisi_ditemukan'  => $row['kondisi_ditemukan']
+        'user_id'           => (int) $row['user_id'],
+        'nama'              => $row['nama'],
+        'nis_npm'           => $row['nis_npm'],
+        'unit'              => $row['unit'],
+        'tgl_mulai'         => $row['tgl_mulai'],
+        'tgl_selesai'       => $row['tgl_selesai'],
+        'hari_kerja'        => $hariKerja,
+        'hadir_office'      => $hadir_office,
+        'hadir_wfh'         => $hadir_wfh,
+        'alpha'             => $alpha,
+        'jumlah_hadir'      => $jumlahHadir,
+        'jumlah_tidak_hadir'=> $jumlahTidakHadir,
+        'persen'            => $persen,
+        'total_absen'       => (int) $row['total_absen'],
+        'kondisi_ditemukan' => $row['kondisi_ditemukan']
     ];
 }
 

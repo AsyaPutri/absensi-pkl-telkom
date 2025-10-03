@@ -239,59 +239,89 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Sidebar toggle
-    document.getElementById("menuToggle").addEventListener("click", function(){
-      document.getElementById("sidebarMenu").classList.toggle("active");
-      document.getElementById("sidebarOverlay").style.display = "block";
+  // safe addEventListener (cek dulu element ada)
+  const menuToggleEl = document.getElementById("menuToggle");
+  if (menuToggleEl) {
+    menuToggleEl.addEventListener("click", function(){
+      const sidebar = document.getElementById("sidebarMenu");
+      if (sidebar) sidebar.classList.toggle("active");
+      const overlay = document.getElementById("sidebarOverlay");
+      if (overlay) overlay.style.display = "block";
     });
-    document.getElementById("sidebarOverlay").addEventListener("click", function(){
-      document.getElementById("sidebarMenu").classList.remove("active");
+  }
+  const overlayEl = document.getElementById("sidebarOverlay");
+  if (overlayEl) {
+    overlayEl.addEventListener("click", function(){
+      const sidebar = document.getElementById("sidebarMenu");
+      if (sidebar) sidebar.classList.remove("active");
       this.style.display = "none";
     });
+  }
 
-    // Load rekap data
-    function loadRekap(params = {}){
-      let url = new URL("rekap_absensi.php", window.location.href);
-      Object.keys(params).forEach(k => {
-        if(params[k]) url.searchParams.append(k, params[k]);
-      });
+  // Load rekap data
+  function loadRekap(params = {}) {
+    const url = new URL("rekap_absensi.php", window.location.href);
+    Object.keys(params).forEach(k => {
+      if (params[k]) url.searchParams.append(k, params[k]);
+    });
 
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          console.log("DATA REKAP:", data);
-          const tbody = document.getElementById("rekapBody");
-          tbody.innerHTML = "";
-          if(data.length > 0){
-            data.forEach((row, i) => {
-              let jumlahHadir = (parseInt(row.hadir_office) || 0) + (parseInt(row.hadir_wfh) || 0);
-              tbody.innerHTML += `
-                <tr>
-                  <td>${i+1}</td>
-                  <td>${row.nama}</td>
-                  <td>${row.nis_npm ?? '-'}</td>
-                  <td>${row.unit}</td>
-                  <td>${row.hari_kerja}</td>
-                  <td>${jumlahHadir}</td>
-                  <td>${row.alpha}</td>
-                  <td>${row.persen}%</td>
-                  <td>
-                    <button class="btn btn-sm btn-info" 
-                            onclick="loadDetail(${row.user_id}, '${params.tgl_awal||''}', '${params.tgl_akhir||''}')">
-                      <i class="bi bi-eye"></i> Detail
-                    </button>
-                  </td>
-                </tr>`;
-            });
-          } else {
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center">Tidak ada data</td></tr>`;
-          }
-        })
-        .catch(err => console.error("FETCH ERROR rekap_absensi:", err));
-    }
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        console.log("DATA REKAP:", data);
+        const tbody = document.getElementById("rekapBody");
+        if (!tbody) return console.warn("rekapBody element not found");
+        tbody.innerHTML = "";
 
-    // Filter form
-    document.getElementById("filterForm").addEventListener("submit", function(e){
+        if (Array.isArray(data) && data.length > 0) {
+          data.forEach((row, i) => {
+            const jumlahHadir = (parseInt(row.hadir_office) || 0) + (parseInt(row.hadir_wfh) || 0);
+            const idForDetail = row.user_id ?? row.id ?? row.peserta_id ?? row.peserta ?? null;
+
+            // buat row & tombol secara DOM (lebih aman daripada inline onclick)
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${i+1}</td>
+              <td>${row.nama ?? '-'}</td>
+              <td>${row.nis_npm ?? '-'}</td>
+              <td>${row.unit ?? '-'}</td>
+              <td>${row.hari_kerja ?? '-'}</td>
+              <td>${jumlahHadir}</td>
+              <td>${row.alpha ?? '-'}</td>
+              <td>${row.persen ?? 0}%</td>
+            `;
+
+            const tdBtn = document.createElement('td');
+            if (idForDetail !== null) {
+              const btn = document.createElement('button');
+              btn.className = 'btn btn-sm btn-info';
+              btn.innerHTML = '<i class="bi bi-eye"></i> Detail';
+              btn.addEventListener('click', () => {
+                loadDetail(idForDetail, params.tgl_awal || '', params.tgl_akhir || '');
+              });
+              tdBtn.appendChild(btn);
+            } else {
+              const btn = document.createElement('button');
+              btn.className = 'btn btn-sm btn-secondary';
+              btn.disabled = true;
+              btn.innerHTML = '<i class="bi bi-eye"></i> Detail';
+              tdBtn.appendChild(btn);
+            }
+
+            tr.appendChild(tdBtn);
+            tbody.appendChild(tr);
+          });
+        } else {
+          tbody.innerHTML = `<tr><td colspan="9" class="text-center">Tidak ada data</td></tr>`;
+        }
+      })
+      .catch(err => console.error("FETCH ERROR rekap_absensi:", err));
+  }
+
+  // safe attach filter handlers (cek dulu elemen)
+  const filterForm = document.getElementById("filterForm");
+  if (filterForm) {
+    filterForm.addEventListener("submit", function(e){
       e.preventDefault();
       const formData = new FormData(this);
       let params = {};
@@ -303,84 +333,111 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
       }
       loadRekap(params);
     });
+  }
 
-    // Reset filter
-    document.getElementById("resetBtn").addEventListener("click", function(){
-      document.getElementById("filterForm").reset();
-      document.getElementById("rekapBody").innerHTML = '<tr><td colspan="9" class="text-center text-muted">Silakan pilih <strong>Tanggal Awal</strong>, <strong>Tanggal Akhir</strong> dan <strong>Unit</strong> lalu tekan <em>Filter</em> untuk melihat data.</td></tr>';
+  const resetBtn = document.getElementById("resetBtn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", function(){
+      if (filterForm) filterForm.reset();
+      const tbody = document.getElementById("rekapBody");
+      if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Silakan pilih <strong>Tanggal Awal</strong>, <strong>Tanggal Akhir</strong> dan <strong>Unit</strong> lalu tekan <em>Filter</em> untuk melihat data.</td></tr>';
     });
+  }
 
-    // Load detail modal
-    function loadDetail(user_id, tgl_awal, tgl_akhir){
-      let url = `detail_absensi.php?user_id=${user_id}`;
-      if (tgl_awal) url += `&tgl_awal=${encodeURIComponent(tgl_awal)}`;
-      if (tgl_akhir) url += `&tgl_akhir=${encodeURIComponent(tgl_akhir)}`;
+  // load detail modal (dengan debug safety)
+  function loadDetail(user_id, tgl_awal, tgl_akhir) {
+    console.log("Request detail untuk user_id/peserta_id:", user_id);
+    const url = new URL("detail_absensi.php", window.location.href);
+    url.searchParams.append('user_id', user_id);
+    if (tgl_awal) url.searchParams.append('tgl_awal', tgl_awal);
+    if (tgl_akhir) url.searchParams.append('tgl_akhir', tgl_akhir);
+    // untuk debugging tambahkan &debug=1 di URL jika perlu
+    // url.searchParams.append('debug','1');
 
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          console.log("DATA DETAIL:", data);
-          let peserta = null;
-          let absensi = [];
+    // kita ambil text dulu supaya mudah debug kalau response bukan JSON
+    fetch(url)
+      .then(res => res.text())
+      .then(txt => {
+        console.log("RAW response detail_absensi:", txt);
+        let data;
+        try {
+          data = JSON.parse(txt);
+        } catch (e) {
+          console.error("JSON parse error:", e);
+          alert("Response bukan JSON. Cek console (RAW response).");
+          return;
+        }
 
-          if (data.info) {
-            peserta = data.info;
-            absensi = data.absensi || [];
-          } else if (Array.isArray(data) && data.length > 0) {
-            peserta = {
-              nama: data[0].nama,
-              nis_npm: data[0].nis_npm || data[0].nim || '-',
-              instansi_pendidikan: data[0].instansi_pendidikan || data[0].instansi || '-',
-              unit: data[0].unit || '-',
-              tgl_mulai: data[0].tgl_mulai || '-',
-              tgl_selesai: data[0].tgl_selesai || '-'
-            };
-            absensi = data;
-          }
+        console.log("PARSED DATA DETAIL:", data);
+        let peserta = null;
+        let absensi = [];
 
-          if (peserta) {
-            document.getElementById("modalNama").innerText = peserta.nama || '-';
-            document.getElementById("infoPeserta").innerHTML = `
-              <div class="row">
-                <div class="col-md-6">
-                  <p><strong>Nama:</strong> ${peserta.nama || '-'}</p>
-                  <p><strong>NIM:</strong> ${peserta.nis_npm || '-'}</p>
-                  <p><strong>Instansi:</strong> ${peserta.instansi_pendidikan || '-'}</p>
-                  <p><strong>Unit:</strong> ${peserta.unit || '-'}</p>
-                  <p><strong>Periode PKL:</strong> ${peserta.tgl_mulai} s/d ${peserta.tgl_selesai}</p>
-                </div>
-              </div>`;
-          }
+        if (data.info) {
+          peserta = data.info;
+          absensi = data.absensi || [];
+        } else if (Array.isArray(data) && data.length > 0) {
+          peserta = {
+            nama: data[0].nama,
+            nis_npm: data[0].nis_npm ?? data[0].nim ?? '-',
+            instansi_pendidikan: data[0].instansi_pendidikan ?? data[0].instansi ?? '-',
+            unit: data[0].unit ?? '-',
+            tgl_mulai: data[0].tgl_mulai ?? '-',
+            tgl_selesai: data[0].tgl_selesai ?? '-'
+          };
+          absensi = data;
+        }
 
-          const tbody = document.getElementById("modalBody");
-          tbody.innerHTML = "";
-          if (absensi.length > 0) {
-            absensi.forEach(row => {
-              tbody.innerHTML += `
-                <tr>
-                  <td>${row.tanggal || '-'}</td>
-                  <td>${row.jam_masuk || '-'}</td>
-                  <td>${row.aktivitas_masuk || '-'}</td>
-                  <td>${row.kendala_masuk || '-'}</td>
-                  <td>${row.kondisi || '-'}</td>
-                  <td>${row.lokasi_kerja || row.lokasi || '-'}</td>
-                  <td>${row.aktivitas_keluar || '-'}</td>
-                  <td>${row.kendala_keluar || '-'}</td>
-                  <td>${row.jam_keluar || '-'}</td>
-                  <td>${row.foto ? `<a href="${row.foto}" target="_blank" class="btn btn-sm btn-link">Check</a>` : '-'}</td>
-                </tr>`;
-            });
-          } else {
-            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">Tidak ada data absensi</td></tr>`;
-          }
+        if (peserta) {
+          document.getElementById("modalNama").innerText = peserta.nama ?? '-';
+          document.getElementById("infoPeserta").innerHTML = `
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Nama:</strong> ${peserta.nama ?? '-'}</p>
+                <p><strong>NIM:</strong> ${peserta.nis_npm ?? '-'}</p>
+                <p><strong>Instansi:</strong> ${peserta.instansi_pendidikan ?? '-'}</p>
+                <p><strong>Unit:</strong> ${peserta.unit ?? '-'}</p>
+                <p><strong>Periode PKL:</strong> ${peserta.tgl_mulai ?? '-'} s/d ${peserta.tgl_selesai ?? '-'}</p>
+              </div>
+            </div>`;
+        }
 
-          new bootstrap.Modal(document.getElementById("detailModal")).show();
-        })
-        .catch(err => {
-          console.error("Error fetch detail_absensi:", err);
-          alert("Gagal memuat detail peserta.");
-        });
-    }
-  </script>
+        const tbody = document.getElementById("modalBody");
+        if (!tbody) return console.warn("modalBody element not found");
+        tbody.innerHTML = "";
+
+        if (absensi.length > 0) {
+          absensi.forEach(row => {
+            const kondisi = row.kondisi ?? row.kondisi_kesehatan ?? '-';
+            const lokasi  = row.lokasi ?? row.lokasi_kerja ?? '-';
+            const fotoRaw = row.foto ?? row.foto_absen ?? null;
+            // Sesuaikan path relatif ke folder uploads (di luar public/admin)
+            const fotoHref = fotoRaw ? (fotoRaw.startsWith("http") || fotoRaw.startsWith("/") ? fotoRaw : `../../uploads/absensi/${fotoRaw}`): null;
+
+            tbody.innerHTML += `
+              <tr>
+                <td>${row.tanggal ?? '-'}</td>
+                <td>${row.jam_masuk ?? '-'}</td>
+                <td>${row.aktivitas_masuk ?? '-'}</td>
+                <td>${row.kendala_masuk ?? '-'}</td>
+                <td>${kondisi}</td>
+                <td>${lokasi}</td>
+                <td>${row.aktivitas_keluar ?? '-'}</td>
+                <td>${row.kendala_keluar ?? '-'}</td>
+                <td>${row.jam_keluar ?? '-'}</td>
+                <td>${fotoHref ? `<a href="${fotoHref}" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>` : '-'}</td>
+              </tr>`;
+          });
+        } else {
+          tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">Tidak ada data absensi</td></tr>`;
+        }
+
+        new bootstrap.Modal(document.getElementById("detailModal")).show();
+      })
+      .catch(err => {
+        console.error("Error fetch detail_absensi:", err);
+        alert("Gagal memuat detail peserta. Cek console untuk detail.");
+      });
+  }
+</script>
 </body>
 </html>
