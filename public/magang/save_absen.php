@@ -27,12 +27,12 @@ $response = ["success" => false, "message" => ""];
 if ($input['action'] === "checkin") {
     $aktivitas  = $input['aktivitas'] ?? "";
     $kendala    = $input['kendala'] ?? "";
-    $lokasi     = $input['lokasi'] ?? "";
+    $lokasi     = $input['lokasi'] ?? ""; 
     $kondisi    = $input['kondisi'] ?? "";
     $fotoBase64 = $input['foto'] ?? "";
 
     // 🚨 Batasi jam check-in sebelum jam 11:00:00
-    $batasJam = "11:00:00";
+    $batasJam = "12:00:00";
     if ($waktu > $batasJam) {
         echo json_encode([
             "success" => false,
@@ -109,12 +109,27 @@ elseif ($input['action'] === "checkout") {
     $aktivitasKeluar = $input['aktivitas_keluar'] ?? "";
     $kendalaKeluar   = $input['kendala_keluar'] ?? "";
 
+    // 🚨 Ambil data absen hari ini
+    $cek = $conn->prepare("SELECT id, tanggal FROM absen WHERE user_id = ? AND tanggal = ? AND jam_keluar IS NULL");
+    $cek->bind_param("is", $userId, $tanggal);
+    $cek->execute();
+    $result = $cek->get_result();
+
+    if ($result->num_rows > 0) {
+        // Kalau checkout di hari yang sama → pakai jam sekarang
+        $jamKeluar = $waktu;
+    } else {
+        // Kalau lewat hari (checkout besok/lusa) → pakai jam 23:59:00 dari tanggal absen
+        $jamKeluar = "23:59:00";
+    }
+    $cek->close();
+
     $stmt = $conn->prepare("
         UPDATE absen 
         SET jam_keluar = ?, aktivitas_keluar = ?, kendala_keluar = ?
         WHERE user_id = ? AND tanggal = ? AND jam_keluar IS NULL
     ");
-    $stmt->bind_param("sssis", $waktu, $aktivitasKeluar, $kendalaKeluar, $userId, $tanggal);
+    $stmt->bind_param("sssis", $jamKeluar, $aktivitasKeluar, $kendalaKeluar, $userId, $tanggal);
 
     if ($stmt->execute() && $stmt->affected_rows > 0) {
         $response = ["success" => true, "message" => "Check-out berhasil"];
@@ -137,12 +152,19 @@ elseif ($input['action'] === "checkout_pending") {
         exit;
     }
 
+    // 🚨 Kalau targetDate bukan hari ini → pakai 23:59:00
+    if ($targetDate !== $tanggal) {
+        $jamKeluar = "23:59:00";
+    } else {
+        $jamKeluar = $waktu;
+    }
+
     $stmt = $conn->prepare("
         UPDATE absen 
         SET jam_keluar = ?, aktivitas_keluar = ?, kendala_keluar = ?
         WHERE user_id = ? AND tanggal = ? AND jam_keluar IS NULL
     ");
-    $stmt->bind_param("sssis", $waktu, $aktivitasKeluar, $kendalaKeluar, $userId, $targetDate);
+    $stmt->bind_param("sssis", $jamKeluar, $aktivitasKeluar, $kendalaKeluar, $userId, $targetDate);
 
     if ($stmt->execute() && $stmt->affected_rows > 0) {
         $response = ["success" => true, "message" => "Pending checkout berhasil"];
@@ -151,6 +173,7 @@ elseif ($input['action'] === "checkout_pending") {
     }
     $stmt->close();
 }
+
 
 // ===================================================
 // AKSI TIDAK DIKENALI
