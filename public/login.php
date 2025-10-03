@@ -240,6 +240,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 
                 <button type="submit" class="login-button" id="login-button" disabled>LOGIN</button>
+
+                <!-- Link Register -->
+<div style="margin-top: 15px; text-align: center;">
+    <a href="register.php" style="color: #007bff; text-decoration: none;">
+        Belum punya akun? <strong>Register</strong>
+    </a>
+</div>
                 
                 <div class="powered-by">
                     Powered by IT Solution Development Telkom Indonesia

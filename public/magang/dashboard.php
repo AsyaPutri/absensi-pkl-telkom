@@ -148,6 +148,7 @@ if ($userId) {
     }
 }
 
+
 // ambil pengumuman aktif (tandai pakai kolom is_active=1 misalnya)
 $stmt = $conn->prepare("SELECT * FROM pengumuman WHERE is_active = 1 ORDER BY id DESC LIMIT 1");
 $stmt->execute();

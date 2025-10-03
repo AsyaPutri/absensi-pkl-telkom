@@ -2,6 +2,10 @@
 session_start();
 require('../../config/database.php');
 require(__DIR__ . '/fpdf/fpdf.php');
+<<<<<<< HEAD
+=======
+require(__DIR__ . '/phpqrcode/qrlib.php'); // ✅ Tambah library QR Code
+>>>>>>> fb807bff3b8f07e74cbc73d2da2b5f18788e3b9a
 
 function getFirstValue(array $row, array $candidates, $default = '') {
     foreach ($candidates as $k) {
@@ -87,6 +91,7 @@ $tglSelesaiStr = $tglSelesai->format("d F Y");
 $pdf = new FPDF('L','mm','A4');
 $pdf->AddPage();
 
+<<<<<<< HEAD
 // background
 $bgPath = __DIR__ . '/template/templatesertifikat.jpg';
 if (file_exists($bgPath)) {
@@ -130,3 +135,57 @@ $filenameSafe = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nama);
 $pdf->Output('I', "sertifikat_{$filenameSafe}.pdf");
 exit;
 ?>
+=======
+// background sertifikat
+$bgPath = __DIR__ . '/template/templatesertifikat.png';
+if (file_exists($bgPath)) {
+    $pdf->Image($bgPath, 0, 0, 297, 210);
+}
+
+// Nama peserta
+$pdf->SetFont('Times','B',36);
+$pdf->SetTextColor(184,134,11);
+$pdf->SetXY(0, 100);
+$pdf->Cell(297, 12, mb_strtoupper($nama, 'UTF-8'), 0, 1, 'C');
+
+// Keterangan
+$pdf->SetFont('Arial','',14);
+$pdf->SetTextColor(0,0,0);
+$pdf->SetXY(25, 122);
+$keterangan = "Yang telah menyelesaikan program Praktik Kerja Lapangan (PKL) di PT Telkom Indonesia 
+              (Persero) Tbk, pada unit Witel $unit selama $durasi\n"."terhitung mulai tanggal $tglMulaiStr s/d $tglSelesaiStr\n" .
+              "dengan hasil \"Sangat Baik\"";
+$pdf->MultiCell(247, 8, $keterangan, 0, 'C');
+
+// ===========================
+// GANTI TTD → QR CODE
+// ===========================
+$dataTTD = "Ditandatangani oleh:\nROSANA INTAN PERMATASARI\nManager Shared Service & General Support\nTanggal: ".date("d-m-Y");
+
+// Buat file QR sementara
+$qrFile = __DIR__ . "/qrcode_ttd.png";
+QRcode::png($dataTTD, $qrFile, QR_ECLEVEL_H, 5);
+
+// Tempelkan QR ke posisi tanda tangan (x=35mm, y=135mm, ukuran 35mm)
+$pdf->Image($qrFile, 35, 135, 35, 35);
+
+// Nama Manajer
+$pdf->SetFont('Arial','B',12);
+$pdf->SetXY(30, 175);
+$pdf->Cell(0, 6, 'ROSANA INTAN PERMATASARI', 0, 1, 'L');
+
+// Jabatan
+$pdf->SetFont('Arial','',11);
+$pdf->SetXY(30, 183);
+$pdf->Cell(0, 6, 'MANAGER SHARED SERVICE & GENERAL SUPPORT', 0, 1, 'L');
+
+// Hapus file QR setelah dipakai
+if (file_exists($qrFile)) {
+    unlink($qrFile);
+}
+
+// Output PDF
+$filenameSafe = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nama);
+$pdf->Output('I', "sertifikat_{$filenameSafe}.pdf");
+exit;
+>>>>>>> fb807bff3b8f07e74cbc73d2da2b5f18788e3b9a

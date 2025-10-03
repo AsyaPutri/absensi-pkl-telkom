@@ -22,4 +22,3 @@ if ($stmt->execute()) {
     echo "❌ Gagal: " . $stmt->error;
 }
 $stmt->close();
-  

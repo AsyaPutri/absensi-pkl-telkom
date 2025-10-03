@@ -92,7 +92,7 @@ if (!isset($_SESSION['user_id'])) {
               </div>
             </a>
             <!-- Surat Selesai -->
-            <a href="generate_surat.php?jenis=selesai" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
+            <a href="../dokumen/surat_selesai.php" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
               <div class="icon-box icon-blue">
                 <i class="bi bi-flag"></i>
               </div>
