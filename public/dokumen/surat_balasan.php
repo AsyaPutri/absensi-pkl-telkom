@@ -2,7 +2,7 @@
 session_start();
 require('../../config/database.php');    
 require(__DIR__ . '/fpdf/fpdf.php');
-require(__DIR__ . '/phpqrcode/qrlib.php'); // ⬅️ tambahkan phpqrcode
+require(__DIR__ . '/phpqrcode/qrlib.php'); 
 
 /* helper */
 function getFirstValue(array $row, array $candidates, $default = '') {
@@ -98,70 +98,68 @@ $tglSelesai = formatDateNice(getFirstValue($combined, ['tgl_selesai','tanggal_se
 
 /* === Generate PDF === */
 $pdf = new FPDF('P','mm','A4');
-$pdf->SetMargins(30.5, 20, 30);
+$pdf->SetMargins(25, 20, 25);
 $pdf->SetAutoPageBreak(true, 30); 
 $pdf->AddPage();
 
-// Logo Telkom
+// Logo Telkom (kop atas)
 $logoTelkom = __DIR__ . '../../assets/img/logo_telkom.png';
 if (file_exists($logoTelkom)) {
-    $pdf->Image($logoTelkom, 160, 5, 45);
+    $pdf->Image($logoTelkom, 160, 5, 40);
 }
 
-// Kop bawah (footer full)
+// Kop bawah (footer)
 $kopBawah = __DIR__ . '/template/kop surat footer telkom (1).png';
 if (file_exists($kopBawah)) {
-    $pageHeight   = $pdf->GetPageHeight(); // biasanya 297mm utk A4
-    $footerHeight = 20; // atur tinggi gambar footer
-    $posY         = $pageHeight - $footerHeight; // pas di bawah halaman
-    $pdf->Image($kopBawah, 0, $posY, 210, $footerHeight); // full width A4
+    $pdf->Image($kopBawah, 0, 270, 210); 
 }
 
-
-// Judul
-$pdf->Ln(20);
-$pdf->SetFont('Times','B',14);
-$pdf->Cell(0,7,'SURAT KETERANGAN',0,1,'C');
-$pdf->SetFont('Times','',11);
-$pdf->Cell(0,6,'Nomor: C.TEL.xxx/PD.xxx/2025',0,1,'C');
-$pdf->Ln(8);
-
-// Data pemberi
-$pdf->SetFont('Times','',11);
-$pdf->MultiCell(0,6,"Bersama surat ini menerangkan bahwa:",0,'L');
-$pdf->Ln(3);
-$pdf->Cell(50,6,"Nama",0,0,'L');    $pdf->Cell(0,6,": ROSANA INTAN PERMATASARI",0,1,'L');
-$pdf->Cell(50,6,"NIK",0,0,'L');     $pdf->Cell(0,6,": 750065",0,1,'L');
-$pdf->Cell(50,6,"Alamat Kantor",0,0,'L'); $pdf->Cell(0,6,": Jl. Rawa Tembaga No. 4 Bekasi",0,1,'L');
-$pdf->Ln(6);
-
-// Data peserta
-$pdf->MultiCell(0,6,"Yang bertanda tangan di bawah ini menerangkan bahwa Siswa/Mahasiswa:",0,'L');
-$pdf->Ln(2);
-$pdf->Cell(50,6,"Nama",0,0,'L');    $pdf->Cell(0,6,": $nama",0,1,'L');
-$pdf->Cell(50,6,"NIM/NIS",0,0,'L'); $pdf->Cell(0,6,": $nim",0,1,'L');
-$pdf->Cell(50,6,"Program Studi",0,0,'L'); $pdf->Cell(0,6,": $jurusan",0,1,'L');
-$pdf->Cell(50,6,"Instansi Pendidikan",0,0,'L'); $pdf->Cell(0,6,": $instansi",0,1,'L');
-$pdf->Ln(6);
-
-// Isi PKL
-$isi = "Telah menyelesaikan kegiatan Praktik Kerja Lapangan (PKL) di unit $unitName, "
-     . "terhitung mulai tanggal $tglMulai sampai dengan $tglSelesai.";
-$isi .= " Selama mengikuti kegiatan Kerja Praktek Lapangan, Siswa/Mahasiswa yang bersangkutan telah bekerja dengan sangat baik.";
-$pdf->MultiCell(0, 6, $isi, 0, 'J');
-$pdf->Ln(8);
-
-// Penutup
-$pdf->MultiCell(0,6,"Demikian surat keterangan ini dibuat untuk dapat dipergunakan sebagaimana mestinya. Terima kasih.",0,'J');
-$pdf->Ln(12);
-
-// Tanggal & TTD
+// === Header Surat ===
 $today = date("d F Y");
-$pdf->Cell(0,6,"Bekasi, $today",0,1,'R');
-$pdf->Cell(0,6,"Mengetahui,",0,1,'R');
+$pdf->SetFont('Times','',11);
+$pdf->Cell(0,6,'Nomor: C.TEL.xxx/PD.xxx/2025',0,1,'L');
+$pdf->Cell(0,6,"Bekasi, $today",0,1,'L');
 $pdf->Ln(4);
 
-/* === Generate QR Code sebagai pengganti TTD === */
+$pdf->Cell(0,6,'Kepada Yth.',0,1,'L');
+$pdf->Cell(0,6,'Dekan Fakultas Teknik Telekomunikasi',0,1,'L');
+$pdf->Cell(0,6,$instansi,0,1,'L');
+$pdf->Ln(6);
+
+// === Isi surat ===
+$isi = "Dengan hormat,\n\n"
+     ."Sehubungan dengan surat permohonan PKL yang telah kami terima, "
+     ."bersama ini kami sampaikan bahwa permohonan tersebut dapat kami terima. "
+     ."Adapun mahasiswa yang dapat mengikuti PKL di PT Telkom Indonesia (Persero) Tbk Witel $unitName adalah sebagai berikut:\n\n";
+$pdf->MultiCell(0,6,$isi,0,'J');
+
+// === Tabel Peserta ===
+$pdf->SetFont('Times','B',11);
+$pdf->Cell(10,8,'No',1,0,'C');
+$pdf->Cell(65,8,'Nama',1,0,'C');
+$pdf->Cell(40,8,'NIM/NIS',1,0,'C');
+$pdf->Cell(65,8,'Jurusan',1,1,'C');
+
+$pdf->SetFont('Times','',11);
+$pdf->Cell(10,8,'1',1,0,'C');
+$pdf->Cell(65,8,$nama,1,0,'L');
+$pdf->Cell(40,8,$nim,1,0,'C');
+$pdf->Cell(65,8,$jurusan,1,1,'L');
+$pdf->Ln(6);
+
+// Paragraf lanjutan
+$pdf->MultiCell(0,6,
+ "Mahasiswa tersebut ditempatkan di Unit $unitName, dengan jadwal kegiatan terhitung mulai tanggal $tglMulai sampai dengan $tglSelesai.\n\n".
+ "Dimohon kepada pihak instansi untuk menyampaikan pembekalan kepada mahasiswa yang bersangkutan mengenai peraturan dan tata tertib PKL di lingkungan PT Telkom Indonesia (Persero) Tbk.\n\n".
+ "Demikian surat balasan ini kami sampaikan. Atas perhatian dan kerjasamanya, kami ucapkan terima kasih.",
+0,'J');
+$pdf->Ln(12);
+
+// === Tanda tangan QR ===
+$pdf->Cell(0,6,"Bekasi, $today",0,1,'R');
+$pdf->Cell(0,6,"Hormat Kami,",0,1,'R');
+$pdf->Ln(4);
+
 $tempDir = __DIR__ . "/temp/";
 if (!file_exists($tempDir)) mkdir($tempDir, 0777, true);
 
@@ -171,14 +169,10 @@ $qrData = "Ditandatangani secara digital oleh:\n"
         . "Tanggal: $today";
 $qrFile = $tempDir . "qr_ttd_" . time() . ".png";
 
-// buat QR
 QRcode::png($qrData, $qrFile, QR_ECLEVEL_H, 5);
-
-// masukkan ke PDF
 $pdf->Image($qrFile, 130, $pdf->GetY(), 30); 
 $pdf->Ln(35);
 
-// Nama & Jabatan
 $pdf->SetFont('Times','B',12);
 $pdf->Cell(0,6,'ROSANA INTAN PERMATASARI',0,1,'R');
 $pdf->SetFont('Times','',11);
@@ -187,5 +181,5 @@ $pdf->Cell(0,6,'GENERAL SUPPORT',0,1,'R');
 
 // Output
 $filenameSafe = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nama);
-$pdf->Output('I', "surat_selesai_{$filenameSafe}.pdf");
+$pdf->Output('I', "surat_balasan_pkl_{$filenameSafe}.pdf");
 exit;

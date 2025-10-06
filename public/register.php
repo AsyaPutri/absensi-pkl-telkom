@@ -2,7 +2,7 @@
 session_start();
 require '../config/database.php'; // koneksi database ($conn)
 
-$upload_dir = "..git/uploads/";
+$upload_dir = "../uploads/";
 $foto_dir    = $upload_dir . "Foto_daftarpkl/"; 
 $ktm_dir     = $upload_dir . "Foto_Kartuidentitas/"; 
 $surat_dir   = $upload_dir . "Surat_Permohonan/"; 
@@ -236,10 +236,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-group"><label>Semester/Tingkat Kelas</label><input type="text" name="semester"></div>
       <div class="form-group"><label>IPK/Nilai Rata-rata</label><input type="number" step="0.01" name="ipk_nilai_ratarata"></div>
       <div class="form-group"><label>Memiliki Laptop?</label>
-        <select name="memiliki_laptop"><option>Ya</option><option>Tidak</option></select>
+        <select name="memiliki_laptop">
+          <option value="" disabled selected>-- Pilih --</option>
+          <option value>Ya</option>
+          <option value>Tidak</option>
+        </select>
       </div>
       <div class="form-group"><label>Bersedia di Unit Manapun?</label>
-        <select name="bersedia_unit_manapun"><option>Bersedia</option><option>Tidak Bersedia</option></select>
+        <select name="bersedia_unit_manapun">
+          <option value="" disabled selected>-- Pilih --</option>
+          <option value>Bersedia</option>
+          <option value>Tidak Bersedia</option>
+        </select>
       </div>
       <div class="form-group"><label>Nomor Surat Permohonan</label><input type="text" name="nomor_surat_permohonan"></div>
       <div class="form-group"><label>Skill</label><input type="text" name="skill"></div>
@@ -267,10 +275,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-group"><label>Tanggal Usulan Selesai</label><input type="date" name="tgl_selesai"></div>
       <div class="form-group"><label>Upload Surat Permohonan</label><input type="file" name="upload_surat_permohonan"></div>
       <div class="form-group"><label>Upload Foto</label><input type="file" name="upload_foto"></div>
-      <div class="form-group"><label>Upload Kartu Identitas</label><input type="file" name="upload_kartu_identitas"></div>
+      <div class="form-group"><label>Upload Kartu Pelajar/KTM</label><input type="file" name="upload_kartu_identitas"></div>
       <div class="form-full">
         <button type="submit">Daftar Sekarang</button>
         <p class="note">Pastikan data sudah benar sebelum submit.</p>
+        <p class="note">
+          Sudah punya akun? <a href="login.php" style="color:#d32f2f; font-weight:600; text-decoration:none;">Login di sini</a>
+        </p>
       </div>
     </form>
   </div>
