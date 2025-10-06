@@ -12,17 +12,19 @@ include "../../config/database.php";
 $sql = "
   SELECT 
     p.id AS peserta_id,
-    p.nama, d.email, p.nis_npm, p.no_hp,
+    p.nama, p.email, p.nis_npm, p.no_hp,
     p.instansi_pendidikan, p.jurusan,
     p.tgl_mulai, p.tgl_selesai, p.status,
     d.skill, d.durasi, d.alamat,
     d.upload_foto, d.upload_kartu_identitas, d.upload_surat_permohonan,
-    p.tgl_mulai, p.tgl_selesai, p.status,
+    d.memiliki_laptop, d.bersedia_unit_manapun, d.nomor_surat_permohonan,
+    d.ipk_nilai_ratarata, d.semester,
     u.nama_unit
   FROM peserta_pkl p
-  LEFT JOIN daftar_pkl d on p.email = d.email
+  LEFT JOIN daftar_pkl d ON p.email = d.email
   LEFT JOIN unit_pkl u ON p.unit_id = u.id
-  ORDER BY p.tgl_mulai DESC";
+  ORDER BY p.tgl_mulai DESC
+";
 $result = $conn->query($sql);
 // ============================
 // Ambil nama file halaman aktif (untuk set active menu di sidebar)
@@ -229,117 +231,104 @@ $current_page = basename($_SERVER['PHP_SELF']);
               </tr>
             </thead>
             <tbody>
-              <?php if($result && $result->num_rows > 0): $no=1; ?>
-                <?php while($row = $result->fetch_assoc()): ?>
-                  <tr>
-                    <td class="text-center"><?= $no++ ?></td>
-                    <td><?= htmlspecialchars($row['nama']) ?></td>
-                    <td><?= htmlspecialchars($row['instansi_pendidikan']) ?></td>
-                    <td><?= htmlspecialchars($row['jurusan']) ?></td>
-                    <td><?= htmlspecialchars($row['nis_npm']) ?></td>
-                    <td><?= htmlspecialchars($row['email']) ?></td>
-                    <td><?= htmlspecialchars($row['no_hp']) ?></td>
-                    <td><?= htmlspecialchars($row['nama_unit']) ?></td>
-                    <!-- Tombol detail peserta -->
-                    <td class="text-center">
-                      <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal<?= $row['peserta_id']; ?>" title="Rincian">🔍</button>
-                    </td>
-                    <!-- Status peserta -->
-                    <td class="text-center">
-                      <?php if($row['status']=='selesai' || date('Y-m-d') > $row['tgl_selesai']): ?>
-                        <span class="badge bg-secondary">Selesai</span>
-                      <?php else: ?>
-                        <span class="badge bg-success">Berlangsung</span>
-                      <?php endif; ?>
-                    </td>
-                    <!-- Tombol aksi ubah status -->
-                    <td class="text-center">
-                      <?php if($row['status']=='berlangsung' && date('Y-m-d') <= $row['tgl_selesai']): ?>
-                        <form action="ubah_status.php" method="POST" style="display:inline;">
-                          <input type="hidden" name="id" value="<?= $row['peserta_id'] ?>">
-                          <button type="submit" name="selesai" class="btn btn-sm btn-warning">
-                            <i class="bi bi-check2-circle"></i> Selesai
-                          </button>
-                        </form>
-                      <?php endif; ?>
-                    </td>
-                  </tr>
-                <?php endwhile; ?>
-              <?php else: ?>
+            <?php if($result && $result->num_rows > 0): $no=1; ?>
+              <?php while($row = $result->fetch_assoc()): ?>
                 <tr>
-                  <td colspan="12" class="text-center text-muted">Belum ada peserta PKL</td>
-                </tr>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+                  <td class="text-center"><?= $no++ ?></td>
+                  <td><?= htmlspecialchars($row['nama']) ?></td>
+                  <td><?= htmlspecialchars($row['instansi_pendidikan']) ?></td>
+                  <td><?= htmlspecialchars($row['jurusan']) ?></td>
+                  <td><?= htmlspecialchars($row['nis_npm']) ?></td>
+                  <td><?= htmlspecialchars($row['email']) ?></td>
+                  <td><?= htmlspecialchars($row['no_hp']) ?></td>
+                  <td><?= htmlspecialchars($row['nama_unit']) ?></td>
 
-  <?php
-  // ============================
-  // MODAL DETAIL PESERTA
-  // ============================
-  if ($result && $result->num_rows > 0):
-    $result->data_seek(0); // reset pointer query
-    while($row = $result->fetch_assoc()):
-  ?>
-  <div class="modal fade" id="detailModal<?= $row['peserta_id']; ?>" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <!-- Header Modal -->
-        <div class="modal-header bg-danger text-white">
-          <h5 class="modal-title">Rincian Peserta PKL</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <!-- Body Modal -->
-        <div class="modal-body">
-          <!-- Data pribadi peserta -->
-          <div class="row mb-2">
-            <div class="col-md-6"><strong>Nama:</strong> <?= $row['nama']; ?></div>
-            <div class="col-md-6"><strong>Email:</strong> <?= $row['email']; ?></div>
-            <div class="col-md-6"><strong>No HP:</strong> <?= $row['no_hp']; ?></div>
-            <div class="col-md-6"><strong>NIS/NPM:</strong> <?= $row['nis_npm']; ?></div>
-            <div class="col-md-6"><strong>Instansi:</strong> <?= $row['instansi_pendidikan']; ?></div>
-            <div class="col-md-6"><strong>Jurusan:</strong> <?= $row['jurusan']; ?></div>
-            <div class="col-md-6"><strong>Skill:</strong> <?= $row['skill']; ?></div>
-            <div class="col-md-6"><strong>Durasi:</strong> <?= $row['durasi']; ?></div>
-            <div class="col-md-12"><strong>Alamat:</strong> <?= $row['alamat']; ?></div>
-          </div>
-          <hr>
-          <!-- Data PKL -->
-          <div class="row mb-2">
-            <div class="col-md-6"><strong>Unit:</strong> <?= $row['nama_unit']; ?></div>
-            <div class="col-md-3"><strong>Tgl Mulai:</strong> <?= $row['tgl_mulai']; ?></div>
-            <div class="col-md-3"><strong>Tgl Selesai:</strong> <?= $row['tgl_selesai']; ?></div>
-          </div>
-          <hr>
-          <!-- Dokumen peserta -->
-          <p><strong>Dokumen:</strong></p>
-          <div class="row g-3">
-            <div class="col-md-4">
-              <p><strong>Foto</strong></p>
-              <a href="../../uploads/Foto_daftarpkl/<?= $row['upload_foto']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
-            </div>
-            <div class="col-md-4">
-              <p><strong>Kartu Identitas</strong></p>
-              <a href="../../uploads/Foto_Kartuidentitas/<?= $row['upload_kartu_identitas']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
-            </div>
-            <div class="col-md-4">
-              <p><strong>Surat Permohonan</strong></p>
-              <a href="../../uploads/Surat_Permohonan/<?= $row['upload_surat_permohonan']; ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
-            </div>
-          </div>
-        </div>
-        <!-- Footer Modal -->
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <?php endwhile; endif; ?>
+                  <td class="text-center">
+                    <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal<?= $row['peserta_id']; ?>" title="Rincian">
+                      🔍
+                    </button>
+                  </td>
+
+                  <td class="text-center">
+                    <?php if($row['status']=='selesai' || date('Y-m-d') > $row['tgl_selesai']): ?>
+                      <span class="badge bg-secondary">Selesai</span>
+                    <?php else: ?>
+                      <span class="badge bg-success">Berlangsung</span>
+                    <?php endif; ?>
+                  </td>
+
+                  <td class="text-center">
+                    <?php if($row['status']=='berlangsung' && date('Y-m-d') <= $row['tgl_selesai']): ?>
+                      <form action="ubah_status.php" method="POST" style="display:inline;">
+                        <input type="hidden" name="id" value="<?= $row['peserta_id'] ?>">
+                        <button type="submit" name="selesai" class="btn btn-sm btn-warning">
+                          <i class="bi bi-check2-circle"></i> Selesai
+                        </button>
+                      </form>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+
+                <!-- Modal Detail Peserta -->
+                <div class="modal fade" id="detailModal<?= $row['peserta_id']; ?>" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                      <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">Rincian Peserta: <?= htmlspecialchars($row['nama']); ?></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body">
+                        <div class="row">
+                          <div class="col-md-6">
+                            <p><strong>Email:</strong> <?= htmlspecialchars($row['email']); ?></p>
+                            <p><strong>NIS/NPM:</strong> <?= htmlspecialchars($row['nis_npm']); ?></p>
+                            <p><strong>Instansi:</strong> <?= htmlspecialchars($row['instansi_pendidikan']); ?></p>
+                            <p><strong>Jurusan:</strong> <?= htmlspecialchars($row['jurusan']); ?></p>
+                            <p><strong>Semester:</strong> <?= htmlspecialchars($row['semester']); ?></p>
+                            <p><strong>IPK/Nilai Rata-rata:</strong> <?= htmlspecialchars($row['ipk_nilai_ratarata']); ?></p>
+                          </div>
+                          <div class="col-md-6">
+                            <p><strong>Memiliki Laptop:</strong> <?= htmlspecialchars($row['memiliki_laptop']); ?></p>
+                            <p><strong>Bersedia Unit Manapun:</strong> <?= htmlspecialchars($row['bersedia_unit_manapun']); ?></p>
+                            <p><strong>Durasi:</strong> <?= htmlspecialchars($row['durasi']); ?></p>
+                            <p><strong>Nomor Surat:</strong> <?= htmlspecialchars($row['nomor_surat_permohonan']); ?></p>
+                            <p><strong>Skill:</strong> <?= htmlspecialchars($row['skill']); ?></p>
+                            <p><strong>Unit:</strong> <?= htmlspecialchars($row['nama_unit']); ?></p>
+                          </div>
+                        </div>
+                        <hr>
+                        <p><strong>Alamat:</strong> <?= htmlspecialchars($row['alamat']); ?></p>
+                        <p><strong>Periode:</strong> <?= htmlspecialchars($row['tgl_mulai']); ?> – <?= htmlspecialchars($row['tgl_selesai']); ?></p>
+
+                        <div class="row g-3 mt-2">
+                          <div class="col-md-4 ">
+                            <p><strong>Foto</strong></p>
+                            <a href="../../uploads/Foto_daftarpkl/<?= htmlspecialchars($row['upload_foto']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+                          </div>
+                          <div class="col-md-4 ">
+                            <p><strong>Kartu Identitas</strong></p>
+                            <a href="../../uploads/Foto_Kartuidentitas/<?= htmlspecialchars($row['upload_kartu_identitas']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+                          </div>
+                          <div class="col-md-4 ">
+                            <p><strong>Surat Permohonan</strong></p>
+                            <a href="../../uploads/Surat_Permohonan/<?= htmlspecialchars($row['upload_surat_permohonan']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              <?php endwhile; ?>
+            <?php else: ?>
+              <tr>
+                <td colspan="12" class="text-center text-muted">Belum ada peserta PKL</td>
+              </tr>
+            <?php endif; ?>
+  </tbody>
+
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
