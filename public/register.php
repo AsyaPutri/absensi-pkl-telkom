@@ -2,25 +2,25 @@
 session_start();
 require '../config/database.php'; // koneksi database ($conn)
 
-
-// pastikan semua folder ada
+// ================== Folder Upload ==================
 $upload_dir = "../uploads/";
-$foto_dir    = $upload_dir . "Foto_daftarpkl/"; 
-$ktm_dir     = $upload_dir . "Foto_Kartuidentitas/"; 
-$surat_dir   = $upload_dir . "Surat_Permohonan/"; 
+$foto_dir   = $upload_dir . "Foto_daftarpkl/";
+$ktm_dir    = $upload_dir . "Foto_Kartuidentitas/";
+$surat_dir  = $upload_dir . "Surat_Permohonan/";
+
 foreach ([$upload_dir, $foto_dir, $ktm_dir, $surat_dir] as $dir) {
   if (!is_dir($dir)) @mkdir($dir, 0755, true);
 }
 
 // ================== Helper Function ==================
-function safe($v){ return htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); }
+function safe($v) { return htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); }
 
-function uploadFileUnique($fileKey, $upload_dir){
+function uploadFileUnique($fileKey, $upload_dir) {
   if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) return '';
   $ext = pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION);
   $newname = time() . "_" . uniqid() . "." . $ext;
   if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $upload_dir . $newname)) {
-      return $newname;
+    return $newname;
   }
   return '';
 }
@@ -29,73 +29,74 @@ function uploadFileUnique($fileKey, $upload_dir){
 $units = [];
 $result = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
 if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $units[] = $row;
-    }
+  while ($row = $result->fetch_assoc()) {
+    $units[] = $row;
+  }
 }
 
 // ================== Proses Submit ==================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama       = trim($_POST['nama'] ?? '');
-    $email      = trim($_POST['email'] ?? '');
-    $nis_npm    = trim($_POST['nis_npm'] ?? '');
-    $instansi   = trim($_POST['instansi_pendidikan'] ?? '');
-    $jurusan    = trim($_POST['jurusan'] ?? '');
-    $ipk        = ($_POST['ipk_nilai_ratarata'] !== '') ? (float) $_POST['ipk_nilai_ratarata'] : null;
-    $semester   = trim($_POST['semester'] ?? '');
-    $memiliki_laptop = trim($_POST['memiliki_laptop'] ?? '');
-    $bersedia_unit   = trim($_POST['bersedia_unit_manapun'] ?? '');
-    $no_surat        = trim($_POST['nomor_surat_permohonan'] ?? '');
-    $skill           = trim($_POST['skill'] ?? '');
-    $durasi          = trim($_POST['durasi'] ?? '');
-    $unit_id         = !empty($_POST['unit_id']) ? (int) $_POST['unit_id'] : null;
-    $no_hp           = trim($_POST['no_hp'] ?? '');
-    $alamat          = trim($_POST['alamat'] ?? '');
-    $tgl_mulai       = trim($_POST['tgl_mulai'] ?? null);
-    $tgl_selesai     = trim($_POST['tgl_selesai'] ?? null);
-    $status          = 'pending';
+  $nama       = trim($_POST['nama'] ?? '');
+  $email      = trim($_POST['email'] ?? '');
+  $nis_npm    = trim($_POST['nis_npm'] ?? '');
+  $instansi   = trim($_POST['instansi_pendidikan'] ?? '');
+  $jurusan    = trim($_POST['jurusan'] ?? '');
+  $ipk        = ($_POST['ipk_nilai_ratarata'] !== '') ? (float) $_POST['ipk_nilai_ratarata'] : null;
+  $semester   = trim($_POST['semester'] ?? '');
+  $memiliki_laptop = trim($_POST['memiliki_laptop'] ?? '');
+  $bersedia_unit   = trim($_POST['bersedia_unit_manapun'] ?? '');
+  $no_surat        = trim($_POST['nomor_surat_permohonan'] ?? '');
+  $skill           = trim($_POST['skill'] ?? '');
+  $durasi          = trim($_POST['durasi'] ?? '');
+  $unit_id         = !empty($_POST['unit_id']) ? (int) $_POST['unit_id'] : null;
+  $no_hp           = trim($_POST['no_hp'] ?? '');
+  $alamat          = trim($_POST['alamat'] ?? '');
+  $tgl_mulai       = trim($_POST['tgl_mulai'] ?? null);
+  $tgl_selesai     = trim($_POST['tgl_selesai'] ?? null);
+  $status          = 'pending';
 
-    // Upload file
-    $foto  = uploadFileUnique('upload_foto', $foto_dir);
-    $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
-    $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
+  // Upload file
+  $foto  = uploadFileUnique('upload_foto', $foto_dir);
+  $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
+  $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
 
-    // Query insert (21 kolom)
-    $sql = "INSERT INTO daftar_pkl (
-        nama, email, nis_npm, instansi_pendidikan, jurusan,
-        ipk_nilai_ratarata, semester, memiliki_laptop, bersedia_unit_manapun,
-        nomor_surat_permohonan, skill, durasi, unit_id,
-        no_hp, alamat, tgl_mulai, tgl_selesai,
-        upload_surat_permohonan, upload_foto, upload_kartu_identitas, status
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+  // Query insert (21 kolom)
+  $sql = "INSERT INTO daftar_pkl (
+      nama, email, nis_npm, instansi_pendidikan, jurusan,
+      ipk_nilai_ratarata, semester, memiliki_laptop, bersedia_unit_manapun,
+      nomor_surat_permohonan, skill, durasi, unit_id,
+      no_hp, alamat, tgl_mulai, tgl_selesai,
+      upload_surat_permohonan, upload_foto, upload_kartu_identitas, status
+  ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        die('Prepare failed: ' . $conn->error);
-    }
+  $stmt = $conn->prepare($sql);
+  if (!$stmt) {
+    die('Prepare failed: ' . $conn->error);
+  }
 
-    $types = "sssss"  // nama, email, nis_npm, instansi, jurusan
-       . "d"      // ipk
-       . "ssssss" // semester, memiliki_laptop, bersedia_unit, no_surat, skill, durasi
-       . "i"      // unit_id
-       . "ssss"   // no_hp, alamat, tgl_mulai, tgl_selesai
-       . "ssss";  // surat, foto, ktm, status
-    $stmt->bind_param(
-        $types,
-        $nama, $email, $nis_npm, $instansi, $jurusan,
-        $ipk,
-        $semester, $memiliki_laptop, $bersedia_unit, $no_surat, $skill, $durasi,
-        $unit_id,
-        $no_hp, $alamat, $tgl_mulai, $tgl_selesai,
-        $surat, $foto, $ktm, $status
-    );
+  $types = "sssss"  // nama, email, nis_npm, instansi, jurusan
+         . "d"      // ipk
+         . "ssssss" // semester, memiliki_laptop, bersedia_unit, no_surat, skill, durasi
+         . "i"      // unit_id
+         . "ssss"   // no_hp, alamat, tgl_mulai, tgl_selesai
+         . "ssss";  // surat, foto, ktm, status
 
-    if ($stmt->execute()) {
-        echo "<script>alert('Registrasi PKL berhasil!'); window.location='login.php';</script>";
-        exit;
-    } else {
-        die('Gagal menyimpan data: ' . $stmt->error);
-    }
+  $stmt->bind_param(
+    $types,
+    $nama, $email, $nis_npm, $instansi, $jurusan,
+    $ipk,
+    $semester, $memiliki_laptop, $bersedia_unit, $no_surat, $skill, $durasi,
+    $unit_id,
+    $no_hp, $alamat, $tgl_mulai, $tgl_selesai,
+    $surat, $foto, $ktm, $status
+  );
+
+  if ($stmt->execute()) {
+    echo "<script>alert('Registrasi PKL berhasil!'); window.location='login.php';</script>";
+    exit;
+  } else {
+    die('Gagal menyimpan data: ' . $stmt->error);
+  }
 }
 ?>
 <!DOCTYPE html>
@@ -214,7 +215,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-group"><label>Jurusan</label><input type="text" name="jurusan" required></div>
       <div class="form-group"><label>Semester/Tingkat</label><input type="text" name="semester"></div>
       <div class="form-group"><label>IPK/Nilai Rata-rata</label><input type="number" step="0.01" name="ipk_nilai_ratarata"></div>
-<<<<<<< HEAD
 
       <div class="form-group">
         <label>Memiliki Laptop?</label>
@@ -224,33 +224,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <option value="Tidak">Tidak</option>
         </select>
       </div>
+
       <div class="form-group">
         <label>Bersedia di Unit Manapun?</label>
         <select name="bersedia_unit_manapun" required>
           <option value="">-- Pilih --</option>
           <option value="Bersedia">Bersedia</option>
           <option value="Tidak Bersedia">Tidak Bersedia</option>
-=======
-      <div class="form-group"><label>Memiliki Laptop?</label>
-        <select name="memiliki_laptop">
-          <option value="" disabled selected>-- Pilih --</option>
-          <option value>Ya</option>
-          <option value>Tidak</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Bersedia di Unit Manapun?</label>
-        <select name="bersedia_unit_manapun">
-          <option value="" disabled selected>-- Pilih --</option>
-          <option value>Bersedia</option>
-          <option value>Tidak Bersedia</option>
->>>>>>> 78bc4a7b702164f9f0a82e86ad50b5cdf1d0bd34
         </select>
       </div>
 
       <div class="form-group"><label>Nomor Surat Permohonan</label><input type="text" name="nomor_surat_permohonan"></div>
       <div class="form-group"><label>Skill</label><input type="text" name="skill"></div>
 
-      <div class="form-group"><label>Durasi PKL</label>
+      <div class="form-group">
+        <label>Durasi PKL</label>
         <select name="durasi" required>
           <option value="">-- Pilih Durasi --</option>
           <option value="2 Bulan">2 Bulan</option>
@@ -261,7 +249,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </select>
       </div>
 
-      <div class="form-group"><label>Unit Tujuan</label>
+      <div class="form-group">
+        <label>Unit Tujuan</label>
         <select name="unit_id" required>
           <option value="">-- Pilih Unit --</option>
           <?php foreach ($units as $u): ?>
@@ -274,7 +263,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-full form-group"><label>Alamat</label><textarea name="alamat"></textarea></div>
       <div class="form-group"><label>Tanggal Usulan Mulai</label><input type="date" name="tgl_mulai"></div>
       <div class="form-group"><label>Tanggal Usulan Selesai</label><input type="date" name="tgl_selesai"></div>
-<<<<<<< HEAD
 
       <div class="form-group"><label>Upload Surat Permohonan</label><input type="file" name="upload_surat_permohonan" required></div>
       <div class="form-group"><label>Upload Foto</label><input type="file" name="upload_foto" required></div>
@@ -283,18 +271,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-full">
         <button type="submit">Daftar Sekarang</button>
         <p class="note">Pastikan data sudah benar sebelum submit.</p>
-        <p class="note">Sudah punya akun? 
-          <a href="login.php" style="color:#d32f2f; font-weight:600; text-decoration:none;">Login di sini</a>
-=======
-      <div class="form-group"><label>Upload Surat Permohonan</label><input type="file" name="upload_surat_permohonan"></div>
-      <div class="form-group"><label>Upload Foto</label><input type="file" name="upload_foto"></div>
-      <div class="form-group"><label>Upload Kartu Pelajar/KTM</label><input type="file" name="upload_kartu_identitas"></div>
-      <div class="form-full">
-        <button type="submit">Daftar Sekarang</button>
-        <p class="note">Pastikan data sudah benar sebelum submit.</p>
         <p class="note">
-          Sudah punya akun? <a href="login.php" style="color:#d32f2f; font-weight:600; text-decoration:none;">Login di sini</a>
->>>>>>> 78bc4a7b702164f9f0a82e86ad50b5cdf1d0bd34
+          Sudah punya akun? 
+          <a href="login.php" style="color:#d32f2f; font-weight:600; text-decoration:none;">Login di sini</a>
         </p>
       </div>
     </form>
