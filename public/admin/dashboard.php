@@ -220,6 +220,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </div>
           </a>
         </div>
+        <!-- 🚀 Card CP Karyawan -->
+<div class="col-lg-3 col-md-6 col-12">
+  <a href="cp_karyawan.php" style="text-decoration:none;">
+    <div class="card stats-card bg-primary text-white text-center p-3">
+      <h6>CP Karyawan</h6>
+      <div class="card-number">
+        <i class="bi bi-telephone"></i>
+      </div>
+    </div>
+  </a>
+</div>
+
       </div>
     </div>
   </div>
