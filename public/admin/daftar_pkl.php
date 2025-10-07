@@ -44,63 +44,93 @@ function uploadFileUnique($fileKey, $upload_dir) {
 // ============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'insert') {
 
-  // --- Ambil data dari form ---
-  $nama       = trim($_POST['nama'] ?? '');
-  $email      = trim($_POST['email'] ?? '');
-  $nis_npm    = trim($_POST['nis_npm'] ?? '');
-  $instansi   = trim($_POST['instansi_pendidikan'] ?? '');
-  $jurusan    = trim($_POST['jurusan'] ?? '');
-  $ipk        = ($_POST['ipk_nilai_ratarata'] !== '') ? (float) $_POST['ipk_nilai_ratarata'] : null;
-  $semester   = trim($_POST['semester'] ?? '');
-  $memiliki_laptop = trim($_POST['memiliki_laptop'] ?? '');
-  $bersedia_unit   = trim($_POST['bersedia_unit_manapun'] ?? '');
-  $no_surat        = trim($_POST['nomor_surat_permohonan'] ?? '');
-  $skill           = trim($_POST['skill'] ?? '');
-  $durasi          = trim($_POST['durasi'] ?? '');
-  $unit_id         = !empty($_POST['unit_id']) ? (int) $_POST['unit_id'] : null;
-  $no_hp           = trim($_POST['no_hp'] ?? '');
-  $alamat          = trim($_POST['alamat'] ?? '');
-  $tgl_mulai       = trim($_POST['tgl_mulai'] ?? null);
-  $tgl_selesai     = trim($_POST['tgl_selesai'] ?? null);
-  $status          = 'pending';
-  $user_id         = $_SESSION['user_id'] ?? null;
+  // ==========================
+  // Ambil data dari form
+  // ==========================
+  $nama             = trim($_POST['nama'] ?? '');
+  $email            = trim($_POST['email'] ?? '');
+  $nis_npm          = trim($_POST['nis_npm'] ?? '');
+  $instansi         = trim($_POST['instansi_pendidikan'] ?? '');
+  $jurusan          = trim($_POST['jurusan'] ?? '');
+  $ipk              = isset($_POST['ipk_nilai_ratarata']) && $_POST['ipk_nilai_ratarata'] !== ''
+                      ? (float) $_POST['ipk_nilai_ratarata']
+                      : null;
+  $semester         = trim($_POST['semester'] ?? '');
+  $memiliki_laptop  = trim($_POST['memiliki_laptop'] ?? '');
+  $bersedia_unit    = trim($_POST['bersedia_unit_manapun'] ?? '');
+  $no_surat         = trim($_POST['nomor_surat_permohonan'] ?? '');
+  $skill            = trim($_POST['skill'] ?? '');
+  $durasi           = trim($_POST['durasi'] ?? '');
+  $unit_id          = !empty($_POST['unit_id']) ? (int) $_POST['unit_id'] : null;
+  $no_hp            = trim($_POST['no_hp'] ?? '');
+  $alamat           = trim($_POST['alamat'] ?? '');
+  $tgl_mulai        = trim($_POST['tgl_mulai'] ?? null);
+  $tgl_selesai      = trim($_POST['tgl_selesai'] ?? null);
+  $status           = 'pending';
+  $tgl_daftar       = date('Y-m-d'); // hanya tanggal, tanpa jam
 
-  // --- Upload file ---
+  // ==========================
+  // Upload file
+  // ==========================
   $foto  = uploadFileUnique('upload_foto', $foto_dir);
   $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
   $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
 
-  // --- Simpan ke database ---
-  $sql = "INSERT INTO daftar_pkl
-      (user_id, nama, email, nis_npm, instansi_pendidikan, jurusan, skill, durasi, unit_id, no_hp, alamat,
-       tgl_mulai, tgl_selesai, upload_surat_permohonan, upload_foto, upload_kartu_identitas,
-       ipk_nilai_ratarata, semester, memiliki_laptop, bersedia_unit_manapun,
-       nomor_surat_permohonan, status)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+  // ==========================
+  // Query Insert
+  // ==========================
+  $sql = "INSERT INTO daftar_pkl (
+            nama, email, nis_npm, instansi_pendidikan, jurusan,
+            skill, durasi, unit_id, no_hp, alamat,
+            tgl_mulai, tgl_selesai, upload_surat_permohonan,
+            upload_foto, upload_kartu_identitas,
+            ipk_nilai_ratarata, semester, memiliki_laptop,
+            bersedia_unit_manapun, nomor_surat_permohonan,
+            status, tgl_daftar
+          )
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
   $stmt = $conn->prepare($sql);
-  if ($stmt) {
-      $stmt->bind_param(
-          "isssssssisssssssssssss",
-          $user_id, $nama, $email, $nis_npm, $instansi, $jurusan,
-          $skill, $durasi, $unit_id, $no_hp, $alamat,
-          $tgl_mulai, $tgl_selesai, $surat, $foto, $ktm,
-          $ipk, $semester, $memiliki_laptop, $bersedia_unit,
-          $no_surat, $status
-      );
 
-      if ($stmt->execute()) {
-          $_SESSION['success'] = "✅ Pendaftar PKL berhasil disimpan!";
-      } else {
-          $_SESSION['error'] = "❌ Error saat simpan: " . $stmt->error;
-      }
-      $stmt->close();
-  } else {
-      $_SESSION['error'] = "❌ Error prepare: " . $conn->error;
+  if (!$stmt) {
+    $_SESSION['error'] = "❌ Prepare failed: " . $conn->error;
+    header("Location: daftar_pkl.php");
+    exit;
   }
 
+  // ==========================
+  // Bind parameter (22 kolom)
+  // ==========================
+  $stmt = $conn->prepare($sql);
+  if(!$stmt){
+    $_SESSION['error'] = "DB prepare error: " . $conn->error;
+  } else {
+    // types: 7x s + i + many s + d + s...
+    $types = "sssssssisssssssdssssss"; // 22 params
+    $bind = $stmt->bind_param(
+      $types,
+      $nama, $email, $nis_npm, $instansi, $jurusan, $skill, $durasi,
+      $unit_id,
+      $no_hp, $alamat,
+      $tgl_mulai, $tgl_selesai,
+      $upload_surat, $upload_foto, $upload_ktm,
+      $ipk, $semester, $memiliki_laptop, $bersedia_unit,
+      $no_surat, $status, $tgl_daftar
+    );
+
+  // ==========================
+  // Eksekusi Query
+  // ==========================
+  if ($stmt->execute()) {
+    $_SESSION['success'] = "✅ Pendaftar PKL berhasil disimpan!";
+  } else {
+    $_SESSION['error'] = "❌ Gagal menyimpan data: " . $stmt->error;
+  }
+
+  $stmt->close();
+
   header("Location: daftar_pkl.php");
-  exit();
+  exit();}
 }
 
 // ============================================================
@@ -596,6 +626,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <p><strong>Memiliki Laptop:</strong> <?= safe($row['memiliki_laptop']); ?></p>
                             <p><strong>Durasi:</strong> <?= safe($row['durasi']); ?></p>
                             <p><strong>No Surat Permohonan:</strong> <?= safe($row['nomor_surat_permohonan']); ?></p>
+                            <p><strong>Tanggal Daftar PKL:</strong> <?= safe($row['created_at']); ?></p>
                           </div>
                         </div>
                         <hr>

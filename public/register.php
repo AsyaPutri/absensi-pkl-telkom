@@ -2,31 +2,31 @@
 session_start();
 require '../config/database.php'; // koneksi database ($conn)
 
-$upload_dir = "..git/uploads/";
-$foto_dir    = $upload_dir . "Foto_daftarpkl/"; 
-$ktm_dir     = $upload_dir . "Foto_Kartuidentitas/"; 
-$surat_dir   = $upload_dir . "Surat_Permohonan/"; 
+// ================== Folder Upload ==================
+$upload_dir = "../uploads/";
+$foto_dir   = $upload_dir . "Foto_daftarpkl/";
+$ktm_dir    = $upload_dir . "Foto_Kartuidentitas/";
+$surat_dir  = $upload_dir . "Surat_Permohonan/";
+
+// pastikan semua folder ada
 foreach ([$upload_dir, $foto_dir, $ktm_dir, $surat_dir] as $dir) {
   if (!is_dir($dir)) @mkdir($dir, 0755, true);
 }
 
-// ================== Helper ==================
+// ================== Helper Function ==================
 function safe($v){ return htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); }
 
 function uploadFileUnique($fileKey, $upload_dir){
-    if (!isset($_FILES[$fileKey]) || !$_FILES[$fileKey]['name']) return '';
-    $name = basename($_FILES[$fileKey]['name']);
-    $name = preg_replace('/[^A-Za-z0-9._-]/','_',$name);
-    $newname = time() . "_" . $name;
-    if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $upload_dir . $newname)) {
-        return $newname;
-    }
-    return '';
+  if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) return '';
+  $ext = pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION);
+  $newname = time() . "_" . uniqid() . "." . $ext;
+  if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $upload_dir . $newname)) {
+      return $newname;
+  }
+  return '';
 }
 
-// ========================
-// Ambil daftar unit untuk dropdown
-// ========================
+// ================== Ambil daftar unit ==================
 $units = [];
 $result = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
 if ($result) {
@@ -35,10 +35,7 @@ if ($result) {
     }
 }
 
-
-// ========================
-// Proses Form Submit
-// ========================
+// ================== Proses Submit ==================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama       = trim($_POST['nama'] ?? '');
     $email      = trim($_POST['email'] ?? '');
@@ -57,16 +54,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $alamat          = trim($_POST['alamat'] ?? '');
     $tgl_mulai       = trim($_POST['tgl_mulai'] ?? null);
     $tgl_selesai     = trim($_POST['tgl_selesai'] ?? null);
+    $status          = 'pending';
 
     // Upload file
-   $foto  = uploadFileUnique('upload_foto', $foto_dir);
-   $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
-   $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
-   $status = 'pending';
+    $foto  = uploadFileUnique('upload_foto', $foto_dir);
+    $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
+    $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
 
-    // ========================
-    // Query Insert
-    // ========================
+    // Query insert (21 kolom)
     $sql = "INSERT INTO daftar_pkl (
         nama, email, nis_npm, instansi_pendidikan, jurusan,
         ipk_nilai_ratarata, semester, memiliki_laptop, bersedia_unit_manapun,
@@ -77,22 +72,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
+        die('Prepare failed: ' . $conn->error);
     }
 
-    // Cek tipe data bind_param -> total 21 kolom
-    $types = "sssss"   // 5 string pertama
-           . "d"       // ipk decimal
-           . "ssssss"  // semester sampai durasi (6 string)
-           . "i"       // unit_id int
-           . "s"       // no_hp string
-           . "s"       // alamat string
-           . "s"       // tgl_mulai
-           . "s"       // tgl_selesai
-           . "sss"     // surat, foto, ktm
-           . "s";      // status
-
-    $bind = $stmt->bind_param(
+    $types = "sssss"  // nama, email, nis_npm, instansi, jurusan
+       . "d"      // ipk
+       . "ssssss" // semester, memiliki_laptop, bersedia_unit, no_surat, skill, durasi
+       . "i"      // unit_id
+       . "ssss"   // no_hp, alamat, tgl_mulai, tgl_selesai
+       . "ssss";  // surat, foto, ktm, status
+    $stmt->bind_param(
         $types,
         $nama, $email, $nis_npm, $instansi, $jurusan,
         $ipk,
@@ -102,15 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $surat, $foto, $ktm, $status
     );
 
-    if (!$bind) {
-        die("Bind param error: " . $stmt->error);
-    }
-
     if ($stmt->execute()) {
-        echo "<script>alert('Registrasi berhasil!'); window.location='login.php';</script>";
+        echo "<script>alert('Registrasi PKL berhasil!'); window.location='login.php';</script>";
         exit;
     } else {
-        die("Execute failed: (" . $stmt->errno . ") " . $stmt->error);
+        die('Gagal menyimpan data: ' . $stmt->error);
     }
 }
 ?>
@@ -133,14 +118,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     .container {
       background: #fff;
-      width: 100%;
       max-width: 1200px;
       border-radius: 16px;
       box-shadow: 0 6px 25px rgba(0,0,0,0.2);
       display: flex;
       overflow: hidden;
+      width: 100%;
     }
-    /* Bagian kiri */
     .info-section {
       flex: 1;
       background: #fff5f5;
@@ -148,13 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       border-right: 4px solid #f44336;
     }
     .info-section h2 { color: #d32f2f; margin-bottom: 15px; }
-    .info-section p { margin: 8px 0; color: #444; }
-    .info-section ul { padding-left: 20px; margin-top: 10px; }
-    /* Bagian kanan */
-    .form-section {
-      flex: 2;
-      padding: 40px;
-    }
+    .info-section p, .info-section li { color: #444; }
+    .form-section { flex: 2; padding: 40px; }
     .form-section h2 {
       margin-bottom: 25px;
       color: #d32f2f;
@@ -208,9 +187,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 <div class="container">
+
   <!-- Bagian Info -->
   <div class="info-section">
-    <h2>Registrasi <em>Internship</em> Witel Bekasi - Karawang</h2>
+    <h2>Registrasi Internship<br>Witel Bekasi - Karawang</h2>
     <p>Silakan isi form berikut untuk mendaftar PKL.</p>
     <p><strong>Syarat PKL:</strong></p>
     <ul>
@@ -233,16 +213,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-group"><label>NIS/NPM</label><input type="text" name="nis_npm" required></div>
       <div class="form-group"><label>Instansi Pendidikan</label><input type="text" name="instansi_pendidikan" required></div>
       <div class="form-group"><label>Jurusan</label><input type="text" name="jurusan" required></div>
-      <div class="form-group"><label>Semester/Tingkat Kelas</label><input type="text" name="semester"></div>
+      <div class="form-group"><label>Semester/Tingkat</label><input type="text" name="semester"></div>
       <div class="form-group"><label>IPK/Nilai Rata-rata</label><input type="number" step="0.01" name="ipk_nilai_ratarata"></div>
-      <div class="form-group"><label>Memiliki Laptop?</label>
-        <select name="memiliki_laptop"><option>Ya</option><option>Tidak</option></select>
+
+      <div class="form-group">
+        <label>Memiliki Laptop?</label>
+        <select name="memiliki_laptop" required>
+          <option value="">-- Pilih --</option>
+          <option value="Ya">Ya</option>
+          <option value="Tidak">Tidak</option>
+        </select>
       </div>
-      <div class="form-group"><label>Bersedia di Unit Manapun?</label>
-        <select name="bersedia_unit_manapun"><option>Bersedia</option><option>Tidak Bersedia</option></select>
+      <div class="form-group">
+        <label>Bersedia di Unit Manapun?</label>
+        <select name="bersedia_unit_manapun" required>
+          <option value="">-- Pilih --</option>
+          <option value="Bersedia">Bersedia</option>
+          <option value="Tidak Bersedia">Tidak Bersedia</option>
+        </select>
       </div>
+
       <div class="form-group"><label>Nomor Surat Permohonan</label><input type="text" name="nomor_surat_permohonan"></div>
       <div class="form-group"><label>Skill</label><input type="text" name="skill"></div>
+
       <div class="form-group"><label>Durasi PKL</label>
         <select name="durasi" required>
           <option value="">-- Pilih Durasi --</option>
@@ -253,24 +246,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <option value="6 Bulan">6 Bulan</option>
         </select>
       </div>
-      <div class="form-group"><label>Unit</label>
+
+      <div class="form-group"><label>Unit Tujuan</label>
         <select name="unit_id" required>
           <option value="">-- Pilih Unit --</option>
           <?php foreach ($units as $u): ?>
-            <option value="<?= $u['id']; ?>"><?= htmlspecialchars($u['nama_unit']); ?></option>
+            <option value="<?= $u['id']; ?>"><?= safe($u['nama_unit']); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
+
       <div class="form-group"><label>No HP</label><input type="text" name="no_hp" required></div>
       <div class="form-full form-group"><label>Alamat</label><textarea name="alamat"></textarea></div>
       <div class="form-group"><label>Tanggal Usulan Mulai</label><input type="date" name="tgl_mulai"></div>
       <div class="form-group"><label>Tanggal Usulan Selesai</label><input type="date" name="tgl_selesai"></div>
-      <div class="form-group"><label>Upload Surat Permohonan</label><input type="file" name="upload_surat_permohonan"></div>
-      <div class="form-group"><label>Upload Foto</label><input type="file" name="upload_foto"></div>
-      <div class="form-group"><label>Upload Kartu Identitas</label><input type="file" name="upload_kartu_identitas"></div>
+
+      <div class="form-group"><label>Upload Surat Permohonan</label><input type="file" name="upload_surat_permohonan" required></div>
+      <div class="form-group"><label>Upload Foto</label><input type="file" name="upload_foto" required></div>
+      <div class="form-group"><label>Upload Kartu Identitas</label><input type="file" name="upload_kartu_identitas" required></div>
+
       <div class="form-full">
         <button type="submit">Daftar Sekarang</button>
         <p class="note">Pastikan data sudah benar sebelum submit.</p>
+        <p class="note">Sudah punya akun? 
+          <a href="login.php" style="color:#d32f2f; font-weight:600; text-decoration:none;">Login di sini</a>
+        </p>
       </div>
     </form>
   </div>
