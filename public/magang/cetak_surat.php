@@ -72,7 +72,7 @@ if (!isset($_SESSION['user_id'])) {
           </p>
           <div class="list-group">
             <!-- Surat Balasan -->
-            <a href="generate_surat.php?jenis=balasan" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
+            <a href="../dokumen/surat_balasan.php" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
               <div class="icon-box icon-red">
                 <i class="bi bi-envelope-open"></i>
               </div>
@@ -82,7 +82,7 @@ if (!isset($_SESSION['user_id'])) {
               </div>
             </a>
             <!-- Surat Konfirmasi -->
-            <a href="generate_surat.php?jenis=konfirmasi" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
+            <a href="../dokumen/surat_konfirmasi.php" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
               <div class="icon-box icon-green">
                 <i class="bi bi-check2-square"></i>
               </div>

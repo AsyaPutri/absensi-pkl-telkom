@@ -2,13 +2,12 @@
 session_start();
 require '../config/database.php'; // koneksi database ($conn)
 
-// ================== Folder Upload ==================
-$upload_dir = "../uploads/";
-$foto_dir   = $upload_dir . "Foto_daftarpkl/";
-$ktm_dir    = $upload_dir . "Foto_Kartuidentitas/";
-$surat_dir  = $upload_dir . "Surat_Permohonan/";
 
 // pastikan semua folder ada
+$upload_dir = "../uploads/";
+$foto_dir    = $upload_dir . "Foto_daftarpkl/"; 
+$ktm_dir     = $upload_dir . "Foto_Kartuidentitas/"; 
+$surat_dir   = $upload_dir . "Surat_Permohonan/"; 
 foreach ([$upload_dir, $foto_dir, $ktm_dir, $surat_dir] as $dir) {
   if (!is_dir($dir)) @mkdir($dir, 0755, true);
 }
@@ -215,6 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-group"><label>Jurusan</label><input type="text" name="jurusan" required></div>
       <div class="form-group"><label>Semester/Tingkat</label><input type="text" name="semester"></div>
       <div class="form-group"><label>IPK/Nilai Rata-rata</label><input type="number" step="0.01" name="ipk_nilai_ratarata"></div>
+<<<<<<< HEAD
 
       <div class="form-group">
         <label>Memiliki Laptop?</label>
@@ -230,6 +230,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <option value="">-- Pilih --</option>
           <option value="Bersedia">Bersedia</option>
           <option value="Tidak Bersedia">Tidak Bersedia</option>
+=======
+      <div class="form-group"><label>Memiliki Laptop?</label>
+        <select name="memiliki_laptop">
+          <option value="" disabled selected>-- Pilih --</option>
+          <option value>Ya</option>
+          <option value>Tidak</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Bersedia di Unit Manapun?</label>
+        <select name="bersedia_unit_manapun">
+          <option value="" disabled selected>-- Pilih --</option>
+          <option value>Bersedia</option>
+          <option value>Tidak Bersedia</option>
+>>>>>>> 78bc4a7b702164f9f0a82e86ad50b5cdf1d0bd34
         </select>
       </div>
 
@@ -260,6 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-full form-group"><label>Alamat</label><textarea name="alamat"></textarea></div>
       <div class="form-group"><label>Tanggal Usulan Mulai</label><input type="date" name="tgl_mulai"></div>
       <div class="form-group"><label>Tanggal Usulan Selesai</label><input type="date" name="tgl_selesai"></div>
+<<<<<<< HEAD
 
       <div class="form-group"><label>Upload Surat Permohonan</label><input type="file" name="upload_surat_permohonan" required></div>
       <div class="form-group"><label>Upload Foto</label><input type="file" name="upload_foto" required></div>
@@ -270,6 +285,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p class="note">Pastikan data sudah benar sebelum submit.</p>
         <p class="note">Sudah punya akun? 
           <a href="login.php" style="color:#d32f2f; font-weight:600; text-decoration:none;">Login di sini</a>
+=======
+      <div class="form-group"><label>Upload Surat Permohonan</label><input type="file" name="upload_surat_permohonan"></div>
+      <div class="form-group"><label>Upload Foto</label><input type="file" name="upload_foto"></div>
+      <div class="form-group"><label>Upload Kartu Pelajar/KTM</label><input type="file" name="upload_kartu_identitas"></div>
+      <div class="form-full">
+        <button type="submit">Daftar Sekarang</button>
+        <p class="note">Pastikan data sudah benar sebelum submit.</p>
+        <p class="note">
+          Sudah punya akun? <a href="login.php" style="color:#d32f2f; font-weight:600; text-decoration:none;">Login di sini</a>
+>>>>>>> 78bc4a7b702164f9f0a82e86ad50b5cdf1d0bd34
         </p>
       </div>
     </form>
