@@ -18,7 +18,7 @@ $sql = "
     d.skill, d.durasi, d.alamat,
     d.upload_foto, d.upload_kartu_identitas, d.upload_surat_permohonan,
     d.memiliki_laptop, d.bersedia_unit_manapun, d.nomor_surat_permohonan,
-    d.ipk_nilai_ratarata, d.semester,
+    d.ipk_nilai_ratarata, d.semester, d.tgl_daftar,
     u.nama_unit
   FROM peserta_pkl p
   LEFT JOIN daftar_pkl d ON p.email = d.email
@@ -280,14 +280,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
                       <div class="modal-body">
                         <div class="row">
                           <div class="col-md-6">
+                            <p><strong>Tanggal Daftar:</strong> <?= htmlspecialchars($row['tgl_daftar']); ?></p>
+                            <p><strong>Nama:</strong> <?= htmlspecialchars($row['nama']); ?></p>
                             <p><strong>Email:</strong> <?= htmlspecialchars($row['email']); ?></p>
+                            <p><strong>No HP:</strong> <?= htmlspecialchars($row['no_hp']); ?></p>
                             <p><strong>NIS/NPM:</strong> <?= htmlspecialchars($row['nis_npm']); ?></p>
                             <p><strong>Instansi:</strong> <?= htmlspecialchars($row['instansi_pendidikan']); ?></p>
                             <p><strong>Jurusan:</strong> <?= htmlspecialchars($row['jurusan']); ?></p>
                             <p><strong>Semester:</strong> <?= htmlspecialchars($row['semester']); ?></p>
-                            <p><strong>IPK/Nilai Rata-rata:</strong> <?= htmlspecialchars($row['ipk_nilai_ratarata']); ?></p>
                           </div>
                           <div class="col-md-6">
+                            <p><strong>IPK/Nilai Rata-rata:</strong> <?= htmlspecialchars($row['ipk_nilai_ratarata']); ?></p>
                             <p><strong>Memiliki Laptop:</strong> <?= htmlspecialchars($row['memiliki_laptop']); ?></p>
                             <p><strong>Bersedia Unit Manapun:</strong> <?= htmlspecialchars($row['bersedia_unit_manapun']); ?></p>
                             <p><strong>Durasi:</strong> <?= htmlspecialchars($row['durasi']); ?></p>

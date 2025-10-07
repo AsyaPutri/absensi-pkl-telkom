@@ -610,6 +610,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                       <div class="modal-body">
                         <div class="row">
                           <div class="col-md-6">
+                            <p><strong>Tanggal Daftar:</strong> <?= safe($row['tgl_daftar']); ?></p>
                             <p><strong>Nama:</strong> <?= safe($row['nama']); ?></p>
                             <p><strong>Email:</strong> <?= safe($row['email']); ?></p>
                             <p><strong>NIS/NPM:</strong> <?= safe($row['nis_npm']); ?></p>
@@ -626,7 +627,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <p><strong>Memiliki Laptop:</strong> <?= safe($row['memiliki_laptop']); ?></p>
                             <p><strong>Durasi:</strong> <?= safe($row['durasi']); ?></p>
                             <p><strong>No Surat Permohonan:</strong> <?= safe($row['nomor_surat_permohonan']); ?></p>
-                            <p><strong>Tanggal Daftar PKL:</strong> <?= safe($row['created_at']); ?></p>
                           </div>
                         </div>
                         <hr>
