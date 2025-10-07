@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   );
 
   if ($stmt->execute()) {
-    echo "<script>alert('Registrasi PKL berhasil!'); window.location='login.php';</script>";
+    echo "<script>alert('Registrasi PKL berhasil!\\n\\n✨ Jika kamu dinyatakan lolos seleksi magang, tim HC Telkom akan menghubungi melalui nomor WhatsApp yang telah kamu cantumkan di form 📱😉. Jadi, pastikan nomor tersebut aktif yaa!'); window.location='login.php';</script>";
     exit;
   } else {
     die('Gagal menyimpan data: ' . $stmt->error);
@@ -259,14 +259,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </select>
       </div>
 
-      <div class="form-group"><label>No HP</label><input type="text" name="no_hp" required></div>
+      <div class="form-group"><label>No HP (WhatsApp)</label><input type="text" name="no_hp" required></div>
       <div class="form-full form-group"><label>Alamat</label><textarea name="alamat"></textarea></div>
       <div class="form-group"><label>Tanggal Usulan Mulai</label><input type="date" name="tgl_mulai"></div>
       <div class="form-group"><label>Tanggal Usulan Selesai</label><input type="date" name="tgl_selesai"></div>
 
-      <div class="form-group"><label>Upload Surat Permohonan</label><input type="file" name="upload_surat_permohonan" required></div>
-      <div class="form-group"><label>Upload Foto</label><input type="file" name="upload_foto" required></div>
-      <div class="form-group"><label>Upload Kartu Identitas</label><input type="file" name="upload_kartu_identitas" required></div>
+      <div class="form-group"><label>Surat Permohonan PKL / Magang</label><input type="file" name="upload_surat_permohonan" required></div>
+      <div class="form-group"><label>Foto Formal</label><input type="file" name="upload_foto" required></div>
+      <div class="form-group"><label>Kartu Pelajar / KTM</label><input type="file" name="upload_kartu_identitas" required></div>
 
       <div class="form-full">
         <button type="submit">Daftar Sekarang</button>
