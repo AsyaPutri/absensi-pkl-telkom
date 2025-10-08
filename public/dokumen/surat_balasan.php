@@ -1,185 +1,127 @@
 <?php
 session_start();
-require('../../config/database.php');    
 require(__DIR__ . '/fpdf/fpdf.php');
-require(__DIR__ . '/phpqrcode/qrlib.php'); 
+require(__DIR__ . '/phpqrcode/qrlib.php');
 
-/* helper */
-function getFirstValue(array $row, array $candidates, $default = '') {
-    foreach ($candidates as $k) {
-        if (array_key_exists($k, $row) && $row[$k] !== null && $row[$k] !== '') {
-            return $row[$k];
-        }
-    }
-    return $default;
-}
-function formatDateNice($raw) {
-    if (!$raw) return '-';
-    $ts = strtotime($raw);
-    return $ts===false?'-':date("d F Y", $ts);
-}
+// ================== Data Surat ==================
+$no_surat       = "C.TEL.232/PD.000/RW-301/0000/2025";
+$tanggalSurat   = "26 Juni 2025";
+$kepada         = "Kapordi Teknik Telekomunikasi\nTelkom University";
+$no_permohonan  = "2994/AKD13/TE-WD/1.2025";
+$nama_peserta   = "Ivan Saputra";
+$nim_peserta    = "1101220164";
+$jurusan        = "Teknik Telekomunikasi";
+$tanggal        = date("d F Y");
 
-/* pastikan login */
-if (!isset($_SESSION['user_id'])) {
-    die("Anda harus login terlebih dahulu.");
-}
-$role   = $_SESSION['role'] ?? '';
-$userId = intval($_SESSION['user_id']);
-
-/* 1) ambil data peserta */
-if ($role === 'admin' && isset($_GET['id'])) {
-    $id = intval($_GET['id']);
-    $sqlP = "SELECT p.* FROM peserta_pkl p WHERE p.id = $id LIMIT 1";
-} else {
-    $sqlP = "SELECT p.* FROM peserta_pkl p WHERE p.user_id = $userId LIMIT 1";
-}
-$resP = mysqli_query($conn, $sqlP) or die("Query Error: " . mysqli_error($conn));
-$part = mysqli_fetch_assoc($resP);
-if (!$part) die("Data peserta_pkl tidak ditemukan.");
-
-/* 2) ambil data daftar_pkl */
-$daftar = [];
-$emailCandidate = getFirstValue($part, ['email','email_peserta','email_user'], null);
-if ($emailCandidate) {
-    $emailEsc = mysqli_real_escape_string($conn, $emailCandidate);
-    $sqlD = "SELECT d.* FROM daftar_pkl d WHERE d.email = '$emailEsc' LIMIT 1";
-    $resD = mysqli_query($conn, $sqlD);
-    if ($resD && mysqli_num_rows($resD) > 0) {
-        $daftar = mysqli_fetch_assoc($resD);
-    }
-}
-
-/* 3) cari unit */
-$unitColCandidates = ['unit','unit_witel','id_unit','unit_id','idunit','id_unit_pkl','id_unitw','id_witel','unit_kerja','unit_pkl'];
-$unitCandidateValue = null;
-foreach ($unitColCandidates as $c) {
-    if (!empty($part[$c])) {
-        $unitCandidateValue = $part[$c];
-        break;
-    }
-}
-function resolveUnitName($conn, $candidate) {
-    if (!$candidate) return null;
-    if (!is_numeric($candidate)) return trim($candidate);
-
-    $val = intval($candidate);
-    $tableCandidates = ['unit_pkl','unit','unit_kerja','units','unitmaster'];
-    $nameCols = ['nama_unit','name','unit_name','nama','unit','title','nama_unit_pkl'];
-    $idCols   = ['id','id_unit','unit_id','idunit','id_unit_pkl','id_unitw','id_witel'];
-
-    foreach ($tableCandidates as $table) {
-        foreach ($nameCols as $nameCol) {
-            foreach ($idCols as $idCol) {
-                $sql = "SELECT `$nameCol` AS uname FROM `$table` WHERE `$idCol` = $val LIMIT 1";
-                $q = @mysqli_query($conn, $sql);
-                if ($q && mysqli_num_rows($q) > 0) {
-                    $row = mysqli_fetch_assoc($q);
-                    if (!empty($row['uname'])) return $row['uname'];
-                }
-            }
-        }
-    }
-    return null;
-}
-$unitName = $unitCandidateValue ? resolveUnitName($conn, $unitCandidateValue) : null;
-if (!$unitName && !empty($daftar)) {
-    $unitName = getFirstValue($daftar, ['unit','unit_witel','unit_kerja','unit_pkl'], null);
-}
-$unitName = $unitName ?: '-';
-
-/* 4) gabungan data */
-$combined = array_merge($part ?: [], $daftar ?: []);
-$nama    = getFirstValue($combined, ['nama','nama_lengkap','full_name'], 'Nama Tidak Diketahui');
-$nim     = getFirstValue($combined, ['nim','nis_npm','nis','npm','no_induk','nrp'], '-');
-$jurusan = getFirstValue($combined, ['jurusan','prodi','program_studi','jurusan_pendidikan'], '-');
-$instansi= getFirstValue($combined, ['instansi_pendidikan','instansi','asal_sekolah','kampus'], '-');
-$tglMulai   = formatDateNice(getFirstValue($combined, ['tgl_mulai','tanggal_mulai','start_date'], null));
-$tglSelesai = formatDateNice(getFirstValue($combined, ['tgl_selesai','tanggal_selesai','end_date'], null));
-
-/* === Generate PDF === */
+// ================== PDF ==================
 $pdf = new FPDF('P','mm','A4');
-$pdf->SetMargins(25, 20, 25);
-$pdf->SetAutoPageBreak(true, 30); 
+$pdf->SetMargins(20, 20, 20);
 $pdf->AddPage();
 
-// Logo Telkom (kop atas)
-$logoTelkom = __DIR__ . '../../assets/img/logo_telkom.png';
+// === Logo Telkom ===
+$logoTelkom = __DIR__ . '/../assets/img/logo_telkom.png';
 if (file_exists($logoTelkom)) {
     $pdf->Image($logoTelkom, 160, 5, 40);
 }
-
-// Kop bawah (footer)
-$kopBawah = __DIR__ . '/template/kop surat footer telkom (1).png';
-if (file_exists($kopBawah)) {
-    $pdf->Image($kopBawah, 0, 270, 210); 
-}
+$pdf->Ln(0);
 
 // === Header Surat ===
-$today = date("d F Y");
 $pdf->SetFont('Times','',11);
-$pdf->Cell(0,6,'Nomor: C.TEL.xxx/PD.xxx/2025',0,1,'L');
-$pdf->Cell(0,6,"Bekasi, $today",0,1,'L');
+$pdf->Cell(0,6,"Nomor   : $no_surat",0,1,'L');
+$pdf->Cell(0,6,"Bekasi, $tanggalSurat",0,1,'L');
 $pdf->Ln(4);
 
-$pdf->Cell(0,6,'Kepada Yth.',0,1,'L');
-$pdf->Cell(0,6,'Dekan Fakultas Teknik Telekomunikasi',0,1,'L');
-$pdf->Cell(0,6,$instansi,0,1,'L');
-$pdf->Ln(6);
+$pdf->MultiCell(0,6,"Kepada Yth,\n$kepada",0,'L');
+$pdf->Ln(4);
 
-// === Isi surat ===
-$isi = "Dengan hormat,\n\n"
-     ."Sehubungan dengan surat permohonan PKL yang telah kami terima, "
-     ."bersama ini kami sampaikan bahwa permohonan tersebut dapat kami terima. "
-     ."Adapun mahasiswa yang dapat mengikuti PKL di PT Telkom Indonesia (Persero) Tbk Witel $unitName adalah sebagai berikut:\n\n";
-$pdf->MultiCell(0,6,$isi,0,'J');
+// === Isi Surat ===
+$pdf->SetFont('Times','',11);
+$isi = "Dengan hormat,\n"
+     . "Menanggapi surat Saudara dengan nomor : $no_permohonan yang telah kami terima tanggal "
+     . "3 Juni 2025 perihal Permohonan PKL/Magang Siswa/Mahasiswa Telkom University yang untuk itu "
+     . "kami sampaikan terima kasih, setelah memperhatikan kompetensi akademik serta kebutuhan "
+     . "unit kerja, bersama ini kami sampaikan bahwa mahasiswa tersebut diterima melaksanakan "
+     . "praktek kerja lapangan di unit kerja Telkom Witel Bekasi - Karawang.\n\n";
+$pdf->MultiCell(0,5,$isi,0,'J');
 
 // === Tabel Peserta ===
 $pdf->SetFont('Times','B',11);
-$pdf->Cell(10,8,'No',1,0,'C');
-$pdf->Cell(65,8,'Nama',1,0,'C');
-$pdf->Cell(40,8,'NIM/NIS',1,0,'C');
-$pdf->Cell(65,8,'Jurusan',1,1,'C');
+$pdf->Cell(70,6,"Nama",1,0,'C');
+$pdf->Cell(40,6,"NIM/NIS",1,0,'C');
+$pdf->Cell(60,6,"Jurusan",1,1,'C');
 
+$pdf->SetFont('Times','',12);
+$pdf->Cell(70,6,$nama_peserta,1,0,'C');
+$pdf->Cell(40,6,$nim_peserta,1,0,'C');
+$pdf->Cell(60,6,$jurusan,1,1,'C');
+$pdf->Ln(5);
+
+// === Paragraf Lanjutan ===
+$isi2 = "Untuk itu siswa tersebut akan kami tempatkan di area Witel Bekasi Karawang di Unit "
+      . "Telkom Daerah Kaliabang terhitung mulai tanggal 30 Juni 2025 s/d 30 Agustus 2025. "
+      . "Untuk pelaksanaannya, 1 (satu) hari sebelum dimulai kegiatan praktik kerja lapangan, "
+      . "siswa tersebut agar melapor terlebih dahulu ke unit HC Telkom Bekasi Karawang "
+      . "Jl. Rawa Tembaga No.4 Bekasi, Tlp 02188895200 dengan membawa materai @10.000 "
+      . "untuk menandatangani surat pernyataan yang berkaitan dengan pelaksanaan praktik kerja "
+      . "lapangan di PT. TELKOM.\n\n"
+      . "Adapun hak dan kewajiban peserta PKL adalah sebagai berikut:";
+$pdf->MultiCell(0,5,$isi2,0,'J');
+
+// === Poin-poin ===
 $pdf->SetFont('Times','',11);
-$pdf->Cell(10,8,'1',1,0,'C');
-$pdf->Cell(65,8,$nama,1,0,'L');
-$pdf->Cell(40,8,$nim,1,0,'C');
-$pdf->Cell(65,8,$jurusan,1,1,'L');
-$pdf->Ln(6);
+$poin = [
+    "Menandatangani surat pernyataan praktik kerja lapangan bermaterai Rp.10.000",
+    "Mematuhi dan melaksanakan peraturan yang berlaku di PT.Telkom",
+    "Bersedia menggunakan alat komunikasi produk Telkom Group contohnya: Telkomsel",
+    "Mendapatkan surat keterangan jika sudah selesai melaksanakan praktik kerja lapangan",
+    "Semua biaya yang timbul selama melaksanakan praktik kerja lapangan ditanggung sendiri dan tidak diberikan kompensasi/uang makan dan transport.",
+    "Mendapatkan tanda pengenal/nametag PKL dan memakainya selama masa praktek kerja lapangan.",
+    "Mengembalikan nametag saat masa praktik kerja lapangan telah selesai. Jika nametag hilang, bersedia membayar denda sebesar Rp. 25.000.00."
+];
 
-// Paragraf lanjutan
-$pdf->MultiCell(0,6,
- "Mahasiswa tersebut ditempatkan di Unit $unitName, dengan jadwal kegiatan terhitung mulai tanggal $tglMulai sampai dengan $tglSelesai.\n\n".
- "Dimohon kepada pihak instansi untuk menyampaikan pembekalan kepada mahasiswa yang bersangkutan mengenai peraturan dan tata tertib PKL di lingkungan PT Telkom Indonesia (Persero) Tbk.\n\n".
- "Demikian surat balasan ini kami sampaikan. Atas perhatian dan kerjasamanya, kami ucapkan terima kasih.",
-0,'J');
-$pdf->Ln(12);
-
-// === Tanda tangan QR ===
-$pdf->Cell(0,6,"Bekasi, $today",0,1,'R');
-$pdf->Cell(0,6,"Hormat Kami,",0,1,'R');
+foreach($poin as $i => $p) {
+    $pdf->MultiCell(0,5,($i+1).". ".$p,0,'J');
+}
 $pdf->Ln(4);
 
-$tempDir = __DIR__ . "/temp/";
-if (!file_exists($tempDir)) mkdir($tempDir, 0777, true);
+// === Penutup ===
+$penutup = "Demikian disampaikan, atas perhatian dan kerja samanya kami ucapkan terima kasih.";
+$pdf->MultiCell(0,7,$penutup,0,'J');
+$pdf->Ln(4);
 
-$qrData = "Ditandatangani secara digital oleh:\n"
-        . "ROSANA INTAN PERMATASARI\n"
-        . "MANAGER SHARED SERVICE & GENERAL SUPPORT\n"
-        . "Tanggal: $today";
-$qrFile = $tempDir . "qr_ttd_" . time() . ".png";
+// === TTD + QR ===
+$pdf->Cell(0,6,"PT Telkom Indonesia (Persero) Tbk",0,1,align: 'L');
+$pdf->Ln(0);
 
-QRcode::png($qrData, $qrFile, QR_ECLEVEL_H, 5);
-$pdf->Image($qrFile, 130, $pdf->GetY(), 30); 
-$pdf->Ln(35);
+// Buat QR
+$qrData = "Disahkan secara digital oleh PT Telkom Indonesia\nTanggal: $tanggal\nNama: $nama_peserta";
+ob_start();
+QRcode::png($qrData, null, QR_ECLEVEL_L, 4 );
+$qrImage = ob_get_contents();
+ob_end_clean();
 
-$pdf->SetFont('Times','B',12);
-$pdf->Cell(0,6,'ROSANA INTAN PERMATASARI',0,1,'R');
+$tempQR = tempnam(sys_get_temp_dir(), 'qr_') . ".png";
+file_put_contents($tempQR, $qrImage);
+
+// QR di kiri
+$pdf->Image($tempQR, 25, $pdf->GetY(), 25);
+unlink($tempQR);
+
+
+$pdf->Ln(25);
+$pdf->SetFont('Times','B',11);
+$pdf->Cell(0,6,"ROSANA INTAN PERMATASARI",0,1,'L');
 $pdf->SetFont('Times','',11);
-$pdf->Cell(0,6,'MANAGER SHARED SERVICE &',0,1,'R');
-$pdf->Cell(0,6,'GENERAL SUPPORT',0,1,'R');
+$pdf->Cell(0,6,"Manager Shared Service & General Support",0,1,'L');
 
-// Output
-$filenameSafe = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nama);
-$pdf->Output('I', "surat_balasan_pkl_{$filenameSafe}.pdf");
-exit;
+// === Kop Bawah (Footer) ===
+$kopBawah = __DIR__ . '/template/kop surat footer telkom (1).png';
+if (file_exists($kopBawah)) {
+    $pageHeight   = $pdf->GetPageHeight();
+    $footerHeight = 20;
+    $posY         = $pageHeight - $footerHeight;
+    $pdf->Image($kopBawah, 0, $posY, 210, $footerHeight);
+}
+
+// ================== Output ==================
+$pdf->Output('I', 'Surat_Balasan.pdf');

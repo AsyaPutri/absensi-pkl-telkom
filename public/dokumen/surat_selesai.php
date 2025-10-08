@@ -157,8 +157,8 @@ $pdf->Ln(12);
 
 // Tanggal & TTD
 $today = date("d F Y");
-$pdf->Cell(0,6,"Bekasi, $today",0,1,'R');
-$pdf->Cell(0,6,"Mengetahui,",0,1,'R');
+$pdf->Cell(0,6,"Bekasi, $today",0,1,'L');
+$pdf->Cell(0,6,"Mengetahui,",0,1,'L');
 $pdf->Ln(4);
 
 /* === Generate QR Code sebagai pengganti TTD === */
@@ -174,16 +174,17 @@ $qrFile = $tempDir . "qr_ttd_" . time() . ".png";
 // buat QR
 QRcode::png($qrData, $qrFile, QR_ECLEVEL_H, 5);
 
-// masukkan ke PDF
-$pdf->Image($qrFile, 130, $pdf->GetY(), 30); 
+// masukkan ke PDF (posisi kiri)
+$pdf->Image($qrFile, 30, $pdf->GetY(), 30); 
 $pdf->Ln(35);
 
-// Nama & Jabatan
+// Nama & Jabatan (biar sejajar dengan QR di kiri)
 $pdf->SetFont('Times','B',12);
-$pdf->Cell(0,6,'ROSANA INTAN PERMATASARI',0,1,'R');
+$pdf->Cell(0,6,'ROSANA INTAN PERMATASARI',0,1,'L');
 $pdf->SetFont('Times','',11);
-$pdf->Cell(0,6,'MANAGER SHARED SERVICE &',0,1,'R');
-$pdf->Cell(0,6,'GENERAL SUPPORT',0,1,'R');
+$pdf->Cell(0,6,'MANAGER SHARED SERVICE &',0,1,'L');
+$pdf->Cell(0,6,'GENERAL SUPPORT',0,1,'L');
+
 
 // Output
 $filenameSafe = preg_replace('/[^A-Za-z0-9_\-]/', '_', $nama);
