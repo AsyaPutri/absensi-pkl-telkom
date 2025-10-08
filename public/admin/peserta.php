@@ -294,7 +294,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <p><strong>Memiliki Laptop:</strong> <?= htmlspecialchars($row['memiliki_laptop']); ?></p>
                             <p><strong>Bersedia Unit Manapun:</strong> <?= htmlspecialchars($row['bersedia_unit_manapun']); ?></p>
                             <p><strong>Durasi:</strong> <?= htmlspecialchars($row['durasi']); ?></p>
-                            <p><strong>Nomor Surat:</strong> <?= htmlspecialchars($row['nomor_surat_permohonan']); ?></p>
+                            <p><strong>Nomor Surat Permohonan PKL:</strong> <?= htmlspecialchars($row['nomor_surat_permohonan']); ?></p>
                             <p><strong>Skill:</strong> <?= htmlspecialchars($row['skill']); ?></p>
                             <p><strong>Unit:</strong> <?= htmlspecialchars($row['nama_unit']); ?></p>
                           </div>
@@ -305,15 +305,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
                         <div class="row g-3 mt-2">
                           <div class="col-md-4 ">
-                            <p><strong>Foto</strong></p>
+                            <p><strong>Foto Formal</strong></p>
                             <a href="../../uploads/Foto_daftarpkl/<?= htmlspecialchars($row['upload_foto']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
                           </div>
                           <div class="col-md-4 ">
-                            <p><strong>Kartu Identitas</strong></p>
+                            <p><strong>Kartu Pelajar / KTM</strong></p>
                             <a href="../../uploads/Foto_Kartuidentitas/<?= htmlspecialchars($row['upload_kartu_identitas']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
                           </div>
                           <div class="col-md-4 ">
-                            <p><strong>Surat Permohonan</strong></p>
+                            <p><strong>Surat Permohonan PKL</strong></p>
                             <a href="../../uploads/Surat_Permohonan/<?= htmlspecialchars($row['upload_surat_permohonan']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
                           </div>
                         </div>

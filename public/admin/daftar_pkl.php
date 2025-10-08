@@ -1,458 +1,9 @@
 <?php
-// ============================================================
-// FILE: daftar_pkl_action.php
-// Fungsi: CRUD & status handler untuk pendaftar PKL
-// ============================================================
-
 include "../../includes/auth.php";
 checkRole('admin');
 include "../../config/database.php";
+include "daftar_pkl_action.php"; 
 
-// ============================================================
-// SETUP FOLDER UPLOAD
-// ============================================================
-$upload_dir = "../../uploads/";
-$foto_dir   = $upload_dir . "Foto_daftarpkl/";
-$ktm_dir    = $upload_dir . "Foto_Kartuidentitas/";
-$surat_dir  = $upload_dir . "Surat_Permohonan/";
-
-foreach ([$upload_dir, $foto_dir, $ktm_dir, $surat_dir] as $dir) {
-  if (!is_dir($dir)) @mkdir($dir, 0755, true);
-}
-
-// ============================================================
-// HELPER FUNCTIONS
-// ============================================================
-function safe($v) {
-  return htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
-}
-
-function uploadFileUnique($fileKey, $upload_dir) {
-  if (!isset($_FILES[$fileKey]) || !$_FILES[$fileKey]['name']) return '';
-
-  $name = basename($_FILES[$fileKey]['name']);
-  $name = preg_replace('/[^A-Za-z0-9._-]/', '_', $name);
-  $newname = time() . "_" . $name;
-
-  return move_uploaded_file($_FILES[$fileKey]['tmp_name'], $upload_dir . $newname)
-    ? $newname
-    : '';
-}
-
-// ============================================================
-// INSERT DATA PENDAFTAR PKL
-// ============================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'insert') {
-
-  // ==========================
-  // Ambil data dari form
-  // ==========================
-  $nama             = trim($_POST['nama'] ?? '');
-  $email            = trim($_POST['email'] ?? '');
-  $nis_npm          = trim($_POST['nis_npm'] ?? '');
-  $instansi         = trim($_POST['instansi_pendidikan'] ?? '');
-  $jurusan          = trim($_POST['jurusan'] ?? '');
-  $ipk              = isset($_POST['ipk_nilai_ratarata']) && $_POST['ipk_nilai_ratarata'] !== ''
-                      ? (float) $_POST['ipk_nilai_ratarata']
-                      : null;
-  $semester         = trim($_POST['semester'] ?? '');
-  $memiliki_laptop  = trim($_POST['memiliki_laptop'] ?? '');
-  $bersedia_unit    = trim($_POST['bersedia_unit_manapun'] ?? '');
-  $no_surat         = trim($_POST['nomor_surat_permohonan'] ?? '');
-  $skill            = trim($_POST['skill'] ?? '');
-  $durasi           = trim($_POST['durasi'] ?? '');
-  $unit_id          = !empty($_POST['unit_id']) ? (int) $_POST['unit_id'] : null;
-  $no_hp            = trim($_POST['no_hp'] ?? '');
-  $alamat           = trim($_POST['alamat'] ?? '');
-  $tgl_mulai        = trim($_POST['tgl_mulai'] ?? null);
-  $tgl_selesai      = trim($_POST['tgl_selesai'] ?? null);
-  $status           = 'pending';
-  $tgl_daftar       = date('Y-m-d'); // hanya tanggal, tanpa jam
-
-  // ==========================
-  // Upload file
-  // ==========================
-  $foto  = uploadFileUnique('upload_foto', $foto_dir);
-  $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
-  $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
-
-  // ==========================
-  // Query Insert
-  // ==========================
-  $sql = "INSERT INTO daftar_pkl (
-            nama, email, nis_npm, instansi_pendidikan, jurusan,
-            skill, durasi, unit_id, no_hp, alamat,
-            tgl_mulai, tgl_selesai, upload_surat_permohonan,
-            upload_foto, upload_kartu_identitas,
-            ipk_nilai_ratarata, semester, memiliki_laptop,
-            bersedia_unit_manapun, nomor_surat_permohonan,
-            status, tgl_daftar
-          )
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-
-  $stmt = $conn->prepare($sql);
-
-  if (!$stmt) {
-    $_SESSION['error'] = "❌ Prepare failed: " . $conn->error;
-    header("Location: daftar_pkl.php");
-    exit;
-  }
-
-  // ==========================
-  // Bind parameter (22 kolom)
-  // ==========================
-  $stmt = $conn->prepare($sql);
-  if(!$stmt){
-    $_SESSION['error'] = "DB prepare error: " . $conn->error;
-  } else {
-    // types: 7x s + i + many s + d + s...
-    $types = "sssssssisssssssdssssss"; // 22 params
-    $bind = $stmt->bind_param(
-      $types,
-      $nama, $email, $nis_npm, $instansi, $jurusan, $skill, $durasi,
-      $unit_id,
-      $no_hp, $alamat,
-      $tgl_mulai, $tgl_selesai,
-      $upload_surat, $upload_foto, $upload_ktm,
-      $ipk, $semester, $memiliki_laptop, $bersedia_unit,
-      $no_surat, $status, $tgl_daftar
-    );
-
-  // ==========================
-  // Eksekusi Query
-  // ==========================
-  if ($stmt->execute()) {
-    $_SESSION['success'] = "✅ Pendaftar PKL berhasil disimpan!";
-  } else {
-    $_SESSION['error'] = "❌ Gagal menyimpan data: " . $stmt->error;
-  }
-
-  $stmt->close();
-
-  header("Location: daftar_pkl.php");
-  exit();}
-}
-
-// ============================================================
-// UPDATE STATUS PENDAFTAR (diterima / ditolak / pending)
-// ============================================================
-if (isset($_GET['id']) && isset($_GET['status'])) {
-  $id     = (int) $_GET['id'];
-  $status = $_GET['status'];
-  $allowed = ['diterima', 'pending', 'ditolak'];
-
-  if (!in_array($status, $allowed)) {
-      $_SESSION['error'] = "❌ Status tidak valid!";
-      header("Location: daftar_pkl.php");
-      exit;
-  }
-
-  $conn->begin_transaction();
-  try {
-      // --- Ambil data pendaftar ---
-      $q = $conn->prepare("SELECT * FROM daftar_pkl WHERE id=? FOR UPDATE");
-      $q->bind_param("i", $id);
-      $q->execute();
-      $d = $q->get_result()->fetch_assoc();
-      $q->close();
-
-      if (!$d) throw new Exception("Data pendaftar tidak ditemukan.");
-
-      // --- Update status daftar_pkl ---
-      $upd = $conn->prepare("UPDATE daftar_pkl SET status=? WHERE id=?");
-      $upd->bind_param("si", $status, $id);
-      if (!$upd->execute()) throw new Exception($upd->error);
-      $upd->close();
-
-      // === STATUS: DITERIMA ===
-      if ($status === 'diterima') {
-          // Buat akun user jika belum ada
-          $cekUser = $conn->prepare("SELECT id FROM users WHERE email=?");
-          $cekUser->bind_param("s", $d['email']);
-          $cekUser->execute();
-          $userRow = $cekUser->get_result()->fetch_assoc();
-          $cekUser->close();
-
-          if ($userRow) {
-              $user_id = $userRow['id'];
-          } else {
-              $passHash = password_hash($d['nis_npm'], PASSWORD_DEFAULT);
-              $role = "magang";
-              $insUser = $conn->prepare("INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)");
-              $insUser->bind_param("ssss", $d['nama'], $d['email'], $passHash, $role);
-              $insUser->execute();
-              $user_id = $insUser->insert_id;
-              $insUser->close();
-          }
-
-          // Insert peserta_pkl jika belum ada
-          $cekPeserta = $conn->prepare("SELECT id FROM peserta_pkl WHERE email=?");
-          $cekPeserta->bind_param("s", $d['email']);
-          $cekPeserta->execute();
-          $exists = $cekPeserta->get_result()->num_rows > 0;
-          $cekPeserta->close();
-
-          if (!$exists) {
-              $statusPeserta = "berlangsung";
-              $insPeserta = $conn->prepare("INSERT INTO peserta_pkl 
-                  (user_id, nama, email, instansi_pendidikan, jurusan, nis_npm, unit_id, no_hp, tgl_mulai, tgl_selesai, status)
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-              $insPeserta->bind_param(
-                  "isssssissss",
-                  $user_id, $d['nama'], $d['email'], $d['instansi_pendidikan'], $d['jurusan'],
-                  $d['nis_npm'], $d['unit_id'], $d['no_hp'], $d['tgl_mulai'], $d['tgl_selesai'], $statusPeserta
-              );
-              $insPeserta->execute();
-              $insPeserta->close();
-          }
-      }
-
-      // === STATUS: DITOLAK ===
-      elseif ($status === 'ditolak') {
-          $delPeserta = $conn->prepare("DELETE FROM peserta_pkl WHERE email=?");
-          $delPeserta->bind_param("s", $d['email']);
-          $delPeserta->execute();
-          $delPeserta->close();
-
-          $delUser = $conn->prepare("DELETE FROM users WHERE email=? AND role='magang'");
-          $delUser->bind_param("s", $d['email']);
-          $delUser->execute();
-          $delUser->close();
-      }
-
-      // === STATUS: PENDING ===
-      elseif ($status === 'pending') {
-          $updPeserta = $conn->prepare("UPDATE peserta_pkl SET status='pending' WHERE email=?");
-          $updPeserta->bind_param("s", $d['email']);
-          $updPeserta->execute();
-          $updPeserta->close();
-      }
-
-      $conn->commit();
-      $_SESSION['success'] = "✅ Status berhasil diubah menjadi $status";
-
-  } catch (Exception $e) {
-      $conn->rollback();
-      $_SESSION['error'] = "❌ Gagal mengubah status: " . $e->getMessage();
-  }
-
-  header("Location: daftar_pkl.php");
-  exit;
-}
-
-// ============================================================
-// UPDATE DATA PENDAFTAR
-// ============================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update') {
-  $id = (int)($_POST['id'] ?? 0);
-  if ($id <= 0) {
-      $_SESSION['error'] = "ID peserta tidak valid.";
-      header("Location: daftar_pkl.php");
-      exit();
-  }
-
-  // --- Ambil data lama ---
-  $oldFoto = $oldKtm = $oldSurat = '';
-  $q = $conn->prepare("SELECT upload_foto, upload_kartu_identitas, upload_surat_permohonan FROM daftar_pkl WHERE id=?");
-  $q->bind_param("i", $id);
-  $q->execute();
-  $r = $q->get_result();
-  if ($row = $r->fetch_assoc()) {
-      $oldFoto = $row['upload_foto'];
-      $oldKtm = $row['upload_kartu_identitas'];
-      $oldSurat = $row['upload_surat_permohonan'];
-  }
-  $q->close();
-
-  // --- Data baru dari form ---
-  $nama = trim($_POST['nama'] ?? '');
-  $email = trim($_POST['email'] ?? '');
-  $nis = trim($_POST['nis_npm'] ?? '');
-  $inst = trim($_POST['instansi_pendidikan'] ?? '');
-  $jur = trim($_POST['jurusan'] ?? '');
-  $skill = trim($_POST['skill'] ?? '');
-  $dur = trim($_POST['durasi'] ?? '');
-  $unit_id = trim($_POST['unit_id'] ?? '');
-  $hp = trim($_POST['no_hp'] ?? '');
-  $alamat = trim($_POST['alamat'] ?? '');
-  $ipk = ($_POST['ipk_nilai_ratarata'] !== '') ? (float) $_POST['ipk_nilai_ratarata'] : null;
-  $semester = trim($_POST['semester'] ?? '');
-  $memiliki_laptop = trim($_POST['memiliki_laptop'] ?? '');
-  $bersedia_unit = trim($_POST['bersedia_unit_manapun'] ?? '');
-  $no_surat = trim($_POST['nomor_surat_permohonan'] ?? '');
-  $tgl_mulai = $_POST['tgl_mulai'] ?? null;
-  $tgl_selesai = $_POST['tgl_selesai'] ?? null;
-
-  // --- Upload file baru ---
-  $fotoNew = uploadFileUnique('upload_foto', $foto_dir);
-  $ktmNew = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
-  $suratNew = uploadFileUnique('upload_surat_permohonan', $surat_dir);
-
-  // --- Tentukan file akhir ---
-  $fotoDB = $fotoNew ?: $oldFoto;
-  $ktmDB = $ktmNew ?: $oldKtm;
-  $suratDB = $suratNew ?: $oldSurat;
-
-  // --- Hapus file lama jika ada file baru ---
-  if ($fotoNew && file_exists($foto_dir . $oldFoto)) @unlink($foto_dir . $oldFoto);
-  if ($ktmNew && file_exists($ktm_dir . $oldKtm)) @unlink($ktm_dir . $oldKtm);
-  if ($suratNew && file_exists($surat_dir . $oldSurat)) @unlink($surat_dir . $oldSurat);
-
-  // --- Update daftar_pkl ---
-  $sql = "UPDATE daftar_pkl SET
-              nama=?, email=?, nis_npm=?, instansi_pendidikan=?, jurusan=?, ipk_nilai_ratarata=?, semester=?,
-              memiliki_laptop=?, bersedia_unit_manapun=?, nomor_surat_permohonan=?,
-              skill=?, durasi=?, unit_id=?, no_hp=?, alamat=?, tgl_mulai=?, tgl_selesai=?,
-              upload_foto=?, upload_kartu_identitas=?, upload_surat_permohonan=?
-          WHERE id=?";
-
-$stmt = $conn->prepare($sql);
-if (!$stmt) {
-    die("Prepare statement gagal: " . $conn->error . "<br>SQL: " . $sql);
-}
-
-// Pastikan urutan parameter sesuai kolom di query UPDATE kamu
-$stmt->bind_param(
-    "sssssdssssssisssssssi",
-    $nama,           // s
-    $email,          // s
-    $nis,            // s
-    $inst,           // s
-    $jur,            // s
-    $ipk,            // d (double)
-    $semester,       // s
-    $memiliki_laptop,// s
-    $bersedia_unit,  // s
-    $no_surat,       // s
-    $skill,          // s
-    $dur,            // s
-    $unit_id,        // i (integer)
-    $hp,             // s
-    $alamat,         // s
-    $tgl_mulai,      // s
-    $tgl_selesai,    // s
-    $fotoDB,         // s
-    $ktmDB,          // s
-    $suratDB,        // s
-    $id              // i (integer)
-);
-
-  if ($stmt->execute()) {
-      // Sinkronisasi ke peserta_pkl
-      $cekPeserta = $conn->prepare("SELECT id FROM peserta_pkl WHERE email=?");
-      $cekPeserta->bind_param("s", $email);
-      $cekPeserta->execute();
-      $resPeserta = $cekPeserta->get_result();
-
-      if ($resPeserta && $resPeserta->num_rows > 0) {
-          $updPeserta = $conn->prepare("UPDATE peserta_pkl SET 
-              nama=?, instansi_pendidikan=?, jurusan=?, nis_npm=?, unit_id=?, no_hp=?, tgl_mulai=?, tgl_selesai=? 
-              WHERE email=?");
-          $updPeserta->bind_param("ssssissss", $nama, $inst, $jur, $nis, $unit_id, $hp, $tgl_mulai, $tgl_selesai, $email);
-          $updPeserta->execute();
-          $updPeserta->close();
-      } else {
-          $statusPeserta = "berlangsung";
-          $insPeserta = $conn->prepare("INSERT INTO peserta_pkl 
-              (user_id, nama, email, instansi_pendidikan, jurusan, nis_npm, unit_id, no_hp, tgl_mulai, tgl_selesai, status)
-              VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-          $insPeserta->bind_param("issssisssss", $user_id, $nama, $email, $inst, $jur, $nis, $unit_id, $hp, $tgl_mulai, $tgl_selesai, $statusPeserta);
-          $insPeserta->execute();
-          $insPeserta->close();
-      }
-      $cekPeserta->close();
-
-      $_SESSION['success'] = "✅ Data pendaftar peserta berhasil diperbarui.";
-  } else {
-      $_SESSION['error'] = "❌ Gagal update: " . $stmt->error;
-  }
-  $stmt->close();
-
-  header("Location: daftar_pkl.php");
-  exit();
-}
-
-// ============================================================
-// DELETE PENDAFTAR
-// ============================================================
-if (isset($_GET['delete'])) {
-  $id = (int)$_GET['delete'];
-
-  $q = $conn->prepare("SELECT email, status, upload_foto, upload_kartu_identitas, upload_surat_permohonan 
-                       FROM daftar_pkl WHERE id=?");
-  $q->bind_param("i", $id);
-  $q->execute();
-  $rw = $q->get_result()->fetch_assoc();
-  $q->close();
-
-  if ($rw) {
-      $email = $rw['email'];
-
-      // hapus file upload
-      foreach (['upload_foto' => $foto_dir, 'upload_kartu_identitas' => $ktm_dir, 'upload_surat_permohonan' => $surat_dir] as $key => $dir) {
-          if ($rw[$key] && file_exists($dir . $rw[$key])) @unlink($dir . $rw[$key]);
-      }
-
-      // hapus peserta & user
-      $delPeserta = $conn->prepare("DELETE FROM peserta_pkl WHERE email=?");
-      $delPeserta->bind_param("s", $email);
-      $delPeserta->execute();
-      $delPeserta->close();
-
-      $delUser = $conn->prepare("DELETE FROM users WHERE email=? AND role='magang'");
-      $delUser->bind_param("s", $email);
-      $delUser->execute();
-      $delUser->close();
-
-      // hapus daftar_pkl
-      $stmt = $conn->prepare("DELETE FROM daftar_pkl WHERE id=?");
-      $stmt->bind_param("i", $id);
-      $stmt->execute();
-      $stmt->close();
-
-      $_SESSION['success'] = "✅ Data pendaftar, akun user, dan peserta PKL berhasil dihapus.";
-  } else {
-      $_SESSION['error'] = "❌ Data tidak ditemukan.";
-  }
-
-  header("Location: daftar_pkl.php");
-  exit();
-}
-
-// =========================
-// Tambah Unit dari Modal
-// =========================
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  if (isset($_POST['action']) && $_POST['action'] == 'insert_unit') {
-    $nama_unit = trim($_POST['nama_unit']);
-    if ($nama_unit != '') {
-      $stmt = $conn->prepare("INSERT INTO unit_pkl (nama_unit) VALUES (?)");
-      $stmt->bind_param("s", $nama_unit);
-      $stmt->execute();
-      $stmt->close();
-    }
-    // Redirect biar tidak double insert saat refresh
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
-  }
-}
-
-// ================== Ambil daftar unit ==================
-$unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
-
-// ================== Ambil data daftar_pkl ==================
-// JOIN supaya dapat nama_unit
-$stmtList = $conn->prepare("
-  SELECT dp.*, u.nama_unit 
-  FROM daftar_pkl dp
-  LEFT JOIN unit_pkl u ON dp.unit_id = u.id
-  ORDER BY dp.created_at DESC
-");
-$stmtList->execute();
-$result = $stmtList->get_result();
-$stmtList->close();
-
-$current_page = basename($_SERVER['PHP_SELF']);
 ?>
 <!doctype html>
 <html lang="id">
@@ -487,6 +38,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
       .sidebar.active{ left:0; }
       .main-content{ margin-left:0; }
       .telkom-logo{ height:70px; }
+    }
+    @media (max-width: 576px) {
+      form.d-flex select {
+      flex: 1;
+      min-width: 150px; }
     }
   </style>
 </head>
@@ -534,11 +90,32 @@ $current_page = basename($_SERVER['PHP_SELF']);
         </div>
       <?php endif; ?>
 
-      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalTambah"><i class="bi bi-person-plus"></i> Tambah Pendaftar</button>
+        <!-- Header: Tombol + Filter Status -->
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+        <!-- Tombol Modal -->
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalTambah">
+          <i class="bi bi-person-plus"></i> Tambah Pendaftar
+        </button>
+
+        <!-- Filter Status -->
+        <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+          <label for="filter_status" class="fw-semibold mb-0">Status:</label>
+          <select name="filter_status" id="filter_status" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+            <option value="all" <?= ($filter_status === 'all') ? 'selected' : '' ?>>Semua</option>
+            <option value="pending" <?= ($filter_status === 'pending') ? 'selected' : '' ?>>Pending</option>
+            <option value="diterima" <?= ($filter_status === 'diterima') ? 'selected' : '' ?>>Diterima</option>
+            <option value="ditolak" <?= ($filter_status === 'ditolak') ? 'selected' : '' ?>>Ditolak</option>
+          </select>
+
+          <?php if ($filter_status !== 'all'): ?>
+            <a href="<?= basename($_SERVER['PHP_SELF']) ?>" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-arrow-clockwise"></i> Reset
+            </a>
+          <?php endif; ?>
+        </form>
       </div>
 
-     
       <div class="card shadow-sm">
         <div class="card-header bg-white">
         <h5 class="fw-bold text-danger mb-0"><i class="bi bi-list-check me-2"></i> Daftar PKL</h5>
@@ -585,8 +162,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
                   <td class="text-center">
                     <!-- status buttons -->
-                    <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=diterima" class="btn btn-success btn-sm">✔ Terima</a>
-                    <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=ditolak" class="btn btn-danger btn-sm">❌ Tolak</a>
+                    <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=diterima<?= isset($filter_status) && $filter_status !== 'all' ? '&filter_status=' . urlencode($filter_status) : '' ?>" class="btn btn-success btn-sm">✔ Terima</a>
+                    <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=ditolak<?= isset($filter_status) && $filter_status !== 'all' ? '&filter_status=' . urlencode($filter_status) : '' ?>" class="btn btn-danger btn-sm">❌ Tolak</a>
                   </td>
                   <!-- Detail -->
                   <td class="text-center">
@@ -626,16 +203,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <p><strong>Bersedia Unit Manapun:</strong> <?= safe($row['bersedia_unit_manapun']); ?></p>
                             <p><strong>Memiliki Laptop:</strong> <?= safe($row['memiliki_laptop']); ?></p>
                             <p><strong>Durasi:</strong> <?= safe($row['durasi']); ?></p>
-                            <p><strong>No Surat Permohonan:</strong> <?= safe($row['nomor_surat_permohonan']); ?></p>
+                            <p><strong>Nomor Surat Permohonan PKL:</strong> <?= safe($row['nomor_surat_permohonan']); ?></p>
                           </div>
                         </div>
                         <hr>
                         <p><strong>Alamat:</strong> <?= safe($row['alamat']); ?></p>
                         <p><strong>Periode:</strong> <?= safe($row['tgl_mulai']); ?> — <?= safe($row['tgl_selesai']); ?></p>
                         <div class="row g-3">
-                          <div class="col-md-4"><strong>Foto</strong><br><?= $row['upload_foto'] ? '<a href="'. $foto_dir . safe($row['upload_foto']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
-                          <div class="col-md-4"><strong>KTM</strong><br><?= $row['upload_kartu_identitas'] ? '<a href="'. $ktm_dir . safe($row['upload_kartu_identitas']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
-                          <div class="col-md-4"><strong>Surat</strong><br><?= $row['upload_surat_permohonan'] ? '<a href="'. $surat_dir . safe($row['upload_surat_permohonan']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
+                          <div class="col-md-4"><strong>Foto Formal</strong><br><?= $row['upload_foto'] ? '<a href="'. $foto_dir . safe($row['upload_foto']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
+                          <div class="col-md-4"><strong>Kartu Peljar / KTM</strong><br><?= $row['upload_kartu_identitas'] ? '<a href="'. $ktm_dir . safe($row['upload_kartu_identitas']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
+                          <div class="col-md-4"><strong>Surat Permohonan PKL </strong><br><?= $row['upload_surat_permohonan'] ? '<a href="'. $surat_dir . safe($row['upload_surat_permohonan']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
                         </div>
                       </div>
                       <div class="modal-footer">
@@ -706,7 +283,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                           </div>
 
                           <div class="col-md-6">
-                            <label class="form-label">Nomor Surat Permohonan</label>
+                            <label class="form-label">Nomor Surat Permohonan PKL</label>
                             <input type="text" name="nomor_surat_permohonan" class="form-control" value="<?= safe($row['nomor_surat_permohonan']); ?>">
                           </div>
 
@@ -763,17 +340,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
                           </div>
 
                           <div class="col-md-4">
-                            <label class="form-label">Ganti Foto (opsional)</label>
+                            <label class="form-label">Ganti Foto Formal (opsional)</label>
                             <input type="file" name="upload_foto" class="form-control">
                           </div>
 
                           <div class="col-md-4">
-                            <label class="form-label">Ganti KTM (opsional)</label>
+                            <label class="form-label">Ganti Kartu Pelajar / KTM (opsional)</label>
                             <input type="file" name="upload_kartu_identitas" class="form-control">
                           </div>
 
                           <div class="col-md-4">
-                            <label class="form-label">Ganti Surat (opsional)</label>
+                            <label class="form-label">Ganti Surat Permohonan PKL (opsional)</label>
                             <input type="file" name="upload_surat_permohonan" class="form-control">
                           </div>
 
@@ -850,7 +427,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <input type="text" name="semester" class="form-control">
               </div>
               <div class="col-md-4">
-                <label class="form-label">Nomor Surat Permohonan</label>
+                <label class="form-label">Nomor Surat Permohonan PKL</label>
                 <input type="text" name="no_surat" class="form-control">
               </div>
 
@@ -921,15 +498,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
               </div>
 
               <div class="col-md-4">
-                <label class="form-label">Upload Foto</label>
+                <label class="form-label">Upload Foto Formal</label>
                 <input type="file" name="upload_foto" class="form-control">
               </div>
               <div class="col-md-4">
-                <label class="form-label">Upload Kartu Identitas</label>
+                <label class="form-label">Upload Kartu Pelajar / KTM</label>
                 <input type="file" name="upload_kartu_identitas" class="form-control">
               </div>
               <div class="col-md-4">
-                <label class="form-label">Upload Surat Permohonan</label>
+                <label class="form-label">Upload Surat Permohonan PKL</label>
                 <input type="file" name="upload_surat_permohonan" class="form-control">
               </div>
             </div>
