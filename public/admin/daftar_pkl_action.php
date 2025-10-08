@@ -467,4 +467,31 @@ if ($filter_status !== 'all') {
 $stmtList->execute();
 $result = $stmtList->get_result();
 $stmtList->close();
+
+// Filter dan pencarian
+$filter_status = $_GET['filter_status'] ?? 'all';
+$search = $_GET['search'] ?? '';
+
+$sql = "SELECT p.*, u.nama_unit 
+        FROM daftar_pkl p 
+        LEFT JOIN unit_pkl u ON p.unit_id = u.id 
+        WHERE 1=1";
+
+if ($filter_status !== 'all') {
+    $sql .= " AND p.status = '" . $conn->real_escape_string($filter_status) . "'";
+}
+
+if (!empty($search)) {
+    $s = $conn->real_escape_string($search);
+    $sql .= " AND (
+        p.nama LIKE '%$s%' 
+        OR p.instansi_pendidikan LIKE '%$s%' 
+        OR p.jurusan LIKE '%$s%'
+        OR p.skill LIKE '%$s%'
+    )";
+}
+
+$sql .= " ORDER BY p.id DESC";
+$result = $conn->query($sql);
+
 ?>
