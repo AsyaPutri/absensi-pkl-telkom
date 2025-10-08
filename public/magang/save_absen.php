@@ -32,7 +32,7 @@ if ($input['action'] === "checkin") {
     $fotoBase64 = $input['foto'] ?? "";
 
     // 🚨 Batasi jam check-in sebelum jam 11:00:00
-    $batasJam = "12:00:00";
+    $batasJam = "11:00:00";
     if ($waktu > $batasJam) {
         echo json_encode([
             "success" => false,
