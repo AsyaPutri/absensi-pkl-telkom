@@ -37,7 +37,7 @@ $pdf->Ln(3);
 $pdf->SetFont('Times','',12);
 $pdf->Cell(0,6,"Kepada : AZMI WICAKSONO",0,1,'L');
 $pdf->Cell(0,6,"Jabatan : $lokasiPKL",0,1,'L');
-$pdf->Cell(0,6,"Hal : Konfirmasi Persetujuan Kegiatan PKL",0,1,'L');
+$pdf->Cell(0,6,"Hal       : Konfirmasi Persetujuan Kegiatan PKL",0,1,'L');
 $pdf->Ln(3);
 
 // === Tabel Peserta ===
@@ -128,16 +128,20 @@ $pdf->Cell(80,6,"NIK: 578805",0,2,'C');
 
 // === Catatan ===
 $pdf->Ln(8);
+$pdf->SetFont('Times','B',12);
+$pdf->Cell(0,6,"Catatan:",0,1,'L');
+
 $pdf->SetFont('Times','',12);
 $pdf->MultiCell(0,5,
-    "Catatan:\n".
+    "Yang termasuk rahasia perusahaan PT.TELKOM / data yang harus dirahasiakan yaitu:\n".
     "1. Data Pelanggan, Identitas Pelanggan, Besarnya pemakaian jastel.\n".
     "2. Data rencana jangka panjang & pendek, CSS, CAM, RKAP, data keuangan yang belum diumumkan ke masyarakat.\n".
     "3. Data pengadaan, pembangunan, operasional dan pemasaran yang belum dan tidak akan diumumkan.\n".
     "4. MOU, Kontrak / Perjanjian dan perubahan.\n".
-    "5. Materi hasil pembahasan di Unit 'Performance, Risk & Quality'.\n".
+    "5. Materi hasil pembahasan di Unit Performance, Risk & Quality.\n".
     "6. Informasi / data lainnya yang ditetapkan sebagai rahasia perusahaan oleh anggota direksi.\n\n"
 ,0,'J');
+
 
 // === Kop Bawah (Footer) ===
 $kopBawah = __DIR__ . '/template/kop surat footer telkom (1).png';

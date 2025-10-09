@@ -37,12 +37,13 @@ $pdf->Ln(4);
 // === Isi Surat ===
 $pdf->SetFont('Times','',11);
 $isi = "Dengan hormat,\n"
-     . "Menanggapi surat Saudara dengan nomor : $no_permohonan yang telah kami terima tanggal "
-     . "3 Juni 2025 perihal Permohonan PKL/Magang Siswa/Mahasiswa Telkom University yang untuk itu "
-     . "kami sampaikan terima kasih, setelah memperhatikan kompetensi akademik serta kebutuhan "
-     . "unit kerja, bersama ini kami sampaikan bahwa mahasiswa tersebut diterima melaksanakan "
-     . "praktek kerja lapangan di unit kerja Telkom Witel Bekasi - Karawang.\n\n";
+     . "Menjawab surat Saudara dengan nomor : 2994 /AKD13/TE-WD1/2025 yang telah kami terima tanggal 3 Juni 2025 "
+     . "perihal Permohonan PKL/Magang Mahasiswa Telkom University dan untuk mewujudkan para peserta didik yang memiliki "
+     . "kompetensi akademik serta memiliki wawasan praktis serta untuk memenuhi tugas. "
+     . "Untuk dapat mewujudkan link and match dan pengalaman kerja di dunia usaha khusus di lokasi Kota Bekasi – Karawang, Jawa Barat ini, "
+     . "maka dengan ini kami sampaikan bahwa pada prinsipnya dapat kami setujui atas nama:\n\n";
 $pdf->MultiCell(0,5,$isi,0,'J');
+
 
 // === Tabel Peserta ===
 $pdf->SetFont('Times','B',11);
