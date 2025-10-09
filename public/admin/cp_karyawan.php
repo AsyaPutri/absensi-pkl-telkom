@@ -173,7 +173,6 @@ $unitList = $conn->query("SELECT u.id, u.nama_unit
       <table class="table table-bordered table-hover text-center align-middle">
         <thead>
           <tr>
-            <th>ID</th>
             <th>NIK</th>
             <th>Nama</th>
             <th>Posisi</th>
@@ -185,7 +184,6 @@ $unitList = $conn->query("SELECT u.id, u.nama_unit
         <tbody>
           <?php while($row = $cpList->fetch_assoc()): ?>
           <tr>
-            <td><?= $row['id'] ?></td>
             <td><?= htmlspecialchars($row['nik']) ?></td>
             <td><?= htmlspecialchars($row['nama_karyawan']) ?></td>
             <td><?= htmlspecialchars($row['posisi']) ?></td>
@@ -193,7 +191,7 @@ $unitList = $conn->query("SELECT u.id, u.nama_unit
             <td><?= htmlspecialchars($row['nama_unit'] ?? '-') ?></td>
             <td class="action-btn">
               <button class="btn btn-warning btn-sm" 
-                      onclick="editData(<?= htmlspecialchars(json_encode($row)) ?>)">
+                      onclick='editData(<?= json_encode($row, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
                 <i class="bi bi-pencil-square"></i>
               </button>
               <a href="?hapus=<?= $row['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin hapus data ini?')">
@@ -211,6 +209,16 @@ $unitList = $conn->query("SELECT u.id, u.nama_unit
 
 <script>
 function editData(data) {
+  const select = document.getElementById('unit_id');
+  let option = select.querySelector(`option[value='${data.unit_id}']`);
+  if (!option && data.unit_id) {
+    // Tambahkan option baru untuk unit lama supaya tetap muncul
+    const newOpt = document.createElement('option');
+    newOpt.value = data.unit_id;
+    newOpt.textContent = data.nama_unit || '(Unit Lama)';
+    select.appendChild(newOpt);
+  }
+
   document.getElementById('edit_id').value = data.id;
   document.getElementById('nik').value = data.nik;
   document.getElementById('nama_karyawan').value = data.nama_karyawan;
