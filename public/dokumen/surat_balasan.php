@@ -94,15 +94,21 @@ $pdf->Ln(4);
 $pdf->Cell(0,6,"PT Telkom Indonesia (Persero) Tbk",0,1,align: 'L');
 $pdf->Ln(0);
 
-// Buat QR
-$qrData = "Disahkan secara digital oleh PT Telkom Indonesia\nTanggal: $tanggal\nNama: $nama_peserta";
+// === Buat QR ===
+$qrData = "Ditandatangani secara digital oleh:\n" .
+           "ROSANA INTAN PERMATASARI\n" .
+           "Manager Shared Service & General Support\n" .
+           "PT TELKOM INDONESIA (PERSERO) Tbk.\n" .
+           "Tanggal: $tanggal";
+
 ob_start();
-QRcode::png($qrData, null, QR_ECLEVEL_L, 4 );
+QRcode::png($qrData, null, QR_ECLEVEL_H, 4);
 $qrImage = ob_get_contents();
 ob_end_clean();
 
 $tempQR = tempnam(sys_get_temp_dir(), 'qr_') . ".png";
 file_put_contents($tempQR, $qrImage);
+
 
 // QR di kiri
 $pdf->Image($tempQR, 25, $pdf->GetY(), 25);
