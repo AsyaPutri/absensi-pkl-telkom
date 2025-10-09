@@ -93,12 +93,19 @@ include "daftar_pkl_action.php";
         <!-- Header: Tombol + Filter Status -->
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
 
-        <!-- Tombol Modal -->
-        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalTambah">
-          <i class="bi bi-person-plus"></i> Tambah Pendaftar
-        </button>
+        <!-- Tombol Tambah Pendaftar -->
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-danger d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#modalTambah">
+            <i class="bi bi-person-plus me-2"></i> Tambah Pendaftar
+          </button>
 
-       <!-- Filter + Pencarian -->
+          <!-- Tombol Tambah Unit -->
+          <button class="btn btn-danger d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#modalTambahUnit">
+            <i class="bi bi-building-add me-2"></i> Tambah Unit
+          </button>
+        </div>
+
+        <!-- Filter + Pencarian -->
         <form method="get" class="d-flex flex-wrap align-items-center gap-2">
           <label for="filter_status" class="fw-semibold mb-0">Status:</label>
           <select name="filter_status" id="filter_status" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
@@ -108,9 +115,9 @@ include "daftar_pkl_action.php";
             <option value="ditolak" <?= ($filter_status === 'ditolak') ? 'selected' : '' ?>>Ditolak</option>
           </select>
 
-          <!-- Kolom Pencarian -->
           <input type="text" name="search" class="form-control form-control-sm w-auto"
-                placeholder="Cari Jurusan / Instansi" value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
+                placeholder="Cari Jurusan / Instansi"
+                value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
 
           <button type="submit" class="btn btn-outline-danger btn-sm">
             <i class="bi bi-search"></i> Cari

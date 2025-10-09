@@ -6,9 +6,15 @@ include "../../includes/auth.php";
 checkRole('admin'); 
 include "../../config/database.php";
 
-// AMBIL DATA PESERTA PKL
+// Ambil daftar unit untuk dropdown filter
+$unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
+
+// Ambil filter unit dari URL (jika ada)
+$filter_unit = isset($_GET['unit']) ? $_GET['unit'] : 'all';
+
 // ============================
-// Query untuk mengambil data peserta PKL dengan join ke daftar_pkl
+// Ambil Data Peserta PKL
+// ============================
 $sql = "
   SELECT 
     p.id AS peserta_id,
@@ -23,18 +29,22 @@ $sql = "
   FROM peserta_pkl p
   LEFT JOIN daftar_pkl d ON p.email = d.email
   LEFT JOIN unit_pkl u ON p.unit_id = u.id
-  ORDER BY p.tgl_mulai DESC
+  WHERE 1=1
 ";
+
+if ($filter_unit !== 'all') {
+  $sql .= " AND p.unit_id = '" . $conn->real_escape_string($filter_unit) . "'";
+}
+
+$sql .= " ORDER BY p.tgl_mulai DESC";
 $result = $conn->query($sql);
-// ============================
-// Ambil nama file halaman aktif (untuk set active menu di sidebar)
-// ============================
+
+// Nama file aktif untuk sidebar highlight
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <!-- Meta & Judul Halaman -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Data Peserta PKL - Telkom Indonesia</title>
@@ -43,7 +53,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
-  <!-- Style Custom -->
   <style>
     :root {
       --telkom-red: #cc0000;
@@ -84,7 +93,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
       color: #fff !important;
       transform: translateX(6px);
     }
-    /* Overlay untuk mobile */
     .sidebar-overlay {
       display: none;
       position: fixed;
@@ -95,13 +103,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
       background: rgba(0,0,0,0.5);
       z-index: 900;
     }
-    /* Main Content */
     .main-content {
       margin-left: 280px;
       min-height: 100vh;
       transition: margin-left 0.3s ease;
     }
-    /* Header */
     .header {
       background: #fff;
       border-bottom: 1px solid #eee;
@@ -110,20 +116,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
       justify-content: space-between;
       align-items: center;
     }
-    .telkom-logo { 
-      height: 80px; 
-      width: auto; 
-    }
+    .telkom-logo { height: 80px; width: auto; }
+
     /* Table style */
-    .table-container {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      white-space: nowrap;
-    }
     .table thead th {
       background: var(--telkom-red);
       color: white;
@@ -137,35 +132,36 @@ $current_page = basename($_SERVER['PHP_SELF']);
       vertical-align: middle;
       font-size: 0.9rem;
     }
-    .table tbody tr:hover {
-      background: #f9f9f9;
+    .table tbody tr:hover { background: #f9f9f9; }
+
+    /* Filter Card */
+    .filter-card {
+      border: none;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.05);
     }
-    .badge {
-      font-size: 0.75rem;
+    .filter-label {
+      font-weight: 600;
+      color: #555;
+      margin-right: 10px;
+      white-space: nowrap;
     }
-    .btn-sm {
-      margin: 2px 0;
+    .filter-card .form-select {
+      min-width: 200px;
     }
-    /* Responsive */
     @media(max-width:768px){
       .sidebar { left: -280px; }
       .sidebar.active { left: 0; }
       .main-content { margin-left: 0; }
       .telkom-logo { height: 60px; }
-      .table td, .table th {
-        font-size: 0.75rem;
-        padding: 6px;
-      }
-    }
-    @media(max-width:576px){
-      .header h4 { font-size: 1.2rem; }
-      .header small { font-size: 0.8rem; }
-      .telkom-logo { height: 45px; }
+      .filter-card { text-align: center; }
+      .filter-label { margin-bottom: 6px; }
     }
   </style>
 </head>
 <body>
-  <!-- Overlay mobile (untuk menutup sidebar saat mode HP) -->
+
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
   <!-- Sidebar Navigasi -->
@@ -188,10 +184,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
   <!-- Main Content -->
   <div class="main-content">
-    <!-- Header atas -->
+    <!-- Header -->
     <div class="header">
       <div class="d-flex align-items-center">
-        <!-- Tombol toggle sidebar di HP -->
         <button class="btn btn-outline-secondary d-md-none me-2" id="menuToggle">
           <i class="bi bi-list"></i>
         </button>
@@ -200,37 +195,63 @@ $current_page = basename($_SERVER['PHP_SELF']);
           <small class="text-muted">Sistem Manajemen Praktik Kerja Lapangan</small>
         </div>
       </div>
-      <!-- Logo -->
       <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
     </div>
 
-    <!-- Isi Halaman -->
-    <div class="card mt-4 shadow-sm">
+    <!-- Filter Unit -->
+    <div class="card filter-card mt-4 mx-3">
+      <div class="card-body">
+        <form method="GET" class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2 flex-grow-1 flex-wrap">
+            <label for="unit" class="filter-label mb-0">Filter Unit:</label>
+            <select name="unit" id="unit" class="form-select form-select-sm shadow-sm w-auto" onchange="this.form.submit()">
+              <option value="all" <?= ($filter_unit == 'all') ? 'selected' : '' ?>>Semua Unit</option>
+              <?php
+              $unitResult->data_seek(0);
+              while($unit = $unitResult->fetch_assoc()): ?>
+                <option value="<?= $unit['id']; ?>" <?= ($filter_unit == $unit['id']) ? 'selected' : '' ?>>
+                  <?= htmlspecialchars($unit['nama_unit']); ?>
+                </option>
+              <?php endwhile; ?>
+            </select>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="submit" class="btn btn-danger btn-sm shadow-sm">
+              <i class="bi bi-filter-circle"></i> Terapkan
+            </button>
+            <a href="peserta.php" class="btn btn-outline-secondary btn-sm shadow-sm">
+              <i class="bi bi-arrow-repeat"></i> Reset
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Data Peserta PKL -->
+    <div class="card mt-4 shadow-sm mx-3 mb-4">
       <div class="card-header bg-white">
         <h5 class="mb-0 text-danger">
           <i class="bi bi-people-fill me-2 text-danger"></i> Data Peserta PKL
         </h5>
       </div>
-      <div class="card">
-        <div class="card-body table-responsive">
-          <!-- Tabel peserta PKL -->
-          <table class="table table-bordered table-hover align-middle">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Nama</th>
-                <th>Instansi</th>
-                <th>Jurusan</th>
-                <th>NIS/NPM</th>
-                <th>Email</th>
-                <th>No.HP</th>
-                <th>Unit</th>
-                <th>Rincian</th>
-                <th>Status</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
+      <div class="card-body table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama</th>
+              <th>Instansi</th>
+              <th>Jurusan</th>
+              <th>NIS/NPM</th>
+              <th>Email</th>
+              <th>No.HP</th>
+              <th>Unit</th>
+              <th>Rincian</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
             <?php if($result && $result->num_rows > 0): $no=1; ?>
               <?php while($row = $result->fetch_assoc()): ?>
                 <tr>
@@ -244,7 +265,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                   <td><?= htmlspecialchars($row['nama_unit']) ?></td>
 
                   <td class="text-center">
-                    <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal<?= $row['peserta_id']; ?>" title="Rincian">
+                    <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal<?= $row['peserta_id']; ?>">
                       🔍
                     </button>
                   </td>
@@ -304,15 +325,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <p><strong>Periode:</strong> <?= htmlspecialchars($row['tgl_mulai']); ?> – <?= htmlspecialchars($row['tgl_selesai']); ?></p>
 
                         <div class="row g-3 mt-2">
-                          <div class="col-md-4 ">
+                          <div class="col-md-4">
                             <p><strong>Foto Formal</strong></p>
                             <a href="../../uploads/Foto_daftarpkl/<?= htmlspecialchars($row['upload_foto']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
                           </div>
-                          <div class="col-md-4 ">
+                          <div class="col-md-4">
                             <p><strong>Kartu Pelajar / KTM</strong></p>
                             <a href="../../uploads/Foto_Kartuidentitas/<?= htmlspecialchars($row['upload_kartu_identitas']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
                           </div>
-                          <div class="col-md-4 ">
+                          <div class="col-md-4">
                             <p><strong>Surat Permohonan PKL</strong></p>
                             <a href="../../uploads/Surat_Permohonan/<?= htmlspecialchars($row['upload_surat_permohonan']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
                           </div>
@@ -330,20 +351,19 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <td colspan="12" class="text-center text-muted">Belum ada peserta PKL</td>
               </tr>
             <?php endif; ?>
-  </tbody>
-
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // ============================
-    // Script Sidebar Toggle untuk mobile
-    // ============================
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebarMenu');
     const overlay = document.getElementById('sidebarOverlay');
 
-    // Tombol toggle sidebar
     if(menuToggle){
       menuToggle.addEventListener('click', ()=>{
         sidebar.classList.toggle('active');
@@ -351,8 +371,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
         menuToggle.style.display = sidebar.classList.contains('active') ? 'none' : 'inline-block';
       });
     }
-
-    // Klik overlay untuk menutup sidebar
     if (overlay) {
       overlay.addEventListener('click', () => {
         sidebar.classList.remove('active');
@@ -360,17 +378,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
         menuToggle.style.display = 'inline-block';
       });
     }
-
-    // Tutup sidebar otomatis saat klik menu di HP
-    document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-      link.addEventListener('click', () => {
-        if (window.innerWidth <= 768) {
-          sidebar.classList.remove('active');
-          overlay.style.display = 'none';
-          menuToggle.style.display = 'inline-block';
-        }
-      });
-    });
   </script>
 </body>
 </html>
