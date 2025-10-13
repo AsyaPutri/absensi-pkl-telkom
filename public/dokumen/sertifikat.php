@@ -2,8 +2,7 @@
 session_start();
 require('../../config/database.php');
 require(__DIR__ . '/fpdf/fpdf.php');
-
-require(__DIR__ . '/phpqrcode/qrlib.php'); // ✅ Tambah library QR Code
+require(__DIR__ . '/phpqrcode/qrlib.php'); 
 
 
 function getFirstValue(array $row, array $candidates, $default = '') {
@@ -133,7 +132,7 @@ $pdf->SetFont('Arial','',11);
 $pdf->SetXY(30, 183);
 $pdf->Cell(0, 6, 'MANAGER SHARED SERVICE & GENERAL SUPPORT', 0, 1, 'L');
 
-// Hapus file QR setelah dipakai
+
 if (file_exists($qrFile)) {
     unlink($qrFile);
 }

@@ -4,7 +4,6 @@ require('../../config/database.php');
 require(__DIR__ . '/fpdf/fpdf.php');
 require(__DIR__ . '/phpqrcode/qrlib.php');
 
-// Fungsi ubah format tanggal ke Indonesia
 function formatTanggalIndo($tanggal) {
     if (!$tanggal) return "-";
     $bulan = [
@@ -12,7 +11,7 @@ function formatTanggalIndo($tanggal) {
         'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ];
     $pecah = explode('-', $tanggal); // [YYYY, MM, DD]
-    if (count($pecah) < 3) return $tanggal; // fallback kalau format salah
+    if (count($pecah) < 3) return $tanggal; 
     return $pecah[2] . ' ' . $bulan[(int)$pecah[1]] . ' ' . $pecah[0];
 }
 
@@ -168,7 +167,7 @@ ob_end_clean();
 $tempQR = tempnam(sys_get_temp_dir(), 'qr_') . ".png";
 file_put_contents($tempQR, $qrImage);
 
-// Tampilkan QR
+//  QR
 $pdf->Image($tempQR, 25, $pdf->GetY(), 25);
 unlink($tempQR);
 

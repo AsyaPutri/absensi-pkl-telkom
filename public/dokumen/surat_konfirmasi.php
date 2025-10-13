@@ -4,7 +4,7 @@ require('../../config/database.php');
 require(__DIR__ . '/fpdf/fpdf.php');
 require(__DIR__ . '/phpqrcode/qrlib.php');
 
-// Pastikan user login
+//  user login
 if (!isset($_SESSION['user_id'])) {
     die("Anda harus login terlebih dahulu.");
 }
@@ -134,10 +134,10 @@ $pdf->SetFont('Times','',12);
 $pdf->Cell(0,6,"Bekasi, $tanggal",0,1,'R');
 $pdf->Ln(10);
 
-// Simpan posisi awal tanda tangan
+
 $y_ttd = $pdf->GetY();
 
-// === TTD karyawan (Kiri) ===
+// === TTD karyawan ===
 $pdf->SetXY(20, $y_ttd);
 $pdf->SetFont('Times','',12);
 $pdf->Cell(80,6,strtoupper($posisi_cp),0,2,'C');
@@ -146,7 +146,7 @@ $pdf->SetXY(20, $y_ttd + 40);
 $pdf->SetFont('Times','B',12);
 $pdf->Cell(80,6,"$nama_cp",0,2,'C');
 
-// === TTD Telkom (Kanan) ===
+// === TTD manager ===
 $tempDir = __DIR__ . "/temp/";
 if (!file_exists($tempDir)) mkdir($tempDir, 0777, true);
 

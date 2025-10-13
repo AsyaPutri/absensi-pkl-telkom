@@ -2,7 +2,6 @@
 session_start();
 header('Content-Type: application/json');
 
-// Cek apakah user sudah login
 if (!isset($_SESSION['user_id'])) {
     echo json_encode([
         'success' => false,
@@ -11,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require '../../config/database.php'; // sesuaikan path config db kamu
+require '../../config/database.php';
 
 $user_id = $_SESSION['user_id'];
 
