@@ -4,6 +4,7 @@ require('../../config/database.php');
 require(__DIR__ . '/fpdf/fpdf.php');
 require(__DIR__ . '/phpqrcode/qrlib.php');
 
+// ================= Fungsi Format Tanggal ==================
 function formatTanggalIndo($tanggal) {
     if (!$tanggal) return "-";
     $bulan = [
@@ -15,13 +16,14 @@ function formatTanggalIndo($tanggal) {
     return $pecah[2] . ' ' . $bulan[(int)$pecah[1]] . ' ' . $pecah[0];
 }
 
+// ================= Validasi Login ==================
 if (!isset($_SESSION['user_id'])) {
     die("Anda harus login terlebih dahulu.");
 }
 
 $userId = $_SESSION['user_id'];
 
-// ================== Ambil Data Peserta + Nomor Surat Permohonan ==================
+// ================= Ambil Data Peserta ==================
 $query = "SELECT 
             p.nama, 
             p.nis_npm, 
@@ -32,7 +34,7 @@ $query = "SELECT
             p.unit_id,
             p.nomor_surat,
             u.nama_unit,
-            d.nomor_surat AS nomor_surat_permohonan,
+            d.nomor_surat_permohonan,
             d.tgl_daftar
           FROM peserta_pkl p
           LEFT JOIN unit_pkl u ON p.unit_id = u.id
@@ -50,7 +52,7 @@ $data = $result->fetch_assoc();
 
 if (!$data) die("Data peserta tidak ditemukan.");
 
-// ===== Variabel dari database =====
+// ================= Ambil Data dari Database ==================
 $nama_peserta   = $data['nama'];
 $nim_peserta    = $data['nis_npm'];
 $jurusan        = $data['jurusan'];
@@ -62,28 +64,30 @@ $tanggal        = formatTanggalIndo(date("Y-m-d"));
 $no_permohonan  = $data['nomor_surat_permohonan'] ?? "-";
 $tanggalSurat   = isset($data['tgl_daftar']) ? formatTanggalIndo($data['tgl_daftar']) : "-";
 
-// ===== Generate Nomor Surat Balasan Telkom =====
-if (empty($data['nomor_surat'])) {
-    // Ambil nomor terakhir
-    $sqlNo = "SELECT MAX(CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(nomor_surat_balasan, '/', 1), '.', -1) AS UNSIGNED)) AS last_no 
-              FROM peserta_pkl WHERE nomor_surat IS NOT NULL";
+// ================= Format Nomor Surat ==================
+if (!empty($data['nomor_surat'])) {
+   $tahun_surat = date("Y"); // tahun cetak
+    $no_surat_full = "C.TEL." . str_pad($data['nomor_surat'], 3, "0", STR_PAD_LEFT) . "/PD.000/R2W-2G10000/" . $tahun_surat;
+
+} else {
+    // Kalau belum ada nomor sama sekali, generate baru
+    $sqlNo = "SELECT MAX(CAST(nomor_surat AS UNSIGNED)) AS last_no FROM peserta_pkl WHERE nomor_surat IS NOT NULL";
     $resultNo = $conn->query($sqlNo);
     $rowNo = $resultNo->fetch_assoc();
     $lastNo = $rowNo['last_no'] ? (int)$rowNo['last_no'] : 0;
-    $newNo = str_pad($lastNo + 1, 3, "0", STR_PAD_LEFT); // 3 digit
+    $newNo = $lastNo + 1;
 
-    // Format tetap seperti contoh
-    $no_surat_balasan = "C.TEL.$newNo/PD.000/R2W-2G10000/2025";
-
-    // Simpan nomor ke database agar tidak berubah
+    // Simpan angka ke database
     $update = $conn->prepare("UPDATE peserta_pkl SET nomor_surat = ? WHERE user_id = ?");
-    $update->bind_param("si", $no_surat_balasan, $userId);
+    $update->bind_param("ii", $newNo, $userId);
     $update->execute();
-} else {
-    $no_surat_balasan = $data['nomor_surat'];
+
+    // Format lengkap
+    $tahun_surat = date("Y"); // tahun cetak
+    $no_surat_full = "C.TEL." . str_pad($data['nomor_surat'], 3, "0", STR_PAD_LEFT) . "/PD.000/R2W-2G10000/" . $tahun_surat;
 }
 
-// ================== PDF ==================
+// ================= Generate PDF ==================
 $pdf = new FPDF('P', 'mm', 'A4');
 $pdf->SetMargins(20, 20, 20);
 $pdf->AddPage();
@@ -97,7 +101,7 @@ $pdf->Ln(0);
 
 // === Header Surat ===
 $pdf->SetFont('Times', '', 11);
-$pdf->Cell(0, 6, "Nomor   : $no_surat_balasan", 0, 1, 'L');
+$pdf->Cell(0, 6, "Nomor   : $no_surat_full", 0, 1, 'L');
 $pdf->Cell(0, 6, "Bekasi, $tanggal", 0, 1, 'L');
 $pdf->Ln(4);
 
