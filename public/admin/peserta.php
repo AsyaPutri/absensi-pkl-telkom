@@ -338,6 +338,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <a href="../../uploads/Surat_Permohonan/<?= htmlspecialchars($row['upload_surat_permohonan']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
                           </div>
                         </div>
+                        <hr>
+                        <div class="text-center mt-3">
+                          <a href="id_card/generate_idcard.php?id=<?= $row['peserta_id']; ?>" target="_blank" class="btn btn-danger">
+                            <i class="bi bi-printer"></i> Cetak ID Card
+                          </a>
+                        </div>
                       </div>
                       <div class="modal-footer">
                         <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
