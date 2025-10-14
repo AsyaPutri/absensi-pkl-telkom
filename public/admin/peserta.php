@@ -6,10 +6,10 @@ include "../../includes/auth.php";
 checkRole('admin'); 
 include "../../config/database.php";
 
-// Ambil daftar unit untuk dropdown filter
+// daftar unit untuk dropdown filter
 $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
 
-// Ambil filter unit dari URL (jika ada)
+// filter unit dari URL 
 $filter_unit = isset($_GET['unit']) ? $_GET['unit'] : 'all';
 
 // ============================

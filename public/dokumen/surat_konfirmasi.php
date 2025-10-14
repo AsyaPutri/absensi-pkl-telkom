@@ -19,6 +19,7 @@ $query = "SELECT
             p.instansi_pendidikan AS universitas,
             p.tgl_mulai,
             p.tgl_selesai,
+            p.nomor_surat,                -- tambahkan ini
             u.nama_unit,
             c.nama_karyawan,
             c.posisi
@@ -52,18 +53,18 @@ $nama_cp      = $data['nama_karyawan'] ?? "-";
 $posisi_cp    = $data['posisi'] ?? "-";
 $periode      = date("d F Y", strtotime($tgl_mulai)) . " s/d " . date("d F Y", strtotime($tgl_selesai));
 
-// ================== Ambil Data Surat ==================
-$qSurat = "SELECT nomor_surat_permohonan, tgl_daftar 
-           FROM daftar_pkl 
-           WHERE email = (SELECT email FROM users WHERE id = ?)";
-$stmt2 = $conn->prepare($qSurat);
-$stmt2->bind_param("i", $userId);
-$stmt2->execute();
-$res2 = $stmt2->get_result();
-$row2 = $res2->fetch_assoc();
+// ================== Ambil Nomor Surat dari peserta_pkl ==================
+$nomorSuratInt = intval($data['nomor_surat'] ?? 0);
+if ($nomorSuratInt <= 0) {
+    $nomorSuratInt = 1; // fallback default
+}
+$noFormat = str_pad($nomorSuratInt, 3, '0', STR_PAD_LEFT);
+$tahun = date("Y");
 
-$nomorSurat = $row2['nomor_surat_permohonan'] ?? "C.TEL.232/PKL/000/RW-301/0000/2025";
-$tanggal    = date("d F Y");
+// Format nomor surat tetap seperti permintaanmu
+$nomorSurat = "C.TEL.$noFormat/PD.000/R2W-2G10000/$tahun";
+
+$tanggal = date("d F Y");
 
 // ================== PDF ==================
 $pdf = new FPDF('P','mm','A4');
@@ -133,7 +134,6 @@ $pdf->Ln(8);
 $pdf->SetFont('Times','',12);
 $pdf->Cell(0,6,"Bekasi, $tanggal",0,1,'R');
 $pdf->Ln(10);
-
 
 $y_ttd = $pdf->GetY();
 
