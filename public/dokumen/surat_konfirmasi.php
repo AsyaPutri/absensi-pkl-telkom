@@ -1,21 +1,74 @@
 <?php
 session_start();
+require('../../config/database.php');
 require(__DIR__ . '/fpdf/fpdf.php');
 require(__DIR__ . '/phpqrcode/qrlib.php');
 
-// ================== Data Surat ==================
-$nomorSurat   = "C.TEL.232/PKL/000/RW-301/0000/2025";
-$tanggal      = date("d F Y");
-$nama_peserta = "Irwan Saputra";
-$nim          = "1102210614";
-$jurusan      = "S1-Teknik Telekomunikasi";
-$universitas  = "Telkom University";
-$lokasiPKL    = "UNIT TELKOM DAERAH KALIABANG";
-$periode      = "30 Juni 2025 s/d 30 Agustus 2025";
+//  user login
+if (!isset($_SESSION['user_id'])) {
+    die("Anda harus login terlebih dahulu.");
+}
+
+$userId = $_SESSION['user_id'];
+
+// ================== Ambil Data Peserta ==================
+$query = "SELECT 
+            p.nama AS nama_peserta,
+            p.nis_npm AS nim,
+            p.jurusan,
+            p.instansi_pendidikan AS universitas,
+            p.tgl_mulai,
+            p.tgl_selesai,
+            p.nomor_surat,                -- tambahkan ini
+            u.nama_unit,
+            c.nama_karyawan,
+            c.posisi
+          FROM peserta_pkl p
+          LEFT JOIN unit_pkl u ON p.unit_id = u.id
+          LEFT JOIN cp_karyawan c ON u.id = c.unit_id
+          WHERE p.user_id = ? LIMIT 1";
+
+$stmt = $conn->prepare($query);
+if (!$stmt) {
+    die("Query gagal disiapkan: " . $conn->error);
+}
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$res = $stmt->get_result();
+$data = $res->fetch_assoc();
+
+if (!$data) {
+    die("Data peserta tidak ditemukan.");
+}
+
+// Variabel
+$nama_peserta = $data['nama_peserta'];
+$nim          = $data['nim'];
+$jurusan      = $data['jurusan'];
+$universitas  = $data['universitas'];
+$tgl_mulai    = $data['tgl_mulai'];
+$tgl_selesai  = $data['tgl_selesai'];
+$lokasiPKL    = $data['nama_unit'] ?? "-";
+$nama_cp      = $data['nama_karyawan'] ?? "-";
+$posisi_cp    = $data['posisi'] ?? "-";
+$periode      = date("d F Y", strtotime($tgl_mulai)) . " s/d " . date("d F Y", strtotime($tgl_selesai));
+
+// ================== Ambil Nomor Surat dari peserta_pkl ==================
+$nomorSuratInt = intval($data['nomor_surat'] ?? 0);
+if ($nomorSuratInt <= 0) {
+    $nomorSuratInt = 1; // fallback default
+}
+$noFormat = str_pad($nomorSuratInt, 3, '0', STR_PAD_LEFT);
+$tahun = date("Y");
+
+// Format nomor surat tetap seperti permintaanmu
+$nomorSurat = "C.TEL.$noFormat/PD.000/R2W-2G10000/$tahun";
+
+$tanggal = date("d F Y");
 
 // ================== PDF ==================
 $pdf = new FPDF('P','mm','A4');
-$pdf->SetMargins(25.4, 25.4, 25.4); 
+$pdf->SetMargins(25.4, 25.4, 25.4);
 $pdf->SetAutoPageBreak(true, 25.4);
 $pdf->AddPage();
 
@@ -35,9 +88,9 @@ $pdf->Ln(3);
 
 // === Tujuan ===
 $pdf->SetFont('Times','',12);
-$pdf->Cell(0,6,"Kepada : AZMI WICAKSONO",0,1,'L');
-$pdf->Cell(0,6,"Jabatan : $lokasiPKL",0,1,'L');
-$pdf->Cell(0,6,"Hal       : Konfirmasi Persetujuan Kegiatan PKL",0,1,'L');
+$pdf->Cell(0,6,"Kepada : $nama_cp",0,1,'L');
+$pdf->Cell(0,6,"Bagian : $lokasiPKL",0,1,'L');
+$pdf->Cell(0,6,"Hal      : Konfirmasi Persetujuan Kegiatan PKL",0,1,'L');
 $pdf->Ln(3);
 
 // === Tabel Peserta ===
@@ -49,7 +102,7 @@ $pdf->Cell(50,8,"JURUSAN",1,1,'C');
 $pdf->SetFont('Times','',11);
 $pdf->Cell(70,8,$nama_peserta,1,0,'C');
 $pdf->Cell(40,8,$nim,1,0,'C');
-$pdf->Cell(50,8,"Teknik Telekomunikasi",1,1,'C');
+$pdf->Cell(50,8,$jurusan,1,1,'C');
 $pdf->Ln(5);
 
 // === Data Sekolah ===
@@ -72,7 +125,7 @@ $pdf->Ln(5);
 $pdf->SetFont('Times','B',12);
 $pdf->Cell(0,8,"Konfirmasi Persetujuan",0,1,'C');
 
-$pdf->SetX(25.4 + 39.6); // offset tengah
+$pdf->SetX(25.4 + 39.6);
 $pdf->Cell(40,8,"SETUJU",1,0,'C');
 $pdf->Cell(40,8,"TIDAK SETUJU",1,1,'C');
 $pdf->Ln(8);
@@ -82,22 +135,18 @@ $pdf->SetFont('Times','',12);
 $pdf->Cell(0,6,"Bekasi, $tanggal",0,1,'R');
 $pdf->Ln(10);
 
-// Simpan posisi awal tanda tangan
 $y_ttd = $pdf->GetY();
 
-// === TTD Sekolah (Kiri) ===
+// === TTD karyawan ===
 $pdf->SetXY(20, $y_ttd);
 $pdf->SetFont('Times','',12);
-$pdf->Cell(80,6,"UNIT TELKOM DAERAH KALIABANG",0,2,'C');
+$pdf->Cell(80,6,strtoupper($posisi_cp),0,2,'C');
 
-// Nama + NIK kiri
 $pdf->SetXY(20, $y_ttd + 40);
 $pdf->SetFont('Times','B',12);
-$pdf->Cell(80,6,"(AZMI WICAKSONO)",0,2,'C');
-$pdf->SetFont('Times','',11);
-$pdf->Cell(80,6,"NIK: 580602",0,2,'C');
+$pdf->Cell(80,6,"$nama_cp",0,2,'C');
 
-// === TTD Telkom (Kanan) ===
+// === TTD manager ===
 $tempDir = __DIR__ . "/temp/";
 if (!file_exists($tempDir)) mkdir($tempDir, 0777, true);
 
@@ -108,7 +157,6 @@ $qrData = "Ditandatangani secara digital oleh:\n".
 $qrFile = $tempDir."qr_ttd_".time().".png";
 QRcode::png($qrData,$qrFile,QR_ECLEVEL_H,4);
 
-// Kepala bagian kanan
 $pdf->SetXY(115, $y_ttd);
 $pdf->SetFont('Times','',12);
 $pdf->Cell(80,6,"MANAGER SHARED SERVICE &",0,2,'C');
@@ -124,7 +172,6 @@ $pdf->SetFont('Times','B',12);
 $pdf->Cell(80,6,"ROSANA INTAN PERMATASARI",0,2,'C');
 $pdf->SetFont('Times','',11);
 $pdf->Cell(80,6,"NIK: 578805",0,2,'C');
-
 
 // === Catatan ===
 $pdf->Ln(8);
@@ -142,8 +189,7 @@ $pdf->MultiCell(0,5,
     "6. Informasi / data lainnya yang ditetapkan sebagai rahasia perusahaan oleh anggota direksi.\n\n"
 ,0,'J');
 
-
-// === Kop Bawah (Footer) ===
+// === Kop Bawah ===
 $kopBawah = __DIR__ . '/template/kop surat footer telkom (1).png';
 if (file_exists($kopBawah)) {
     $pageHeight   = $pdf->GetPageHeight();
@@ -152,6 +198,6 @@ if (file_exists($kopBawah)) {
     $pdf->Image($kopBawah, 0, $posY, 210, $footerHeight);
 }
 
-
 // Output
 $pdf->Output('I','Surat_Konfirmasi_PKL.pdf');
+?>

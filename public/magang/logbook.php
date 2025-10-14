@@ -1,8 +1,7 @@
 <?php
 session_start();
-require '../../config/database.php'; // file koneksi DB
+require '../../config/database.php';
 
-// Pastikan user login
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;

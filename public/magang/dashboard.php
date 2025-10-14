@@ -149,7 +149,7 @@ if ($userId) {
 }
 
 
-// ambil pengumuman aktif (tandai pakai kolom is_active=1 misalnya)
+//  pengumuman aktif 
 $stmt = $conn->prepare("SELECT * FROM pengumuman WHERE is_active = 1 ORDER BY id DESC LIMIT 1");
 $stmt->execute();
 $result = $stmt->get_result();
@@ -703,10 +703,6 @@ $pengumuman = $result->fetch_assoc();
   </div>
 </div>
 
-
-
-
-
     <!-- JavaScript Libraries -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
@@ -718,12 +714,8 @@ $pengumuman = $result->fetch_assoc();
     <script src="../assets/js/dashboard_pkl.js"></script>
     <script src="../assets/js/camera.js"></script>
     <script src="../assets/js/attendance.js"></script>
-
-    
-    <!-- Load our attendance system -->
     <script src="../assets/js/simple_attendance_integration.js"></script>
     
-    <!-- Custom JavaScript for Integration - KEEPING ORIGINAL MAP FUNCTIONS -->
     <script>
         // Global variables from PHP
         window.initialStatus = '<?php echo $currentStatus; ?>';

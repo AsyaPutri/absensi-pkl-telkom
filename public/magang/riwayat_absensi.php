@@ -177,7 +177,6 @@ if (!isset($_SESSION['user_id'])) {
     let attendanceData = [];
     let userProfileData = {};
 
-    // Load data saat halaman dimuat
     document.addEventListener('DOMContentLoaded', function() {
       loadUserProfile();
       loadAttendanceData();
@@ -216,7 +215,7 @@ if (!isset($_SESSION['user_id'])) {
     }
 
     
-    // Load data absensi (tanpa filter)
+
 async function loadAttendanceData() {
   try {
     const response = await fetch('get_attendance_history.php');
@@ -315,7 +314,6 @@ async function loadAttendanceData() {
 
   const photos = photo.split('|');
   return photos.map((p, index) => {
-    // kalau p sudah mengandung 'uploads/', langsung pakai
     const path = p.includes('../../uploads/') ? p : `../../uploads/absensi/${p}`;
     return `<img src="${path}" class="foto-absen me-1"
                  onclick="showPhoto('${path}')"

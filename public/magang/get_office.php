@@ -68,11 +68,10 @@ try {
     }
     
 } catch (PDOException $e) {
-    // Database connection error - fallback ke data default
     error_log("❌ Database error: " . $e->getMessage());
     
     $response = [
-        'success' => true, // tetap success agar maps.js tidak error
+        'success' => true, 
         'office' => [
             'id' => 1,
             'name' => 'Telkom Witel Bekasi Karawang',

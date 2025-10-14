@@ -109,17 +109,15 @@ elseif ($input['action'] === "checkout") {
     $aktivitasKeluar = $input['aktivitas_keluar'] ?? "";
     $kendalaKeluar   = $input['kendala_keluar'] ?? "";
 
-    // 🚨 Ambil data absen hari ini
     $cek = $conn->prepare("SELECT id, tanggal FROM absen WHERE user_id = ? AND tanggal = ? AND jam_keluar IS NULL");
     $cek->bind_param("is", $userId, $tanggal);
     $cek->execute();
     $result = $cek->get_result();
 
     if ($result->num_rows > 0) {
-        // Kalau checkout di hari yang sama → pakai jam sekarang
         $jamKeluar = $waktu;
     } else {
-        // Kalau lewat hari (checkout besok/lusa) → pakai jam 23:59:00 dari tanggal absen
+        // (checkout besok/lusa) → pakai jam 23:59:00 dari tanggal absen
         $jamKeluar = "23:59:00";
     }
     $cek->close();
@@ -152,7 +150,6 @@ elseif ($input['action'] === "checkout_pending") {
         exit;
     }
 
-    // 🚨 Kalau targetDate bukan hari ini → pakai 23:59:00
     if ($targetDate !== $tanggal) {
         $jamKeluar = "23:59:00";
     } else {
