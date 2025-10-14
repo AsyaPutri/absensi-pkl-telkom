@@ -74,7 +74,7 @@ $pdf = new FPDF('L','mm','A4');
 $pdf->AddPage();
 
 // Background sertifikat
-$bgPath = __DIR__ . '/template/templatesertifikat.png';
+$bgPath = __DIR__ . '/template/sertifikat.temp.png';
 if (file_exists($bgPath)) {
     $pdf->Image($bgPath, 0, 0, 297, 210);
 }
@@ -83,8 +83,8 @@ if (file_exists($bgPath)) {
 // NOMOR SERTIFIKAT (dari no_surat)
 // =============================
 $pdf->SetFont('Arial','B',20);
-$pdf->SetTextColor(0,0,0);
-$pdf->SetXY(30, 30);
+$pdf->SetTextColor(100,100,100);
+$pdf->SetXY(0,45);
 $pdf->Cell(297, 12, "C.TEL.$noSuratFormatted/PD.000/R2W-2G10000/$tahunCetak", 0, 1, 'C');
 
 // Nama Peserta
@@ -100,15 +100,15 @@ $pdf->SetXY(25, 122);
 $keterangan = "Yang telah menyelesaikan program Praktik Kerja Lapangan (PKL) di PT Telkom Indonesia 
               (Persero) Tbk, pada unit Witel $unit selama $durasi\n"."terhitung mulai tanggal $tglMulaiStr s/d $tglSelesaiStr\n" .
               "dengan hasil \"Sangat Baik\"";
-$pdf->MultiCell(247, 8, $keterangan, 0, 'C');
+$pdf->MultiCell(247, 7,$keterangan, 0, 'C');
 
 // ===========================
 // QR Code sebagai TTD
 // ===========================
 $dataTTD = "Ditandatangani oleh:\nROSANA INTAN PERMATASARI\nManager Shared Service & General Support\nTanggal: ".date("d-m-Y");
 $qrFile = __DIR__ . "/qrcode_ttd.png";
-QRcode::png($dataTTD, $qrFile, QR_ECLEVEL_H, 5);
-$pdf->Image($qrFile, 35, 135, 35, 35);
+QRcode::png($dataTTD, $qrFile, QR_ECLEVEL_H,5);
+$pdf->Image($qrFile, 35, 135, 35, 37);
 
 // Nama & Jabatan
 $pdf->SetFont('Arial','B',12);
