@@ -461,21 +461,44 @@ if (isset($_GET['delete'])) {
 }
 
 // =========================
-// Tambah Unit dari Modal
+// Tambah / Edit / Hapus Unit
 // =========================
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  if (isset($_POST['action']) && $_POST['action'] == 'insert_unit') {
+  if ($_POST['action'] == 'insert_unit') {
     $nama_unit = trim($_POST['nama_unit']);
     if ($nama_unit != '') {
       $stmt = $conn->prepare("INSERT INTO unit_pkl (nama_unit) VALUES (?)");
       $stmt->bind_param("s", $nama_unit);
       $stmt->execute();
-      $stmt->close();
+      $_SESSION['success'] = "Unit berhasil ditambahkan.";
     }
-    // Redirect biar tidak double insert saat refresh
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
+    header("Location: daftar_pkl.php");
+    exit;
   }
+
+  if ($_POST['action'] == 'update_unit') {
+    $id = (int)$_POST['id'];
+    $nama_unit = trim($_POST['nama_unit']);
+    if ($nama_unit != '') {
+      $stmt = $conn->prepare("UPDATE unit_pkl SET nama_unit=? WHERE id=?");
+      $stmt->bind_param("si", $nama_unit, $id);
+      $stmt->execute();
+      $_SESSION['success'] = "Unit berhasil diperbarui.";
+    }
+    header("Location: daftar_pkl.php");
+    exit;
+  }
+}
+
+// Hapus Unit
+if (isset($_GET['delete_unit'])) {
+  $id = (int)$_GET['delete_unit'];
+  $stmt = $conn->prepare("DELETE FROM unit_pkl WHERE id=?");
+  $stmt->bind_param("i", $id);
+  $stmt->execute();
+  $_SESSION['success'] = "Unit berhasil dihapus.";
+  header("Location: daftar_pkl.php");
+  exit;
 }
 
 // ================== Ambil daftar unit ==================
@@ -530,5 +553,4 @@ if (!empty($search)) {
 
 $sql .= " ORDER BY p.id DESC";
 $result = $conn->query($sql);
-
 ?>
