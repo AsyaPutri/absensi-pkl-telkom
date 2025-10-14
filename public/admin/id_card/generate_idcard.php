@@ -120,18 +120,19 @@ $template_path = "template/ID Card 3 Polosan.png";
     .unit {
       position: absolute;
       top: 68mm;
-      width: 100%;
-      text-align: justify;
-      text-align-last: center;
+      left: 60%;
+      transform: translateX(-50%);
+      width: 40mm; /* batasi lebar supaya bisa turun ke baris baru */
+      text-align: center;
       font-size: 2.5mm;
       font-weight: 700;
       color: #6b0000;
       text-transform: capitalize;
-      padding: 0 6mm;
       line-height: 1.2;
-      display: block;
       white-space: normal;
       word-wrap: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto; /* bantu pemenggalan kata panjang */
     }
 
     .logo-telkom {

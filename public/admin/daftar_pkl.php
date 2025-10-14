@@ -101,7 +101,7 @@ include "daftar_pkl_action.php";
 
           <!-- Tombol Tambah Unit -->
           <button class="btn btn-danger d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#modalTambahUnit">
-            <i class="bi bi-building-add me-2"></i> Tambah Unit
+            <i class="bi bi-building-add me-2"></i> Kelola Unit
           </button>
         </div>
 
@@ -333,9 +333,6 @@ include "daftar_pkl_action.php";
                                 }
                                 ?>
                               </select>
-                              <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalTambahUnit">
-                                <i class="bi bi-plus"></i>
-                              </button>
                             </div>
                           </div>
 
@@ -492,9 +489,6 @@ include "daftar_pkl_action.php";
                     }
                     ?>
                   </select>
-                  <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalTambahUnit">
-                    <i class="bi bi-plus"></i>
-                  </button>
                 </div>
               </div>
 
@@ -536,29 +530,119 @@ include "daftar_pkl_action.php";
     </div>
   </div>
 
-  <!-- ======================== -->
-  <!-- Modal Tambah Unit -->
-  <!-- ======================== -->
-  <div class="modal fade" id="modalTambahUnit" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form method="POST">
+<!-- ============================ -->
+<!-- Modal Kelola Unit PKL -->
+<!-- ============================ -->
+<div class="modal fade" id="modalTambahUnit" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-building-add me-2"></i> Kelola Unit PKL</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Form Tambah Unit -->
+        <form method="POST" class="mb-4">
           <input type="hidden" name="action" value="insert_unit">
-          <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title">Tambah Unit Baru</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <label class="form-label">Nama Unit</label>
-            <input type="text" name="nama_unit" class="form-control" required>
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-danger">Simpan</button>
+          <div class="input-group">
+            <input type="text" name="nama_unit" class="form-control" placeholder="Nama Unit Baru" required>
+            <button type="submit" class="btn btn-danger">
+              <i class="bi bi-plus-circle"></i> Tambah
+            </button>
           </div>
         </form>
+
+        <!-- Daftar Unit -->
+        <table class="table table-bordered align-middle">
+          <thead class="table-danger text-center">
+            <tr>
+              <th style="width:50px;">No</th>
+              <th>Nama Unit</th>
+              <th style="width:150px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php
+            $unit_query = $conn->query("SELECT * FROM unit_pkl ORDER BY nama_unit ASC");
+            $no = 1;
+            while($u = $unit_query->fetch_assoc()):
+            ?>
+            <tr>
+              <td class="text-center"><?= $no++; ?></td>
+              <td><?= htmlspecialchars($u['nama_unit']); ?></td>
+              <td class="text-center">
+                <!-- Tombol Edit -->
+                <button 
+                  type="button" 
+                  class="btn btn-primary btn-sm btn-edit"
+                  data-id="<?= $u['id']; ?>"
+                  data-nama="<?= htmlspecialchars($u['nama_unit']); ?>"
+                  data-bs-toggle="modal"
+                  data-bs-target="#editUnitModal">
+                  <i class="bi bi-pencil"></i>
+                </button>
+
+                <!-- Tombol Hapus -->
+                <a href="?delete_unit=<?= $u['id']; ?>" 
+                   onclick="return confirm('Yakin ingin menghapus unit ini?');"
+                   class="btn btn-dark btn-sm">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </td>
+            </tr>
+            <?php endwhile; ?>
+          </tbody>
+        </table>
+
       </div>
     </div>
   </div>
+</div>
+
+<!-- ============================ -->
+<!-- Modal Edit Unit (Universal) -->
+<!-- ============================ -->
+<div class="modal fade" id="editUnitModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST">
+        <input type="hidden" name="action" value="update_unit">
+        <input type="hidden" name="id" id="edit_id">
+
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Edit Unit</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <label for="edit_nama_unit" class="form-label">Nama Unit</label>
+          <input type="text" name="nama_unit" id="edit_nama_unit" class="form-control" required>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Simpan</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ -->
+<!-- Script untuk Modal Edit -->
+<!-- ============================ -->
+<script>
+document.querySelectorAll('.btn-edit').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.getAttribute('data-id');
+    const nama = btn.getAttribute('data-nama');
+    document.getElementById('edit_id').value = id;
+    document.getElementById('edit_nama_unit').value = nama;
+  });
+});
+</script>
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
