@@ -160,6 +160,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="info-section">
     <h2>Registrasi Internship<br>Witel Bekasi - Karawang</h2>
     <p>Silakan isi form berikut untuk mendaftar PKL.</p>
+    <!-- Tambahan link Canva (versi hitam putih) -->
+    <div style="margin-top: 25px; padding: 15px; background: #fff; border-radius: 10px; color: #fff;">
+        <p style="font-weight: bold; color: #e53935; font-size: 16px; margin-bottom: 10px;">
+            Harap dilihat disini terlebih dahulu 👇
+        </p>
+        <hr style="border: none; border-top: 1px solid; margin: 5px 0 15px 0;">
+
+        <a href="https://www.canva.com/design/DAFshvFSOu8/8oKHE3loBGx3jD3tgRqOVA/edit?utm_content=DAFshvFSOu8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton" 
+           target="_blank"
+           style="display: inline-block; color: #e53935; font-weight: 600;
+                  text-decoration: none; padding: 10px 18px; border-radius: 6px; transition: 0.3s;">
+            🔗 Klik Informasi ini
+        </a>
+    </div>
     <p><strong>Syarat PKL:</strong></p>
     <ul>
       <li>Pas foto 3x4 = 1 lembar</li>
@@ -231,7 +245,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-full">
         <button type="submit">Daftar Sekarang</button>
         <p class="note">Pastikan data sudah benar sebelum submit.</p>
+        <p style="text-align: center; margin-top: 12px; font-size: 14px; color: #444;">
+  Sudah punya akun?  
+  <a href="login.php" style="color: #e53935; font-weight: 600; text-decoration: none;"
+     onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+    👉 Login di sini
+  </a>
+</p>
+
       </div>
+
+      
     </form>
   </div>
 </div>
