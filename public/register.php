@@ -2,6 +2,9 @@
 session_start();
 require '../config/database.php';
 
+// ================== Inisialisasi awal ==================
+$showSuccess = false;
+
 // ================== Folder Upload ==================
 $upload_dir = "../uploads/";
 $foto_dir   = $upload_dir . "Foto_daftarpkl/";
@@ -19,7 +22,7 @@ function uploadFileUnique($fileKey, $upload_dir, $allowed_types = []) {
 
   $ext = strtolower(pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION));
 
-  // Validasi tipe file jika diberikan
+  // Validasi tipe file
   if (!empty($allowed_types) && !in_array($ext, $allowed_types)) {
     echo "<script>alert('Format file tidak valid! Hanya diperbolehkan: " . implode(', ', $allowed_types) . "'); history.back();</script>";
     exit;
@@ -36,7 +39,6 @@ $result = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit AS
 if ($result) while ($row = $result->fetch_assoc()) $units[] = $row;
 
 // ================== Proses Submit ==================
-$showSuccess = false; // indikator untuk tampilkan Swal di bawah
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $nama       = trim($_POST['nama'] ?? '');
   $email      = trim($_POST['email'] ?? '');
@@ -57,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $tgl_selesai     = trim($_POST['tgl_selesai'] ?? null);
   $status          = 'pending';
 
-  // Upload file (hanya gambar untuk foto dan ktm)
+  // Upload file
   $foto  = uploadFileUnique('upload_foto', $foto_dir, ['jpg', 'jpeg', 'png', 'gif']);
   $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir, ['jpg', 'jpeg', 'png', 'gif']);
   $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir); // surat bisa PDF
@@ -115,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       border-radius: 16px;
       box-shadow: 0 6px 25px rgba(0,0,0,0.2);
       display: flex;
+      flex-wrap: wrap;
       overflow: hidden;
       width: 100%;
     }
@@ -124,10 +127,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       padding: 40px 30px;
       border-right: 4px solid #f44336;
     }
-    .info-section h2 { color: #d32f2f; margin-bottom: 15px; }
-    .info-section p, .info-section li { color: #444; }
-    .form-section { flex: 2; padding: 40px; }
-    .form-section h2 { margin-bottom: 25px; color: #d32f2f; text-align: center; }
+    .info-section h2 {
+      color: #d32f2f;
+      margin-bottom: 15px;
+      font-size: 1.8rem;
+    }
+    .info-section p, .info-section li {
+      color: #444;
+      line-height: 1.5;
+    }
+    .form-section {
+      flex: 2;
+      padding: 40px;
+      background: #fff;
+    }
+    .form-section h2 {
+      margin-bottom: 25px;
+      color: #d32f2f;
+      text-align: center;
+      font-size: 1.8rem;
+    }
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -153,6 +172,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     button:hover { transform: scale(1.03); background: #c62828; }
     .note { font-size: 13px; color: #777; margin-top: 8px; text-align: center; }
+    .login-link { text-align: center; margin-top: 12px; font-size: 14px; color: #444; }
+    .login-link a { color: #e53935; font-weight: 600; text-decoration: none; }
+    .login-link a:hover { text-decoration: underline; }
+
+    @media (max-width: 992px) {
+      .container { flex-direction: column; }
+      .info-section { border-right: none; border-bottom: 4px solid #f44336; text-align: center; }
+    }
+    @media (max-width: 768px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .form-full { grid-column: 1 / 2; }
+      .info-section, .form-section { padding: 25px; }
+      button { font-size: 15px; padding: 12px; }
+    }
+    @media (max-width: 480px) {
+      body { padding: 10px; }
+      .info-section h2, .form-section h2 { font-size: 1.4rem; }
+      input, select, textarea { font-size: 13px; padding: 10px; }
+      button { font-size: 14px; padding: 10px; }
+    }
   </style>
 </head>
 <body>
@@ -160,19 +199,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="info-section">
     <h2>Registrasi Internship<br>Witel Bekasi - Karawang</h2>
     <p>Silakan isi form berikut untuk mendaftar PKL.</p>
-    <!-- Tambahan link Canva (versi hitam putih) -->
-    <div style="margin-top: 25px; padding: 15px; background: #fff; border-radius: 10px; color: #fff;">
-        <p style="font-weight: bold; color: #e53935; font-size: 16px; margin-bottom: 10px;">
-            Harap dilihat disini terlebih dahulu 👇
-        </p>
-        <hr style="border: none; border-top: 1px solid; margin: 5px 0 15px 0;">
-
-        <a href="https://www.canva.com/design/DAFshvFSOu8/8oKHE3loBGx3jD3tgRqOVA/edit?utm_content=DAFshvFSOu8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton" 
-           target="_blank"
-           style="display: inline-block; color: #e53935; font-weight: 600;
-                  text-decoration: none; padding: 10px 18px; border-radius: 6px; transition: 0.3s;">
-            🔗 Klik Informasi ini
-        </a>
+    <div style="margin-top:25px; padding:15px; background:#fff; border-radius:10px;">
+      <p style="font-weight:bold; color:#e53935;">Harap dilihat disini terlebih dahulu 👇</p>
+      <hr style="border:none; border-top:1px solid #f44336;">
+      <a href="https://www.canva.com/design/DAFshvFSOu8/8oKHE3loBGx3jD3tgRqOVA/edit?utm_content=DAFshvFSOu8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton"
+         target="_blank"
+         style="display:inline-block; color:#fff; background:#e53935; padding:10px 18px; border-radius:8px; text-decoration:none;">
+         🔗 Klik Informasi ini
+      </a>
     </div>
     <p><strong>Syarat PKL:</strong></p>
     <ul>
@@ -245,17 +279,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-full">
         <button type="submit">Daftar Sekarang</button>
         <p class="note">Pastikan data sudah benar sebelum submit.</p>
-        <p style="text-align: center; margin-top: 12px; font-size: 14px; color: #444;">
-  Sudah punya akun?  
-  <a href="login.php" style="color: #e53935; font-weight: 600; text-decoration: none;"
-     onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
-    👉 Login di sini
-  </a>
-</p>
-
+        <div class="login-link">
+          Sudah punya akun? <a href="login.php">👉 Login di sini</a>
+        </div>
       </div>
-
-      
     </form>
   </div>
 </div>
@@ -277,7 +304,7 @@ document.getElementById("regForm").addEventListener("submit", function(e) {
 });
 </script>
 
-<?php if ($showSuccess): ?>
+<?php if (!empty($showSuccess) && $showSuccess): ?>
 <script>
 Swal.fire({
   icon: 'success',

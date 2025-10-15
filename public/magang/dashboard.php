@@ -647,10 +647,6 @@ $pengumuman = $result->fetch_assoc();
                                 <i class="bi bi-file-earmark-text me-2"></i>
                                 Cetak Surat
                             </a>
-                            <a href="struktur.php" class="manual-link d-flex align-items-center py-2">
-                                <i class="bi bi-diagram-3 me-2"></i>
-                                struktur
-                            </a>
                         </div>
                     </div>
                 </div>

@@ -49,13 +49,41 @@ $resP = mysqli_query($conn, $sqlP) or die("Query Error: " . mysqli_error($conn))
 $part = mysqli_fetch_assoc($resP);
 if (!$part) die("Data peserta_pkl tidak ditemukan.");
 
+/* 🔒 Cek status peserta */
+$status = strtolower(trim($part['status'] ?? ''));
+
+/* Jika status bukan 'selesai', tampilkan SweetAlert */
+if ($status !== 'selesai') {
+    echo "
+    <html>
+    <head>
+        <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+    </head>
+    <body>
+        <script>
+        Swal.fire({
+            icon: 'info',
+            title: 'Belum Bisa Mencetak Surat',
+            text: 'Surat keterangan ini hanya bisa dicetak setelah periode magang Anda dinyatakan selesai.',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#3085d6'
+        }).then(() => {
+            window.location.href='../magang/cetak_surat.php';
+        });
+        </script>
+    </body>
+    </html>
+    ";
+    exit;
+}
+
 /* === Ambil nomor surat dari peserta_pkl === */
 $nomorSurat = isset($part['nomor_surat']) ? intval($part['nomor_surat']) : 0;
 if ($nomorSurat <= 0) {
-    $nomorSurat = 1; // fallback default
+    $nomorSurat = 1;
 }
 $tahun = date('Y');
-$noFormat = str_pad($nomorSurat, 3, '0', STR_PAD_LEFT); // contoh: 001
+$noFormat = str_pad($nomorSurat, 3, '0', STR_PAD_LEFT);
 $nomorSuratLengkap = "C.TEL.$noFormat/PD.000/R2W-2G10000/$tahun";
 
 /* 2️⃣ Ambil data daftar_pkl */
@@ -87,7 +115,7 @@ $pdf->SetAutoPageBreak(true, 30);
 $pdf->AddPage();
 
 /* Logo Telkom */
-$logoTelkom = __DIR__ . '/../../assets/img/logo_telkom.png';
+$logoTelkom = __DIR__ . '/../assets/img/logo_telkom.png';
 if (file_exists($logoTelkom)) {
     $pdf->Image($logoTelkom, 160, 5, 45);
 }

@@ -48,18 +48,41 @@ if (!$result) die("Query Error: " . mysqli_error($conn));
 $data = mysqli_fetch_assoc($result);
 if (!$data) die("Data peserta tidak ditemukan.");
 
+/* 🔒 Cek status peserta */
+$status = strtolower(trim($data['status'] ?? ''));
+
+/* Jika status bukan 'selesai', tampilkan SweetAlert */
+if ($status !== 'selesai') {
+    echo "
+    <html>
+    <head>
+        <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+    </head>
+    <body>
+        <script>
+        Swal.fire({
+            icon: 'info',
+            title: 'Belum Bisa Mencetak Sertifikat',
+            text: 'Sertifikat ini hanya bisa dicetak setelah periode magang Anda dinyatakan selesai.',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#3085d6'
+        }).then(() => {
+            window.location.href = '../magang/cetak_surat.php';
+        });
+        </script>
+    </body>
+    </html>
+    ";
+    exit;
+}
+
 /* === Ambil nomor surat dari database === */
 $noSurat = $data['nomor_surat'] ?? null;
-
-// Kalau belum ada, kasih pesan
 if (!$noSurat) {
     die("<h3>Nomor surat belum dibuat. Harap admin menambahkan nomor surat terlebih dahulu.</h3>");
 }
 
-// Pastikan tampil 3 digit (misal 001, 010, dst)
 $noSuratFormatted = str_pad($noSurat, 3, '0', STR_PAD_LEFT);
-
-// Tahun otomatis sesuai waktu cetak
 $tahunCetak = date('Y');
 
 /* Ambil field peserta */
@@ -69,7 +92,7 @@ $durasi = getFirstValue($data, ['durasi'], '-');
 $tglMulaiStr   = date("d F Y", strtotime(getFirstValue($data, ['tgl_mulai'], date('Y-m-d'))));
 $tglSelesaiStr = date("d F Y", strtotime(getFirstValue($data, ['tgl_selesai'], date('Y-m-d'))));
 
-/* === Generate PDF === */
+/* === Generate PDF Sertifikat === */
 $pdf = new FPDF('L','mm','A4');
 $pdf->AddPage();
 
@@ -79,9 +102,7 @@ if (file_exists($bgPath)) {
     $pdf->Image($bgPath, 0, 0, 297, 210);
 }
 
-// =============================
-// NOMOR SERTIFIKAT (dari no_surat)
-// =============================
+// Nomor Sertifikat
 $pdf->SetFont('Arial','B',20);
 $pdf->SetTextColor(100,100,100);
 $pdf->SetXY(0,45);
@@ -102,9 +123,7 @@ $keterangan = "Yang telah menyelesaikan program Praktik Kerja Lapangan (PKL) di 
               "dengan hasil \"Sangat Baik\"";
 $pdf->MultiCell(247, 7,$keterangan, 0, 'C');
 
-// ===========================
-// QR Code sebagai TTD
-// ===========================
+// QR Code TTD
 $dataTTD = "Ditandatangani oleh:\nROSANA INTAN PERMATASARI\nManager Shared Service & General Support\nTanggal: ".date("d-m-Y");
 $qrFile = __DIR__ . "/qrcode_ttd.png";
 QRcode::png($dataTTD, $qrFile, QR_ECLEVEL_H,5);

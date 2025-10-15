@@ -54,6 +54,24 @@ if (!isset($_SESSION['user_id'])) {
     .icon-green { background: #e0f7e9; color: #198754; }
     .icon-blue { background: #e0f0ff; color: #0d6efd; }
     .icon-purple { background: #f3e8ff; color: #6f42c1; }
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #dc3545;
+      color: #fff;
+      font-weight: 500;
+      border-radius: 12px;
+      padding: 10px 20px;
+      text-decoration: none;
+      transition: all 0.2s ease-in-out;
+    }
+    .btn-back:hover {
+      background: #b02a37;
+      transform: translateY(-2px);
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -66,11 +84,13 @@ if (!isset($_SESSION['user_id'])) {
           <i class="bi bi-file-earmark-text me-2"></i> Cetak Surat Resmi
         </div>
         <div class="card-body p-4">
-          <p class="text-secondary text-center mb-4">
-            Silakan pilih jenis surat yang ingin dicetak. Surat akan otomatis 
-            digenerate dalam bentuk PDF dengan kop surat resmi.
+          <p class="text-center text-muted mb-4" style="font-size: 16px; line-height: 1.6;">
+            ✨ <strong>Silakan pilih jenis surat yang ingin dicetak.</strong><br>
+            Surat ini merupakan <em>dokumen resmi</em> dan <strong>tidak untuk disalahgunakan</strong>.<br>
+            🗂️ Jangan lupa segera <span class="fw-semibold text-dark">menyimpan</span> setelah dicetak!
           </p>
-          <div class="list-group">
+
+          <div class="list-group mb-4">
             <!-- Surat Balasan -->
             <a href="../dokumen/surat_balasan.php" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
               <div class="icon-box icon-red">
@@ -81,6 +101,7 @@ if (!isset($_SESSION['user_id'])) {
                 <small class="text-muted">Cetak surat balasan permohonan PKL</small>
               </div>
             </a>
+
             <!-- Surat Konfirmasi -->
             <a href="../dokumen/surat_konfirmasi.php" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
               <div class="icon-box icon-green">
@@ -91,6 +112,7 @@ if (!isset($_SESSION['user_id'])) {
                 <small class="text-muted">Cetak surat konfirmasi penerimaan PKL</small>
               </div>
             </a>
+
             <!-- Surat Selesai -->
             <a href="../dokumen/surat_selesai.php" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
               <div class="icon-box icon-blue">
@@ -101,6 +123,7 @@ if (!isset($_SESSION['user_id'])) {
                 <small class="text-muted">Cetak surat selesai kegiatan PKL</small>
               </div>
             </a>
+
             <!-- Sertifikat -->
             <a href="../dokumen/sertifikat.php" target="_blank" class="list-group-item d-flex align-items-center shadow-sm">
               <div class="icon-box icon-purple">
@@ -112,6 +135,14 @@ if (!isset($_SESSION['user_id'])) {
               </div>
             </a>
           </div>
+
+          <!-- Tombol Kembali -->
+          <div class="text-center">
+            <a href="dashboard.php" class="btn-back">
+              <i class="bi bi-arrow-left-circle"></i> Kembali ke Dashboard
+            </a>
+          </div>
+
         </div>
       </div>
     </div>
