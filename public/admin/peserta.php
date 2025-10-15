@@ -185,6 +185,19 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <!-- Main Content -->
   <div class="main-content">
     <!-- Header -->
+    <?php if (isset($_GET['success'])): ?>
+      <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        Peserta magang berhasil diselesaikan!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <?php elseif (isset($_GET['error'])): ?>
+      <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        Terjadi kesalahan saat memperbarui status peserta.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <?php endif; ?>
     <div class="header">
       <div class="d-flex align-items-center">
         <button class="btn btn-outline-secondary d-md-none me-2" id="menuToggle">

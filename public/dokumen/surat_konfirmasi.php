@@ -27,7 +27,6 @@ $query = "SELECT
           LEFT JOIN unit_pkl u ON p.unit_id = u.id
           LEFT JOIN cp_karyawan c ON u.id = c.unit_id
           WHERE p.user_id = ? LIMIT 1";
-
 $stmt = $conn->prepare($query);
 if (!$stmt) {
     die("Query gagal disiapkan: " . $conn->error);
