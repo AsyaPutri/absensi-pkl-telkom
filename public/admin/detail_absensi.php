@@ -100,32 +100,24 @@ if ($colRes2) {
     while ($c = $colRes2->fetch_assoc()) $colsAbsen[] = $c['Field'];
 }
 
-/* ---------- bangun kondisi pencarian absen secara fleksibel ---------- */
-$conds = [];
+/* ---------- bangun kondisi pencarian absen secara tegas ---------- */
 $uid = intval($user_id);
+$whereAbsen = "";
 
-if (in_array('user_id', $colsAbsen))    $conds[] = "a.user_id = {$uid}";
-if (in_array('peserta_id', $colsAbsen)) $conds[] = "a.peserta_id = {$uid}";
-if (in_array('peserta', $colsAbsen))    $conds[] = "a.peserta = {$uid}";
-
-// jika kita menemukan row peserta, tambahkan mapping dari peserta ke absen (contoh: absen.user_id = peserta.user_id)
-if ($peserta) {
-    if (!empty($peserta['user_id']) && in_array('user_id', $colsAbsen)) {
-        $conds[] = "a.user_id = " . intval($peserta['user_id']);
-    }
-    if (isset($peserta[$pkPeserta]) && in_array('peserta_id', $colsAbsen)) {
-        $conds[] = "a.peserta_id = " . intval($peserta[$pkPeserta]);
-    }
+// Cek kolom mana yang dipakai di tabel absen
+if (in_array('user_id', $colsAbsen)) {
+    // Gunakan user_id langsung dari peserta (bukan pk peserta)
+    $idAbsen = $peserta && !empty($peserta['user_id']) ? intval($peserta['user_id']) : $uid;
+    $whereAbsen = "a.user_id = {$idAbsen}";
+} elseif (in_array('peserta_id', $colsAbsen)) {
+    // Jika tabel absen pakai peserta_id
+    $idAbsen = $peserta && isset($peserta[$pkPeserta]) ? intval($peserta[$pkPeserta]) : $uid;
+    $whereAbsen = "a.peserta_id = {$idAbsen}";
+} else {
+    // fallback terakhir
+    $whereAbsen = "a.user_id = {$uid}";
 }
 
-// unique & fallback
-$conds = array_values(array_unique($conds));
-if (empty($conds)) {
-    // ultimate fallback (jika tabel absen aneh), coba a.user_id
-    $conds[] = "a.user_id = {$uid}";
-}
-
-$whereAbsen = "(" . implode(" OR ", $conds) . ")";
 
 /* ---------- query absen (gunakan COALESCE untuk menangani nama kolom alternatif) ---------- */
 $sqlAbsen = "
@@ -194,4 +186,3 @@ if ($debug) {
     ];
 }
 echo json_encode($output, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-exit;
