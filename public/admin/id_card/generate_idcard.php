@@ -215,7 +215,6 @@ $template_path = "template/ID Card 3 Polosan.png";
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
-    // Penyesuaian nama panjang biar rapi
     document.querySelectorAll('.nama').forEach(el => {
       let nama = el.textContent.trim();
       const parts = nama.split(" ");

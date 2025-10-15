@@ -1,40 +1,42 @@
 <?php
 session_start();
-require '../config/database.php'; // koneksi database ($conn)
+require '../config/database.php';
 
 // ================== Folder Upload ==================
 $upload_dir = "../uploads/";
 $foto_dir   = $upload_dir . "Foto_daftarpkl/";
 $ktm_dir    = $upload_dir . "Foto_Kartuidentitas/";
 $surat_dir  = $upload_dir . "Surat_Permohonan/";
-
 foreach ([$upload_dir, $foto_dir, $ktm_dir, $surat_dir] as $dir) {
   if (!is_dir($dir)) @mkdir($dir, 0755, true);
 }
 
-// ================== Helper Function ==================
+// ================== Helper ==================
 function safe($v) { return htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); }
 
-function uploadFileUnique($fileKey, $upload_dir) {
+function uploadFileUnique($fileKey, $upload_dir, $allowed_types = []) {
   if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) return '';
-  $ext = pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION);
-  $newname = time() . "_" . uniqid() . "." . $ext;
-  if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $upload_dir . $newname)) {
-    return $newname;
+
+  $ext = strtolower(pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION));
+
+  // Validasi tipe file jika diberikan
+  if (!empty($allowed_types) && !in_array($ext, $allowed_types)) {
+    echo "<script>alert('Format file tidak valid! Hanya diperbolehkan: " . implode(', ', $allowed_types) . "'); history.back();</script>";
+    exit;
   }
+
+  $newname = time() . "_" . uniqid() . "." . $ext;
+  if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $upload_dir . $newname)) return $newname;
   return '';
 }
 
 // ================== Ambil daftar unit ==================
 $units = [];
 $result = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
-if ($result) {
-  while ($row = $result->fetch_assoc()) {
-    $units[] = $row;
-  }
-}
+if ($result) while ($row = $result->fetch_assoc()) $units[] = $row;
 
 // ================== Proses Submit ==================
+$showSuccess = false; // indikator untuk tampilkan Swal di bawah
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $nama       = trim($_POST['nama'] ?? '');
   $email      = trim($_POST['email'] ?? '');
@@ -55,12 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $tgl_selesai     = trim($_POST['tgl_selesai'] ?? null);
   $status          = 'pending';
 
-  // Upload file
-  $foto  = uploadFileUnique('upload_foto', $foto_dir);
-  $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
-  $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
+  // Upload file (hanya gambar untuk foto dan ktm)
+  $foto  = uploadFileUnique('upload_foto', $foto_dir, ['jpg', 'jpeg', 'png', 'gif']);
+  $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir, ['jpg', 'jpeg', 'png', 'gif']);
+  $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir); // surat bisa PDF
 
-  // Query insert (21 kolom)
   $sql = "INSERT INTO daftar_pkl (
       nama, email, nis_npm, instansi_pendidikan, jurusan,
       ipk_nilai_ratarata, semester, memiliki_laptop, bersedia_unit_manapun,
@@ -70,17 +71,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
   $stmt = $conn->prepare($sql);
-  if (!$stmt) {
-    die('Prepare failed: ' . $conn->error);
-  }
+  if (!$stmt) die('Prepare failed: ' . $conn->error);
 
-  $types = "sssss"  // nama, email, nis_npm, instansi, jurusan
-         . "d"      // ipk
-         . "ssssss" // semester, memiliki_laptop, bersedia_unit, no_surat, skill, durasi
-         . "i"      // unit_id
-         . "ssss"   // no_hp, alamat, tgl_mulai, tgl_selesai
-         . "ssss";  // surat, foto, ktm, status
-
+  $types = "sssss" . "d" . "ssssss" . "i" . "ssss" . "ssss";
   $stmt->bind_param(
     $types,
     $nama, $email, $nis_npm, $instansi, $jurusan,
@@ -92,8 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   );
 
   if ($stmt->execute()) {
-    echo "<script>alert('Registrasi PKL berhasil!\\n\\n✨ Jika kamu dinyatakan lolos seleksi magang, tim HC Telkom akan menghubungi melalui nomor WhatsApp yang telah kamu cantumkan di form 📱😉. Jadi, pastikan nomor tersebut aktif yaa!'); window.location='login.php';</script>";
-    exit;
+    $showSuccess = true;
   } else {
     die('Gagal menyimpan data: ' . $stmt->error);
   }
@@ -105,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registrasi PKL - Witel Bekasi Karawang</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     body {
       margin: 0;
@@ -134,11 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .info-section h2 { color: #d32f2f; margin-bottom: 15px; }
     .info-section p, .info-section li { color: #444; }
     .form-section { flex: 2; padding: 40px; }
-    .form-section h2 {
-      margin-bottom: 25px;
-      color: #d32f2f;
-      text-align: center;
-    }
+    .form-section h2 { margin-bottom: 25px; color: #d32f2f; text-align: center; }
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -147,48 +136,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .form-group { display: flex; flex-direction: column; }
     label { font-weight: 600; margin-bottom: 6px; color: #444; }
     input, select, textarea {
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 14px;
-      background: #fafafa;
-      transition: 0.2s;
+      padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 14px; background: #fafafa; transition: 0.2s;
     }
     input:focus, select:focus, textarea:focus {
-      border-color: #e53935;
-      outline: none;
-      box-shadow: 0 0 6px rgba(229,57,53,0.25);
-      background: #fff;
+      border-color: #e53935; outline: none;
+      box-shadow: 0 0 6px rgba(229,57,53,0.25); background: #fff;
     }
     textarea { resize: vertical; min-height: 70px; }
     .form-full { grid-column: 1 / 3; }
     button {
       background: linear-gradient(135deg, #e53935, #d32f2f);
-      color: white;
-      padding: 14px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 600;
-      margin-top: 10px;
-      width: 100%;
-      transition: all 0.2s ease;
+      color: white; padding: 14px; border: none; border-radius: 10px;
+      cursor: pointer; font-size: 16px; font-weight: 600;
+      margin-top: 10px; width: 100%; transition: all 0.2s ease;
     }
     button:hover { transform: scale(1.03); background: #c62828; }
     .note { font-size: 13px; color: #777; margin-top: 8px; text-align: center; }
-    @media(max-width: 900px) {
-      .container { flex-direction: column; }
-      .form-grid { grid-template-columns: 1fr; }
-      .form-full { grid-column: 1 / 2; }
-      .info-section { border-right: none; border-bottom: 3px solid #f44336; }
-    }
   </style>
 </head>
 <body>
 <div class="container">
-
-  <!-- Bagian Info -->
   <div class="info-section">
     <h2>Registrasi Internship<br>Witel Bekasi - Karawang</h2>
     <p>Silakan isi form berikut untuk mendaftar PKL.</p>
@@ -204,10 +172,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p>Info: <strong>Orient (62 85316144454)</strong></p>
   </div>
 
-  <!-- Bagian Form -->
   <div class="form-section">
     <h2>Form Registrasi PKL</h2>
-    <form method="POST" enctype="multipart/form-data" class="form-grid">
+    <form id="regForm" method="POST" enctype="multipart/form-data" class="form-grid">
       <div class="form-group"><label>Nama Lengkap</label><input type="text" name="nama" required></div>
       <div class="form-group"><label>Email</label><input type="email" name="email" required></div>
       <div class="form-group"><label>NIS/NPM</label><input type="text" name="nis_npm" required></div>
@@ -215,7 +182,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-group"><label>Jurusan</label><input type="text" name="jurusan" required></div>
       <div class="form-group"><label>Semester/Tingkat</label><input type="text" name="semester"></div>
       <div class="form-group"><label>IPK/Nilai Rata-rata</label><input type="number" step="0.01" name="ipk_nilai_ratarata"></div>
-
       <div class="form-group">
         <label>Memiliki Laptop?</label>
         <select name="memiliki_laptop" required>
@@ -224,7 +190,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <option value="Tidak">Tidak</option>
         </select>
       </div>
-
       <div class="form-group">
         <label>Bersedia di Unit Manapun?</label>
         <select name="bersedia_unit_manapun" required>
@@ -233,10 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <option value="Tidak Bersedia">Tidak Bersedia</option>
         </select>
       </div>
-
       <div class="form-group"><label>Nomor Surat Permohonan</label><input type="text" name="nomor_surat_permohonan"></div>
       <div class="form-group"><label>Skill</label><input type="text" name="skill"></div>
-
       <div class="form-group">
         <label>Durasi PKL</label>
         <select name="durasi" required>
@@ -248,7 +211,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <option value="6 Bulan">6 Bulan</option>
         </select>
       </div>
-
       <div class="form-group">
         <label>Unit Tujuan</label>
         <select name="unit_id" required>
@@ -258,26 +220,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <?php endforeach; ?>
         </select>
       </div>
-
       <div class="form-group"><label>No HP (WhatsApp)</label><input type="text" name="no_hp" required></div>
       <div class="form-full form-group"><label>Alamat</label><textarea name="alamat"></textarea></div>
       <div class="form-group"><label>Tanggal Usulan Mulai</label><input type="date" name="tgl_mulai"></div>
       <div class="form-group"><label>Tanggal Usulan Selesai</label><input type="date" name="tgl_selesai"></div>
-
       <div class="form-group"><label>Surat Permohonan PKL / Magang</label><input type="file" name="upload_surat_permohonan" required></div>
-      <div class="form-group"><label>Foto Formal</label><input type="file" name="upload_foto" required></div>
-      <div class="form-group"><label>Kartu Pelajar / KTM</label><input type="file" name="upload_kartu_identitas" required></div>
+      <div class="form-group"><label>Foto Formal</label><input type="file" name="upload_foto" accept=".jpg,.jpeg,.png,.gif" required></div>
+      <div class="form-group"><label>Kartu Pelajar / KTM</label><input type="file" name="upload_kartu_identitas" accept=".jpg,.jpeg,.png,.gif" required></div>
 
       <div class="form-full">
         <button type="submit">Daftar Sekarang</button>
         <p class="note">Pastikan data sudah benar sebelum submit.</p>
-        <p class="note">
-          Sudah punya akun? 
-          <a href="login.php" style="color:#d32f2f; font-weight:600; text-decoration:none;">Login di sini</a>
-        </p>
       </div>
     </form>
   </div>
 </div>
+
+<script>
+document.getElementById("regForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  Swal.fire({
+    title: "Apakah data sudah benar?",
+    text: "Pastikan semua data sudah sesuai sebelum dikirim.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Sudah Benar",
+    cancelButtonText: "Periksa Lagi",
+    confirmButtonColor: "#d32f2f"
+  }).then((result) => {
+    if (result.isConfirmed) this.submit();
+  });
+});
+</script>
+
+<?php if ($showSuccess): ?>
+<script>
+Swal.fire({
+  icon: 'success',
+  title: 'Registrasi Berhasil 🎉',
+  html: 'Apabila kamu dinyatakan lolos seleksi magang, tim HC Telkom akan menghubungi melalui nomor WhatsApp yang telah kamu cantumkan di form 📱✨.<br><br><b>Pastikan nomor tersebut aktif agar tidak terlewat ya 😉.</b>',
+  confirmButtonColor: '#d32f2f'
+}).then(() => { window.location = 'login.php'; });
+</script>
+<?php endif; ?>
 </body>
 </html>
