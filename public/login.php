@@ -111,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Telkom Indonesia</title>
     <link rel="stylesheet" href="assets/css/login.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
     <div class="bg-decoration decoration-1"></div>
@@ -162,20 +163,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 <div class="support-info">
                     <div class="support-title">Support dan Dukungan:</div>
-                    <div class="support-title">TELKOM OPERATION CENTER</div>
-                    <div>Command Center PT Telkom Indonesia</div>
+                    <div class="support-title">TELKOM WITEL BEKASI - KARAWANG</div>
+                    <div> PT Telkom Indonesia</div>
                     <div style="margin-top: 10px;">
                         <div class="contact-item">
-                            <div class="contact-icon"></div>
-                            <span>ioc.itservices.inf@telkom.co.id</span>
+                            <i class="fa-solid fa-envelope" style="color: #d32f2f; font-size: 18px; margin-right: 8px;"></i>
+                            <span>tjslcwitelbekasi@gmail.com</span>
                         </div>
                         <div class="contact-item">
-                            <div class="contact-icon"></div>
-                            <span>ioc@telkom.co.id</span>
+                            <i class="fa-brands fa-instagram" style="color: #d32f2f; font-size: 18px; margin-right: 8px;"></i>
+                            <span>@telkombekasi</span>
                         </div>
                         <div class="contact-item">
-                            <div class="contact-icon"></div>
-                            <span>147</span>
+                             <i class="fa-solid fa-location-dot" style="color: #d32f2f; font-size: 18px; margin-right: 8px;"></i>
+                            <span>Jl. Rw. Tembaga IV No.4, RT.006/RW.005, Marga Jaya, Kec. Bekasi Selatan, Kota Bks, Jawa Barat 17141</span>
                         </div>
                     </div>
                 </div>
@@ -243,13 +244,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <!-- Link Register -->
 <div style="margin-top: 15px; text-align: center;">
-    <a href="register.php" style="color: #007bff; text-decoration: none;">
-        Belum punya akun? <strong>Register</strong>
+   <a href="register.php" style="text-decoration: none;">
+    <span style="color: #000;">Ingin bergabung dalam program PKL kami?</span>
+    <strong style="color: #d32f2f;"> Daftar sekarang!</strong>
     </a>
 </div>
                 
                 <div class="powered-by">
-                    Powered by IT Solution Development Telkom Indonesia
+                    Powered by Telkom Indonesia, Witel Bekasi - Karawang
                 </div>
             </form>
         </div>

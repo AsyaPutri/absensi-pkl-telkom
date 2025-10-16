@@ -85,10 +85,12 @@ if (!isset($_SESSION['user_id'])) {
         </div>
         <div class="card-body p-4">
           <p class="text-center text-muted mb-4" style="font-size: 16px; line-height: 1.6;">
-            ✨ <strong>Silakan pilih jenis surat yang ingin dicetak.</strong><br>
-            Surat ini merupakan <em>dokumen resmi</em> dan <strong>tidak untuk disalahgunakan</strong>.<br>
-            🗂️ Jangan lupa segera <span class="fw-semibold text-dark">menyimpan</span> setelah dicetak!
-          </p>
+  ✨ <strong>Silakan pilih jenis surat yang ingin dicetak.</strong><br>
+  Surat ini merupakan <em>dokumen resmi</em> dan <strong>tidak untuk disalahgunakan</strong>.<br>
+  🗂️ Jangan lupa segera <span class="fw-semibold text-dark">menyimpan</span> setelah dicetak!<br>
+  ⚠️ <em>Apabila lupa menyimpan, hal tersebut bukan menjadi tanggung jawab kami.</em>
+</p>
+
 
           <div class="list-group mb-4">
             <!-- Surat Balasan -->
@@ -136,7 +138,7 @@ if (!isset($_SESSION['user_id'])) {
             </a>
           </div>
 
-          <!-- Tombol Kembali -->
+          <!-- Kembali  -->
           <div class="text-center">
             <a href="dashboard.php" class="btn-back">
               <i class="bi bi-arrow-left-circle"></i> Kembali ke Dashboard

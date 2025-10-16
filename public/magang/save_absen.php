@@ -2,13 +2,9 @@
 session_start();
 require '../../config/database.php'; 
 
-// ✅ Set timezone ke WIB
 date_default_timezone_set("Asia/Jakarta");
-
-// Response JSON
 header('Content-Type: application/json');
 
-// Pastikan user login
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(["success" => false, "message" => "Anda harus login terlebih dahulu"]);
     exit;
@@ -18,8 +14,19 @@ $userId  = $_SESSION['user_id'];
 $input   = json_decode(file_get_contents("php://input"), true);
 $tanggal = date("Y-m-d");
 $waktu   = date("H:i:s");
-
+$hari    = date("l"); // Ambil nama hari dalam bahasa Inggris (Sunday, Monday, dst)
 $response = ["success" => false, "message" => ""];
+
+// ===================================================
+// 🚫 CEK HARI LIBUR (Sabtu & Minggu)
+// ===================================================
+if ($hari === "Saturday" || $hari === "Sunday") {
+    echo json_encode([
+        "success" => false,
+        "message" => "Hari ini libur 🎉 — Tidak perlu melakukan absen."
+    ]);
+    exit;
+}
 
 // ===================================================
 // PROSES CHECKIN
@@ -31,7 +38,7 @@ if ($input['action'] === "checkin") {
     $kondisi    = $input['kondisi'] ?? "";
     $fotoBase64 = $input['foto'] ?? "";
 
-    // 🚨 Batasi jam check-in sebelum jam 11:00:00
+    // 🚨 jam check-in sebelum jam 11:00:00
     $batasJam = "11:00:00";
     if ($waktu > $batasJam) {
         echo json_encode([
@@ -95,7 +102,7 @@ if ($input['action'] === "checkin") {
     $stmt->bind_param("isssssss", $userId, $tanggal, $waktu, $aktivitas, $kendala, $lokasi, $kondisi, $fotoPath);
 
     if ($stmt->execute()) {
-        $response = ["success" => true, "message" => "Check-in berhasil"];
+        $response = ["success" => true, "message" => "Check-in berhasil ✅"];
     } else {
         $response = ["success" => false, "message" => "Gagal check-in: " . $stmt->error];
     }
@@ -130,7 +137,7 @@ elseif ($input['action'] === "checkout") {
     $stmt->bind_param("sssis", $jamKeluar, $aktivitasKeluar, $kendalaKeluar, $userId, $tanggal);
 
     if ($stmt->execute() && $stmt->affected_rows > 0) {
-        $response = ["success" => true, "message" => "Check-out berhasil"];
+        $response = ["success" => true, "message" => "Check-out berhasil ✅"];
     } else {
         $response = ["success" => false, "message" => "Gagal check-out (mungkin belum check-in)"];
     }
@@ -164,13 +171,12 @@ elseif ($input['action'] === "checkout_pending") {
     $stmt->bind_param("sssis", $jamKeluar, $aktivitasKeluar, $kendalaKeluar, $userId, $targetDate);
 
     if ($stmt->execute() && $stmt->affected_rows > 0) {
-        $response = ["success" => true, "message" => "Pending checkout berhasil"];
+        $response = ["success" => true, "message" => "Pending checkout berhasil ✅"];
     } else {
         $response = ["success" => false, "message" => "Gagal pending checkout"];
     }
     $stmt->close();
 }
-
 
 // ===================================================
 // AKSI TIDAK DIKENALI

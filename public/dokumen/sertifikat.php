@@ -62,10 +62,10 @@ if ($status !== 'selesai') {
         <script>
         Swal.fire({
             icon: 'info',
-            title: 'Belum Bisa Mencetak Sertifikat',
+            title: 'Tidak Bisa Mencetak Sertifikat',
             text: 'Sertifikat ini hanya bisa dicetak setelah periode magang Anda dinyatakan selesai.',
             confirmButtonText: 'OK',
-            confirmButtonColor: '#3085d6'
+            confirmButtonColor: '#d32f2f'
         }).then(() => {
             window.location.href = '../magang/cetak_surat.php';
         });
