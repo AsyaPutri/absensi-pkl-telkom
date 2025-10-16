@@ -8,9 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
   $conn->begin_transaction();
 
   try {
-    // ===============================
-    // 1. Ambil data lengkap peserta dari peserta_pkl + daftar_pkl
-    // ===============================
+    // 1. Ambil data lengkap peserta gabungan dari peserta_pkl + daftar_pkl
     $sql = "
       SELECT 
         p.id AS peserta_id,
@@ -41,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
         d.created_at
 
       FROM peserta_pkl p
-      LEFT JOIN daftar_pkl d ON p.user_id = d.user_id
+      LEFT JOIN daftar_pkl d ON p.user_id = d.id
       WHERE p.id = ?
       LIMIT 1
     ";
@@ -50,36 +48,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
     if (!$stmt) throw new Exception("Prepare gagal (SELECT): " . $conn->error);
     $stmt->bind_param("i", $id);
     $stmt->execute();
-    $res = $stmt->get_result();
 
-    if ($res->num_rows === 0) {
-      throw new Exception("Peserta tidak ditemukan.");
-    }
+    $res = $stmt->get_result();
+    if ($res->num_rows === 0) throw new Exception("Peserta tidak ditemukan.");
 
     $row = $res->fetch_assoc();
 
-    // ===============================
     // 2. Update status peserta jadi 'selesai'
-    // ===============================
     $update = $conn->prepare("UPDATE peserta_pkl SET status = 'selesai' WHERE id = ?");
     if (!$update) throw new Exception("Prepare gagal (UPDATE): " . $conn->error);
     $update->bind_param("i", $id);
     $update->execute();
 
-    $row['status_peserta'] = 'selesai'; // update status di array
+    // Simpan status selesai ke array
+    $row['status_peserta'] = 'selesai';
 
-    // ===============================
     // 3. Insert data ke riwayat_peserta_pkl
-    // ===============================
     $ins = $conn->prepare("
       INSERT INTO riwayat_peserta_pkl (
-        peserta_id, user_id, unit_id, nama, nis_npm, email, instansi_pendidikan, jurusan,
+        id, user_id, unit_id, nama, nis_npm, email, instansi_pendidikan, jurusan,
         ipk_nilai_ratarata, semester, memiliki_laptop, bersedia_unit_manapun,
         nomor_surat_permohonan, skill, durasi, no_hp, tgl_mulai, tgl_selesai, status,
         upload_surat_permohonan, upload_foto, upload_kartu_identitas, created_at
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      )
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ");
-
     if (!$ins) throw new Exception("Prepare gagal (INSERT): " . $conn->error);
 
     $ins->bind_param(
@@ -108,22 +101,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
       $row['upload_kartu_identitas'],
       $row['created_at']
     );
-
     $ins->execute();
 
-    // ===============================
     // 4. Commit transaksi
-    // ===============================
     $conn->commit();
-
-    echo "<script>alert('Data berhasil dipindahkan ke riwayat!'); window.location.href='riwayat_peserta.php';</script>";
+    header("Location: peserta.php?success=1");
+    exit;
 
   } catch (Exception $e) {
     $conn->rollback();
     error_log("Error ubah_status: " . $e->getMessage());
     echo "<pre style='color:red;'>Error: " . htmlspecialchars($e->getMessage()) . "</pre>";
   }
-
 } else {
   header("Location: peserta.php");
   exit;
