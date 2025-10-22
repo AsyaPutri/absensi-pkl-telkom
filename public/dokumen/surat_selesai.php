@@ -4,7 +4,9 @@ require('../../config/database.php');
 require(__DIR__ . '/fpdf/fpdf.php');
 require(__DIR__ . '/phpqrcode/qrlib.php');
 
-/* Helper */
+/* =====================================================
+   🧩 Helper Functions
+===================================================== */
 function getFirstValue(array $row, array $candidates, $default = '') {
     foreach ($candidates as $k) {
         if (array_key_exists($k, $row) && $row[$k] !== null && $row[$k] !== '') {
@@ -13,30 +15,51 @@ function getFirstValue(array $row, array $candidates, $default = '') {
     }
     return $default;
 }
+
 function formatDateNice($raw) {
     if (!$raw) return '-';
     $ts = strtotime($raw);
     return $ts === false ? '-' : date("d F Y", $ts);
 }
 
-/* Pastikan login */
+/* =====================================================
+   🔒 Pastikan user sudah login
+===================================================== */
 if (!isset($_SESSION['user_id'])) {
     die("Anda harus login terlebih dahulu.");
 }
+
 $role   = $_SESSION['role'] ?? '';
 $userId = intval($_SESSION['user_id']);
 
-/* 1️⃣ Ambil data peserta + nama unit langsung */
-if ($role === 'admin' && isset($_GET['id'])) {
-    $id = intval($_GET['id']);
-    $sqlP = "
-        SELECT p.*, u.nama_unit 
-        FROM peserta_pkl p
-        LEFT JOIN unit_pkl u ON p.unit_id = u.id
-        WHERE p.id = $id
-        LIMIT 1
-    ";
+/* =====================================================
+   🧾 1️⃣ Ambil data peserta + nama unit langsung
+===================================================== */
+if ($role === 'admin') {
+    // Admin bisa akses lewat ?user_id= atau ?id=
+    if (isset($_GET['user_id'])) {
+        $uid = intval($_GET['user_id']);
+        $sqlP = "
+            SELECT p.*, u.nama_unit 
+            FROM peserta_pkl p
+            LEFT JOIN unit_pkl u ON p.unit_id = u.id
+            WHERE p.user_id = $uid
+            LIMIT 1
+        ";
+    } elseif (isset($_GET['id'])) {
+        $id = intval($_GET['id']);
+        $sqlP = "
+            SELECT p.*, u.nama_unit 
+            FROM peserta_pkl p
+            LEFT JOIN unit_pkl u ON p.unit_id = u.id
+            WHERE p.id = $id
+            LIMIT 1
+        ";
+    } else {
+        die("Parameter ID tidak ditemukan.");
+    }
 } else {
+    // Jika user biasa (bukan admin)
     $sqlP = "
         SELECT p.*, u.nama_unit 
         FROM peserta_pkl p
@@ -45,9 +68,50 @@ if ($role === 'admin' && isset($_GET['id'])) {
         LIMIT 1
     ";
 }
+
+/* =====================================================
+   🧾 2️⃣ Eksekusi Query Peserta
+===================================================== */
 $resP = mysqli_query($conn, $sqlP) or die("Query Error: " . mysqli_error($conn));
 $part = mysqli_fetch_assoc($resP);
-if (!$part) die("Data peserta_pkl tidak ditemukan.");
+
+// Jika tidak ditemukan di peserta_pkl, coba cari di riwayat
+if (!$part) {
+    if ($role === 'admin' && isset($_GET['user_id'])) {
+        $uid = intval($_GET['user_id']);
+        $sqlR = "
+            SELECT r.*, u.nama_unit 
+            FROM riwayat_peserta_pkl r
+            LEFT JOIN unit_pkl u ON r.unit_id = u.id
+            WHERE r.user_id = $uid
+            LIMIT 1
+        ";
+    } elseif ($role === 'admin' && isset($_GET['id'])) {
+        $id = intval($_GET['id']);
+        $sqlR = "
+            SELECT r.*, u.nama_unit 
+            FROM riwayat_peserta_pkl r
+            LEFT JOIN unit_pkl u ON r.unit_id = u.id
+            WHERE r.id = $id
+            LIMIT 1
+        ";
+    } else {
+        $sqlR = "
+            SELECT r.*, u.nama_unit 
+            FROM riwayat_peserta_pkl r
+            LEFT JOIN unit_pkl u ON r.unit_id = u.id
+            WHERE r.user_id = $userId
+            LIMIT 1
+        ";
+    }
+
+    $resR = mysqli_query($conn, $sqlR) or die("Query Error Riwayat: " . mysqli_error($conn));
+    $part = mysqli_fetch_assoc($resR);
+
+    if (!$part) {
+        die("Data peserta_pkl atau riwayat_peserta_pkl tidak ditemukan.");
+    }
+}
 
 /* 🔒 Cek status peserta */
 $status = strtolower(trim($part['status'] ?? ''));

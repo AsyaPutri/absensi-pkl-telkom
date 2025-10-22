@@ -4,7 +4,7 @@ require('../../config/database.php');
 require(__DIR__ . '/fpdf/fpdf.php');
 require(__DIR__ . '/phpqrcode/qrlib.php');
 
-/* Helper */
+/* Helper (tetap) */
 function getFirstValue(array $row, array $candidates, $default = '') {
     foreach ($candidates as $k) {
         if (isset($row[$k]) && $row[$k] !== null && $row[$k] !== '') {
@@ -19,34 +19,92 @@ if (!isset($_SESSION['role']) || !isset($_SESSION['user_id'])) {
     die("Anda harus login terlebih dahulu.");
 }
 $role   = $_SESSION['role'];
-$userId = intval($_SESSION['user_id']);
+$meId   = intval($_SESSION['user_id']);
 
-/* Ambil data peserta + daftar_pkl + unit_pkl */
+// Ambil parameter dari URL (dukung user_id / riwayat_id / id)
+$param_user_id  = isset($_GET['user_id']) ? intval($_GET['user_id']) : null;
+$param_riwayat  = isset($_GET['riwayat_id']) ? intval($_GET['riwayat_id']) : null;
+$param_id       = isset($_GET['id']) ? intval($_GET['id']) : null;
+
+$data = null;
+
+/* Jika admin, prioritas: id -> user_id -> riwayat_id (tapi terima semua)
+   Jika bukan admin, ambil dari user session (user_id) */
 if ($role === 'admin') {
-    if (!isset($_GET['id'])) die("ID peserta tidak ditemukan. Admin harus memanggil ?id=ID_PESERTA");
-    $id = intval($_GET['id']);
-    $sql = "
-        SELECT p.*, d.tgl_mulai, d.tgl_selesai, d.durasi, u.nama_unit
-        FROM peserta_pkl p
-        LEFT JOIN daftar_pkl d ON p.email = d.email
-        LEFT JOIN unit_pkl u ON p.unit_id = u.id
-        WHERE p.id = $id
-        LIMIT 1
-    ";
+    // 1) coba id (peserta_pkl.id)
+    if ($param_id) {
+        $sql = "SELECT p.*, d.tgl_mulai, d.tgl_selesai, d.durasi, u.nama_unit
+                FROM peserta_pkl p
+                LEFT JOIN daftar_pkl d ON p.email = d.email
+                LEFT JOIN unit_pkl u ON p.unit_id = u.id
+                WHERE p.id = ?
+                LIMIT 1";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $param_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $data = $res->fetch_assoc();
+        $stmt->close();
+    }
+
+    // 2) kalau belum, coba user_id => cari di peserta_pkl berdasarkan user_id
+    if (!$data && $param_user_id) {
+        $sql = "SELECT p.*, d.tgl_mulai, d.tgl_selesai, d.durasi, u.nama_unit
+                FROM peserta_pkl p
+                LEFT JOIN daftar_pkl d ON p.email = d.email
+                LEFT JOIN unit_pkl u ON p.unit_id = u.id
+                WHERE p.user_id = ?
+                LIMIT 1";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $param_user_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $data = $res->fetch_assoc();
+        $stmt->close();
+    }
+
+    // 3) kalau belum, fallback cari di riwayat_peserta_pkl berdasarkan riwayat_id atau user_id
+    if (!$data) {
+        if ($param_riwayat) {
+            $sql = "SELECT r.*, u.nama_unit FROM riwayat_peserta_pkl r LEFT JOIN unit_pkl u ON r.unit_id=u.id WHERE r.id = ? LIMIT 1";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $param_riwayat);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $data = $res->fetch_assoc();
+            $stmt->close();
+        } elseif ($param_user_id) {
+            $sql = "SELECT r.*, u.nama_unit FROM riwayat_peserta_pkl r LEFT JOIN unit_pkl u ON r.unit_id=u.id WHERE r.user_id = ? LIMIT 1";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $param_user_id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $data = $res->fetch_assoc();
+            $stmt->close();
+        }
+    }
+
+    if (!$data) {
+        die("ID peserta tidak ditemukan. Admin harus memanggil ?id=ID_PESERTA atau ?user_id=USER_ID atau ?riwayat_id=ID_RIWAYAT");
+    }
+
 } else {
-    $sql = "
-        SELECT p.*, d.tgl_mulai, d.tgl_selesai, d.durasi, u.nama_unit
-        FROM peserta_pkl p
-        LEFT JOIN daftar_pkl d ON p.email = d.email
-        LEFT JOIN unit_pkl u ON p.unit_id = u.id
-        WHERE p.user_id = $userId
-        LIMIT 1
-    ";
+    // user biasa: hanya boleh cetak untuk dirinya sendiri (pakai session user_id)
+    $sql = "SELECT p.*, d.tgl_mulai, d.tgl_selesai, d.durasi, u.nama_unit
+            FROM peserta_pkl p
+            LEFT JOIN daftar_pkl d ON p.email = d.email
+            LEFT JOIN unit_pkl u ON p.unit_id = u.id
+            WHERE p.user_id = ?
+            LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $meId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $data = $res->fetch_assoc();
+    $stmt->close();
+
+    if (!$data) die("Data peserta tidak ditemukan.");
 }
-$result = mysqli_query($conn, $sql);
-if (!$result) die("Query Error: " . mysqli_error($conn));
-$data = mysqli_fetch_assoc($result);
-if (!$data) die("Data peserta tidak ditemukan.");
 
 /* 🔒 Cek status peserta */
 $status = strtolower(trim($data['status'] ?? ''));

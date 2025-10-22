@@ -7,51 +7,74 @@ checkRole('admin');
 include "../../config/database.php";
 
 // ============================
-// Ambil filter dari GET
+// Ambil filter dari URL
 // ============================
-$unit = isset($_GET['unit']) ? $_GET['unit'] : 'all';
-$q = isset($_GET['q']) ? trim($_GET['q']) : '';
+$status_filter = $_GET['status'] ?? 'all';
+$filter_unit   = $_GET['unit'] ?? 'all';
+$q             = trim($_GET['q'] ?? '');
 
+// ============================
 // Ambil daftar unit untuk dropdown
+// ============================
 $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
 
 // ============================
 // Query Data Riwayat
 // ============================
-$sql = "SELECT 
-          r.*, 
-          u.nama_unit
-        FROM riwayat_peserta_pkl r
-        LEFT JOIN unit_pkl u ON r.unit_id = u.id
-        WHERE 1=1";
+$sql = "
+  SELECT 
+    r.*, 
+    u.nama_unit
+  FROM riwayat_peserta_pkl r
+  LEFT JOIN unit_pkl u ON r.unit_id = u.id
+  WHERE 1=1
+";
 
 $params = [];
 $types = "";
 
-// Filter unit
-if ($unit !== 'all' && $unit !== '') {
-    $sql .= " AND r.unit_id = ?";
-    $params[] = $unit;
-    $types .= "i";
+// ============================
+// Filter berdasarkan unit
+// ============================
+if ($filter_unit !== 'all') {
+  $sql .= " AND r.unit_id = ?";
+  $params[] = $filter_unit;
+  $types .= "i";
 }
 
+// ============================
+// Filter berdasarkan status
+// ============================
+if ($status_filter === 'selesai') {
+  $sql .= " AND r.status = 'selesai'";
+} elseif ($status_filter === 'keluar') {
+  $sql .= " AND r.status = 'keluar'";
+}
+
+// ============================
 // Pencarian (nama, NIS, instansi, jurusan)
+// ============================
 if ($q !== '') {
-    $sql .= " AND (r.nama LIKE ? OR r.nis_npm LIKE ? OR r.instansi_pendidikan LIKE ? OR r.jurusan LIKE ?)";
-    $like = '%' . $q . '%';
-    $params = array_merge($params, [$like, $like, $like, $like]);
-    $types .= "ssss";
+  $sql .= " AND (r.nama LIKE ? OR r.nis_npm LIKE ? OR r.instansi_pendidikan LIKE ? OR r.jurusan LIKE ?)";
+  $like = "%$q%";
+  $params = array_merge($params, [$like, $like, $like, $like]);
+  $types .= "ssss";
 }
 
 $sql .= " ORDER BY r.tgl_selesai DESC";
 
+// ============================
+// Eksekusi Query
+// ============================
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
-    die("Query gagal disiapkan: " . $conn->error);
+  die("Query gagal disiapkan: " . $conn->error);
 }
-if ($types !== "") {
-    $stmt->bind_param($types, ...$params);
+
+if (!empty($params)) {
+  $stmt->bind_param($types, ...$params);
 }
+
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
@@ -91,6 +114,7 @@ $result = $stmt->get_result();
       box-shadow: 4px 0 15px rgba(0,0,0,0.15);
       transition: left 0.3s ease;
     }
+
     .sidebar a {
       color: #e0e0e0 !important;
       border-radius: 12px;
@@ -101,6 +125,7 @@ $result = $stmt->get_result();
       text-decoration: none;
       transition: 0.3s;
     }
+
     .sidebar a.active,
     .sidebar a:hover {
       background-color: rgba(255,255,255,0.15);
@@ -118,6 +143,15 @@ $result = $stmt->get_result();
       color: white;
       text-align: center;
       vertical-align: middle;
+    }
+
+    /* Spacing fix antara filter dan tabel */
+    .filter-card {
+      margin-bottom: 2rem !important;
+    }
+
+    .card.table-card {
+      margin-top: 1rem !important;
     }
 
     @media (max-width: 768px) {
@@ -152,175 +186,225 @@ $result = $stmt->get_result();
     <div class="header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
       <div>
         <h4 class="mb-0 fw-bold text-danger">Riwayat Peserta PKL</h4>
-        <small class="text-muted">Filter, cari, dan lihat data peserta yang sudah selesai</small>
+        <small class="text-muted">Filter, cari, dan lihat data peserta yang sudah selesai atau keluar</small>
       </div>
       <img src="../assets/img/logo_telkom.png" style="height:72px" alt="Telkom Logo">
     </div>
 
-    <!-- Filter -->
-    <div class="card my-3 mx-3 shadow-sm">
-      <div class="card-body">
-        <form method="get" class="row g-2 align-items-end">
-          <div class="col-md-3">
-            <label class="form-label small">Unit</label>
-            <select name="unit" class="form-select form-select-sm">
-              <option value="all" <?= ($unit === 'all') ? 'selected' : '' ?>>Semua Unit</option>
-              <?php
-              $unitResult->data_seek(0);
-              while ($u = $unitResult->fetch_assoc()):
-                $sel = ($unit == $u['id']) ? 'selected' : '';
-              ?>
-                <option value="<?= $u['id'] ?>" <?= $sel ?>><?= htmlspecialchars($u['nama_unit']) ?></option>
-              <?php endwhile; ?>
-            </select>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label small">Cari (nama / NIS / Instansi)</label>
-            <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" class="form-control form-control-sm" placeholder="Ketik kata kunci...">
-          </div>
-
-          <div class="col-md-3 d-flex gap-2">
-            <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-filter"></i> Terapkan</button>
-            <a href="riwayat_peserta.php" class="btn btn-outline-secondary btn-sm">Reset</a>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Table -->
-    <div class="card mx-3 shadow-sm mb-4">
-      <div class="card-header bg-white">
-        <h5 class="fw-bold text-danger mb-0"><i class="bi bi-clock-history me-2"></i> Data Riwayat Peserta</h5>
-      </div>
-      <div class="card-body table-responsive">
-        <table class="table table-bordered table-hover align-middle text-center">
-          <thead class="table-header-red">
-            <tr>
-              <th>No</th>
-              <th>Nama</th>
-              <th>NIS/NPM</th>
-              <th>Instansi</th>
-              <th>Jurusan</th>
-              <th>Unit</th>
-              <th>Periode</th>
-              <th>Status</th>
-              <th>Rincian</th>
-              <th>Cetak Surat & Sertifikat </th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if ($result && $result->num_rows > 0): $no = 1; ?>
-              <?php while ($row = $result->fetch_assoc()): ?>
-                <tr>
-                  <td><?= $no++ ?></td>
-                  <td><?= htmlspecialchars($row['nama']) ?></td>
-                  <td><?= htmlspecialchars($row['nis_npm']) ?></td>
-                  <td><?= htmlspecialchars($row['instansi_pendidikan']) ?></td>
-                  <td><?= htmlspecialchars($row['jurusan']) ?></td>
-                  <td><?= htmlspecialchars($row['nama_unit']) ?></td>
-                  <td>
-                    <?= date('d M Y', strtotime($row['tgl_mulai'])) ?> - 
-                    <?= date('d M Y', strtotime($row['tgl_selesai'])) ?>
-                  </td>
-                  <td><span class="badge bg-secondary"><?= htmlspecialchars($row['status']) ?></span></td>
-                  <td>
-                    <button class="btn btn-sm btn-outline-primary" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#detailModal" 
-                            data-row='<?= json_encode($row, JSON_HEX_APOS|JSON_HEX_QUOT) ?>'>
-                      Rincian
-                    </button>
-                  </td>
-                  <td>
-                    <div class="d-flex justify-content-center gap-2 flex-wrap">
-                      <a href="../dokumen/surat_selesai.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-danger">
-                        <i class="bi bi-file-earmark-text"></i>
-                      </a>
-                      <a href="../dokumen/sertifikat.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-outline-danger">
-                        <i class="bi bi-award"></i>
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              <?php endwhile; ?>
-            <?php else: ?>
-              <tr><td colspan="10" class="text-muted text-center">Tidak ada data riwayat peserta.</td></tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Rincian -->
-  <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content shadow-lg border-0">
-        <div class="modal-header bg-danger text-white">
-          <h5 class="modal-title fw-bold">
-            <i class="bi bi-person-badge me-2"></i>Rincian Peserta PKL
-          </h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+  <!-- Filter Section -->
+  <div class="card shadow-sm border-0 mt-4 mx-3 filter-card">
+    <div class="card-body py-4">
+      <form method="GET" class="row g-3 align-items-end">
+        <!-- Filter Unit -->
+        <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+          <label for="unit" class="form-label fw-semibold text-secondary">Pilih Unit</label>
+          <select name="unit" id="unit" class="form-select shadow-sm border-0 bg-light" onchange="this.form.submit()">
+            <option value="all" <?= ($filter_unit == 'all') ? 'selected' : '' ?>>Semua Unit</option>
+            <?php while ($unit = $unitResult->fetch_assoc()): ?>
+              <option value="<?= $unit['id']; ?>" <?= ($filter_unit == $unit['id']) ? 'selected' : '' ?>>
+                <?= htmlspecialchars($unit['nama_unit']); ?>
+              </option>
+            <?php endwhile; ?>
+          </select>
         </div>
 
-        <div class="modal-body" id="detailContent">
-          <!-- Konten dinamis via JS -->
+        <!-- Pencarian -->
+        <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+          <label for="q" class="form-label fw-semibold text-secondary">Cari (Nama / NIS / Instansi / Jurusan)</label>
+          <div class="input-group shadow-sm">
+            <span class="input-group-text bg-danger text-white border-0">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" id="q" name="q" value="<?= htmlspecialchars($q) ?>" 
+                  class="form-control border-0 bg-light"
+                  placeholder="Ketik kata kunci...">
+          </div>
         </div>
 
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">
-            <i class="bi bi-x-circle me-1"></i> Tutup
+        <!-- Filter Status -->
+        <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+          <label for="status" class="form-label fw-semibold text-secondary">Status Peserta</label>
+          <select name="status" id="status" class="form-select shadow-sm border-0 bg-light" onchange="this.form.submit()">
+            <option value="all" <?= $status_filter == 'all' ? 'selected' : '' ?>>Semua Status</option>
+            <option value="selesai" <?= $status_filter == 'selesai' ? 'selected' : '' ?>>Selesai</option>
+            <option value="keluar" <?= $status_filter == 'keluar' ? 'selected' : '' ?>>Keluar</option>
+          </select>
+        </div>
+
+        <!-- Tombol Aksi -->
+        <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12 d-flex gap-2">
+          <button type="submit" class="btn btn-danger flex-fill shadow-sm">
+            <i class="bi bi-filter-circle me-1"></i> Filter
           </button>
+          <a href="riwayat_peserta.php" class="btn btn-outline-secondary flex-fill shadow-sm">
+            <i class="bi bi-arrow-repeat me-1"></i> Reset
+          </a>
         </div>
-      </div>
+      </form>
     </div>
   </div>
 
+  <!-- Data Riwayat Peserta -->
+  <div class="card mx-3 shadow-sm mb-4 table-card">
+    <div class="card-header bg-white">
+      <h5 class="fw-bold text-danger mb-0">
+        <i class="bi bi-clock-history me-2"></i> Data Riwayat Peserta
+      </h5>
+    </div>
+
+    <div class="card-body table-responsive">
+      <table class="table table-bordered table-hover align-middle text-center">
+        <thead class="table-header-red">
+          <tr>
+            <th>No</th>
+            <th>Nama</th>
+            <th>NIS/NPM</th>
+            <th>Instansi</th>
+            <th>Jurusan</th>
+            <th>Email</th>
+            <th>No HP</th>
+            <th>Unit</th>
+            <th>Periode</th>
+            <th>Status</th>
+            <th>Aksi</th>
+            <th>Cetak Surat & Sertifikat</th>
+            <th>Hapus Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if ($result && $result->num_rows > 0): $no = 1; ?>
+            <?php while ($row = $result->fetch_assoc()): ?>
+              <tr>
+                <td><?= $no++ ?></td>
+                <td><?= htmlspecialchars($row['nama']) ?></td>
+                <td><?= htmlspecialchars($row['nis_npm']) ?></td>
+                <td><?= htmlspecialchars($row['instansi_pendidikan']) ?></td>
+                <td><?= htmlspecialchars($row['jurusan']) ?></td>
+                <td><?= htmlspecialchars($row['email']) ?></td>
+                <td><?= htmlspecialchars($row['no_hp']) ?></td>
+                <td><?= htmlspecialchars($row['nama_unit']) ?></td>
+                <td>
+                  <?= $row['tgl_mulai'] ? date('d M Y', strtotime($row['tgl_mulai'])) : '-' ?> -
+                  <?= $row['tgl_selesai'] ? date('d M Y', strtotime($row['tgl_selesai'])) : '-' ?>
+                </td>
+                <td><span class="badge bg-secondary"><?= htmlspecialchars($row['status']) ?></span></td>
+                <td>
+                  <form method="POST" action="keluar_riwayat_peserta.php" class="form-keluar">
+                    <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                    <button type="button" class="btn btn-sm btn-danger btn-keluar">
+                      <i class="bi bi-box-arrow-right"></i> Keluar
+                    </button>
+                  </form>
+                </td>
+                <td>
+                  <?php
+                    if (!empty($row['user_id'])) {
+                        $suratQuery = 'user_id=' . intval($row['user_id']);
+                        $sertQuery  = 'user_id=' . intval($row['user_id']);
+                    } else {
+                        $suratQuery = 'riwayat_id=' . intval($row['id']);
+                        $sertQuery  = 'riwayat_id=' . intval($row['id']);
+                    }
+                  ?>
+                  <div class="d-flex justify-content-center gap-2 flex-wrap">
+                    <a href="../dokumen/surat_selesai.php?<?= $suratQuery ?>" class="btn btn-sm btn-danger" target="_blank" title="Cetak Surat Selesai">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </a>
+                    <a href="../dokumen/sertifikat.php?<?= $sertQuery ?>" class="btn btn-sm btn-outline-danger" target="_blank" title="Cetak Sertifikat">
+                      <i class="bi bi-award"></i>
+                    </a>
+                  </div>
+                </td>
+                <td>
+                  <form method="POST" action="hapus_riwayat_peserta.php" class="form-hapus">
+                    <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-hapus">
+                      <i class="bi bi-trash"></i> Hapus
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            <?php endwhile; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="13" class="text-muted text-center">Tidak ada data riwayat peserta.</td>
+            </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+  <!-- Script -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <script>
-  document.getElementById('detailModal').addEventListener('show.bs.modal', function (event) {
-    const btn = event.relatedTarget;
-    const row = JSON.parse(btn.getAttribute('data-row'));
+  document.addEventListener('DOMContentLoaded', function () {
+    // Konfirmasi keluar akun
+    document.querySelectorAll('.btn-keluar').forEach(button => {
+      button.addEventListener('click', function () {
+        const form = this.closest('.form-keluar');
+        Swal.fire({
+          title: 'Yakin ingin menghapus akun peserta PKL ini?',
+          text: 'Akun dan data login anak PKL akan dihapus secara permanen dari sistem!',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#6c757d',
+          confirmButtonText: 'Ya, hapus akun!',
+          cancelButtonText: 'Batal',
+          reverseButtons: true,
+        }).then((result) => {
+          if (result.isConfirmed) form.submit();
+        });
+      });
+    });
 
-    let html = `
-      <div class="row mb-2">
-        <div class="col-md-6">
-          <p><strong>Nama:</strong> ${row.nama ?? '-'}</p>
-          <p><strong>NIS/NPM:</strong> ${row.nis_npm ?? '-'}</p>
-          <p><strong>Email:</strong> ${row.email ?? '-'}</p>
-          <p><strong>No HP:</strong> ${row.no_hp ?? '-'}</p>
-          <p><strong>Unit:</strong> ${row.nama_unit ?? '-'}</p>
-        </div>
-        <div class="col-md-6">
-          <p><strong>Instansi:</strong> ${row.instansi_pendidikan ?? '-'}</p>
-          <p><strong>Jurusan:</strong> ${row.jurusan ?? '-'}</p>
-          <p><strong>Semester:</strong> ${row.semester ?? '-'}</p>
-          <p><strong>Durasi:</strong> ${row.durasi ?? '-'}</p>
-        </div>
-      </div>
-      <hr>
-      <p><strong>Periode:</strong> ${new Date(row.tgl_mulai).toLocaleDateString()} – ${new Date(row.tgl_selesai).toLocaleDateString()}</p>
+    // Konfirmasi hapus permanen
+    document.querySelectorAll('.btn-hapus').forEach(button => {
+      button.addEventListener('click', function () {
+        const form = this.closest('.form-hapus');
+        Swal.fire({
+          title: 'Hapus data riwayat peserta?',
+          text: 'Data ini akan dihapus secara permanen dari sistem dan tidak bisa dikembalikan!',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#6c757d',
+          confirmButtonText: 'Ya, hapus permanen!',
+          cancelButtonText: 'Batal',
+          reverseButtons: true,
+        }).then((result) => {
+          if (result.isConfirmed) form.submit();
+        });
+      });
+    });
 
-      <hr class="my-3">
-      <h6 class="fw-bold text-danger"><i class="bi bi-file-earmark-text me-2"></i> Dokumen</h6>
-      <div class="row text-center">
-        <div class="col-md-4 mb-2">
-          <p class="mb-1"><strong>Foto Formal</strong></p>
-          <a href="../../uploads/${row.upload_foto ?? '#'}" target="_blank" class="btn btn-sm btn-outline-primary">Lihat</a>
-        </div>
-        <div class="col-md-4 mb-2">
-          <p class="mb-1"><strong>Kartu Identitas</strong></p>
-          <a href="../../uploads/${row.upload_kartu_identitas ?? '#'}" target="_blank" class="btn btn-sm btn-outline-primary">Lihat</a>
-        </div>
-        <div class="col-md-4 mb-2">
-          <p class="mb-1"><strong>Surat Permohonan PKL</strong></p>
-          <a href="../../uploads/${row.upload_surat_permohonan ?? '#'}" target="_blank" class="btn btn-sm btn-outline-primary">Lihat</a>
-        </div>
-      </div>
-    `;
-    document.getElementById('detailContent').innerHTML = html;
+    // Notifikasi sukses
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('logout_success')) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Akun peserta berhasil dihapus!',
+        text: 'Status peserta telah berubah menjadi "keluar".',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    }
+    if (urlParams.has('hapus_success')) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Data riwayat berhasil dihapus!',
+        text: 'Data peserta telah dihapus permanen dari sistem.',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    }
   });
-</script>
+  </script>
 </body>
 </html>

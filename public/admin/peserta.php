@@ -2,15 +2,20 @@
 // ============================
 // Include file authentication & database
 // ============================
-include "../../includes/auth.php"; 
-checkRole('admin'); 
+include "../../includes/auth.php";
+checkRole('admin');
 include "../../config/database.php";
 
-// daftar unit untuk dropdown filter
-$unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
+// ============================
+// Ambil filter dari URL
+// ============================
+$status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
+$filter_unit   = isset($_GET['unit']) ? $_GET['unit'] : 'all';
 
-// filter unit dari URL 
-$filter_unit = isset($_GET['unit']) ? $_GET['unit'] : 'all';
+// ============================
+// Daftar unit untuk dropdown filter
+// ============================
+$unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
 
 // ============================
 // Ambil Data Peserta PKL
@@ -18,13 +23,27 @@ $filter_unit = isset($_GET['unit']) ? $_GET['unit'] : 'all';
 $sql = "
   SELECT 
     p.id AS peserta_id,
-    p.nama, p.email, p.nis_npm, p.no_hp,
-    p.instansi_pendidikan, p.jurusan,
-    p.tgl_mulai, p.tgl_selesai, p.status,
-    d.skill, d.durasi, d.alamat,
-    d.upload_foto, d.upload_kartu_identitas, d.upload_surat_permohonan,
-    d.memiliki_laptop, d.bersedia_unit_manapun, d.nomor_surat_permohonan,
-    d.ipk_nilai_ratarata, d.semester, d.tgl_daftar,
+    p.nama, 
+    p.email, 
+    p.nis_npm, 
+    p.no_hp,
+    p.instansi_pendidikan, 
+    p.jurusan,
+    p.tgl_mulai, 
+    p.tgl_selesai, 
+    p.status,
+    d.skill, 
+    d.durasi, 
+    d.alamat,
+    d.upload_foto, 
+    d.upload_kartu_identitas, 
+    d.upload_surat_permohonan,
+    d.memiliki_laptop, 
+    d.bersedia_unit_manapun, 
+    d.nomor_surat_permohonan,
+    d.ipk_nilai_ratarata, 
+    d.semester, 
+    d.tgl_daftar,
     u.nama_unit
   FROM peserta_pkl p
   LEFT JOIN daftar_pkl d ON p.email = d.email
@@ -32,14 +51,48 @@ $sql = "
   WHERE 1=1
 ";
 
+// ============================
+// Filter berdasarkan unit
+// ============================
 if ($filter_unit !== 'all') {
   $sql .= " AND p.unit_id = '" . $conn->real_escape_string($filter_unit) . "'";
 }
 
+// ============================
+// Filter berdasarkan status
+// ============================
+if ($status_filter === 'berlangsung') {
+  $sql .= " AND (p.status = 'berlangsung' OR CURDATE() <= p.tgl_selesai)";
+} elseif ($status_filter === 'selesai') {
+  $sql .= " AND (p.status = 'selesai' OR CURDATE() > p.tgl_selesai)";
+}
+
+// Inisialisasi variabel biar gak undefined
+$q = isset($_GET['q']) ? trim($_GET['q']) : '';
+$params = [];
+$types = '';
+
+// Pencarian (nama, NIS, instansi, jurusan)
+if ($q !== '') {
+  $sql .= " AND (r.nama LIKE ? OR r.nis_npm LIKE ? OR r.instansi_pendidikan LIKE ? OR r.jurusan LIKE ?)";
+  $like = '%' . $q . '%';
+  $params = array_merge($params, [$like, $like, $like, $like]);
+  $types .= "ssss";
+}
+
+// ============================
+// Urutkan berdasarkan tanggal mulai
+// ============================
 $sql .= " ORDER BY p.tgl_mulai DESC";
+
+// ============================
+// Eksekusi query
+// ============================
 $result = $conn->query($sql);
 
+// ============================
 // Nama file aktif untuk sidebar highlight
+// ============================
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 <!DOCTYPE html>
@@ -158,6 +211,30 @@ $current_page = basename($_SERVER['PHP_SELF']);
       .filter-card { text-align: center; }
       .filter-label { margin-bottom: 6px; }
     }
+    .filter-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      border-radius: 12px;
+      border: 1px solid #eee;
+    }
+
+    .filter-card .form-label {
+      font-size: 0.9rem;
+      color: #444;
+    }
+
+    .filter-card select {
+      border-radius: 10px;
+    }
+
+    .filter-card button {
+      border-radius: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .filter-card .btn {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -184,199 +261,249 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
   <!-- Main Content -->
   <div class="main-content">
-    <!-- Header -->
-    <?php if (isset($_GET['success'])): ?>
-      <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i>
-        Peserta magang berhasil diselesaikan!
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+
+  <!-- Alert Success / Error -->
+  <?php if (isset($_GET['success'])): ?>
+    <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+      <i class="bi bi-check-circle-fill me-2"></i>
+      Peserta magang berhasil diselesaikan!
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <?php elseif (isset($_GET['error'])): ?>
+    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      Terjadi kesalahan saat memperbarui status peserta.
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <?php endif; ?>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="d-flex align-items-center">
+      <button class="btn btn-outline-secondary d-md-none me-2" id="menuToggle">
+        <i class="bi bi-list"></i>
+      </button>
+      <div>
+        <h4 class="mb-0 fw-bold text-danger">Data Peserta PKL</h4>
+        <small class="text-muted">Sistem Manajemen Praktik Kerja Lapangan</small>
       </div>
-    <?php elseif (isset($_GET['error'])): ?>
-      <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        Terjadi kesalahan saat memperbarui status peserta.
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-    <?php endif; ?>
-    <div class="header">
-      <div class="d-flex align-items-center">
-        <button class="btn btn-outline-secondary d-md-none me-2" id="menuToggle">
-          <i class="bi bi-list"></i>
-        </button>
-        <div>
-          <h4 class="mb-0 fw-bold text-danger">Data Peserta PKL</h4>
-          <small class="text-muted">Sistem Manajemen Praktik Kerja Lapangan</small>
+    </div>
+    <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
+  </div>
+
+  <!-- Filter Section -->
+  <div class="card shadow-sm border-0 mt-4 mx-3 filter-card">
+    <div class="card-body py-4">
+      <form method="GET" class="row g-3 align-items-end">
+        
+        <!-- Filter Unit -->
+        <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+          <label for="unit" class="form-label fw-semibold text-secondary">Pilih Unit</label>
+          <select name="unit" id="unit" class="form-select shadow-sm border-0 bg-light"
+                  onchange="this.form.submit()">
+            <option value="all" <?= ($filter_unit == 'all') ? 'selected' : '' ?>>Semua Unit</option>
+            <?php
+            $unitResult->data_seek(0);
+            while ($unit = $unitResult->fetch_assoc()): ?>
+              <option value="<?= $unit['id']; ?>" <?= ($filter_unit == $unit['id']) ? 'selected' : '' ?>>
+                <?= htmlspecialchars($unit['nama_unit']); ?>
+              </option>
+            <?php endwhile; ?>
+          </select>
         </div>
-      </div>
-      <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
-    </div>
 
-    <!-- Filter Unit -->
-    <div class="card filter-card mt-4 mx-3">
-      <div class="card-body">
-        <form method="GET" class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <div class="d-flex align-items-center gap-2 flex-grow-1 flex-wrap">
-            <label for="unit" class="filter-label mb-0">Filter Unit:</label>
-            <select name="unit" id="unit" class="form-select form-select-sm shadow-sm w-auto" onchange="this.form.submit()">
-              <option value="all" <?= ($filter_unit == 'all') ? 'selected' : '' ?>>Semua Unit</option>
-              <?php
-              $unitResult->data_seek(0);
-              while($unit = $unitResult->fetch_assoc()): ?>
-                <option value="<?= $unit['id']; ?>" <?= ($filter_unit == $unit['id']) ? 'selected' : '' ?>>
-                  <?= htmlspecialchars($unit['nama_unit']); ?>
-                </option>
-              <?php endwhile; ?>
-            </select>
+        <!-- Pencarian -->
+        <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+          <label for="q" class="form-label fw-semibold text-secondary">Cari (Nama / NIS / Instansi / Jurusan)</label>
+          <div class="input-group shadow-sm">
+            <span class="input-group-text bg-danger text-white border-0">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" id="q" name="q" value="<?= htmlspecialchars($q) ?>" 
+                  class="form-control border-0 bg-light"
+                  placeholder="Ketik kata kunci...">
           </div>
-          <div class="d-flex gap-2 flex-wrap">
-            <button type="submit" class="btn btn-danger btn-sm shadow-sm">
-              <i class="bi bi-filter-circle"></i> Terapkan
-            </button>
-            <a href="peserta.php" class="btn btn-outline-secondary btn-sm shadow-sm">
-              <i class="bi bi-arrow-repeat"></i> Reset
-            </a>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
 
-    <!-- Data Peserta PKL -->
-    <div class="card mt-4 shadow-sm mx-3 mb-4">
-      <div class="card-header bg-white">
-        <h5 class="mb-0 text-danger">
-          <i class="bi bi-people-fill me-2 text-danger"></i> Data Peserta PKL
-        </h5>
-      </div>
-      <div class="card-body table-responsive">
-        <table class="table table-bordered table-hover align-middle">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Nama</th>
-              <th>Instansi</th>
-              <th>Jurusan</th>
-              <th>NIS/NPM</th>
-              <th>Email</th>
-              <th>No.HP</th>
-              <th>Unit</th>
-              <th>Rincian</th>
-              <th>Status</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if($result && $result->num_rows > 0): $no=1; ?>
-              <?php while($row = $result->fetch_assoc()): ?>
-                <tr>
-                  <td class="text-center"><?= $no++ ?></td>
-                  <td><?= htmlspecialchars($row['nama']) ?></td>
-                  <td><?= htmlspecialchars($row['instansi_pendidikan']) ?></td>
-                  <td><?= htmlspecialchars($row['jurusan']) ?></td>
-                  <td><?= htmlspecialchars($row['nis_npm']) ?></td>
-                  <td><?= htmlspecialchars($row['email']) ?></td>
-                  <td><?= htmlspecialchars($row['no_hp']) ?></td>
-                  <td><?= htmlspecialchars($row['nama_unit']) ?></td>
+        <!-- Filter Status -->
+        <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+          <label for="status" class="form-label fw-semibold text-secondary">Status Peserta</label>
+          <select name="status" id="status" class="form-select shadow-sm border-0 bg-light"
+                  onchange="this.form.submit()">
+            <option value="all" <?= $status_filter == 'all' ? 'selected' : '' ?>>Semua Status</option>
+            <option value="berlangsung" <?= $status_filter == 'berlangsung' ? 'selected' : '' ?>>Berlangsung</option>
+            <option value="selesai" <?= $status_filter == 'selesai' ? 'selected' : '' ?>>Selesai</option>
+          </select>
+        </div>
 
-                  <td class="text-center">
-                    <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal<?= $row['peserta_id']; ?>">
-                      🔍
-                    </button>
-                  </td>
+        <!-- Tombol Aksi -->
+        <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12 d-flex gap-2">
+          <button type="submit" class="btn btn-danger flex-fill shadow-sm">
+            <i class="bi bi-filter-circle me-1"></i> Filter
+          </button>
+          <a href="peserta.php" class="btn btn-outline-secondary flex-fill shadow-sm">
+            <i class="bi bi-arrow-repeat me-1"></i> Reset
+          </a>
+        </div>
 
-                  <td class="text-center">
-                    <?php if($row['status']=='selesai' || date('Y-m-d') > $row['tgl_selesai']): ?>
-                      <span class="badge bg-secondary">Selesai</span>
-                    <?php else: ?>
-                      <span class="badge bg-success">Berlangsung</span>
-                    <?php endif; ?>
-                  </td>
-
-                  <td class="text-center">
-                    <?php if($row['status']=='berlangsung' && date('Y-m-d') <= $row['tgl_selesai']): ?>
-                      <form action="ubah_status.php" method="POST" style="display:inline;">
-                        <input type="hidden" name="id" value="<?= $row['peserta_id'] ?>">
-                        <button type="submit" name="selesai" class="btn btn-sm btn-warning">
-                          <i class="bi bi-check2-circle"></i> Selesai
-                        </button>
-                      </form>
-                    <?php endif; ?>
-                  </td>
-                </tr>
-
-                <!-- Modal Detail Peserta -->
-                <div class="modal fade" id="detailModal<?= $row['peserta_id']; ?>" tabindex="-1" aria-hidden="true">
-                  <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                      <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">Rincian Peserta: <?= htmlspecialchars($row['nama']); ?></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                      </div>
-                      <div class="modal-body">
-                        <div class="row">
-                          <div class="col-md-6">
-                            <p><strong>Tanggal Daftar:</strong> <?= htmlspecialchars($row['tgl_daftar']); ?></p>
-                            <p><strong>Nama:</strong> <?= htmlspecialchars($row['nama']); ?></p>
-                            <p><strong>Email:</strong> <?= htmlspecialchars($row['email']); ?></p>
-                            <p><strong>No HP:</strong> <?= htmlspecialchars($row['no_hp']); ?></p>
-                            <p><strong>NIS/NPM:</strong> <?= htmlspecialchars($row['nis_npm']); ?></p>
-                            <p><strong>Instansi:</strong> <?= htmlspecialchars($row['instansi_pendidikan']); ?></p>
-                            <p><strong>Jurusan:</strong> <?= htmlspecialchars($row['jurusan']); ?></p>
-                            <p><strong>Semester:</strong> <?= htmlspecialchars($row['semester']); ?></p>
-                          </div>
-                          <div class="col-md-6">
-                            <p><strong>IPK/Nilai Rata-rata:</strong> <?= htmlspecialchars($row['ipk_nilai_ratarata']); ?></p>
-                            <p><strong>Memiliki Laptop:</strong> <?= htmlspecialchars($row['memiliki_laptop']); ?></p>
-                            <p><strong>Bersedia Unit Manapun:</strong> <?= htmlspecialchars($row['bersedia_unit_manapun']); ?></p>
-                            <p><strong>Durasi:</strong> <?= htmlspecialchars($row['durasi']); ?></p>
-                            <p><strong>Nomor Surat Permohonan PKL:</strong> <?= htmlspecialchars($row['nomor_surat_permohonan']); ?></p>
-                            <p><strong>Skill:</strong> <?= htmlspecialchars($row['skill']); ?></p>
-                            <p><strong>Unit:</strong> <?= htmlspecialchars($row['nama_unit']); ?></p>
-                          </div>
-                        </div>
-                        <hr>
-                        <p><strong>Alamat:</strong> <?= htmlspecialchars($row['alamat']); ?></p>
-                        <p><strong>Periode:</strong> <?= htmlspecialchars($row['tgl_mulai']); ?> – <?= htmlspecialchars($row['tgl_selesai']); ?></p>
-
-                        <div class="row g-3 mt-2">
-                          <div class="col-md-4">
-                            <p><strong>Foto Formal</strong></p>
-                            <a href="../../uploads/Foto_daftarpkl/<?= htmlspecialchars($row['upload_foto']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
-                          </div>
-                          <div class="col-md-4">
-                            <p><strong>Kartu Pelajar / KTM</strong></p>
-                            <a href="../../uploads/Foto_Kartuidentitas/<?= htmlspecialchars($row['upload_kartu_identitas']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
-                          </div>
-                          <div class="col-md-4">
-                            <p><strong>Surat Permohonan PKL</strong></p>
-                            <a href="../../uploads/Surat_Permohonan/<?= htmlspecialchars($row['upload_surat_permohonan']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
-                          </div>
-                        </div>
-                        <hr>
-                        <div class="text-center mt-3">
-                          <a href="id_card/generate_idcard.php?id=<?= $row['peserta_id']; ?>" target="_blank" class="btn btn-danger">
-                            <i class="bi bi-printer"></i> Cetak ID Card
-                          </a>
-                        </div>
-                      </div>
-                      <div class="modal-footer">
-                        <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              <?php endwhile; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="12" class="text-center text-muted">Belum ada peserta PKL</td>
-              </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
-      </div>
+      </form>
     </div>
   </div>
 
+
+  <!-- Data Peserta PKL -->
+  <div class="card mt-4 shadow-sm mx-3 mb-4">
+    <div class="card-header bg-white">
+      <h5 class="mb-0 text-danger">
+        <i class="bi bi-people-fill me-2 text-danger"></i> Data Peserta PKL
+      </h5>
+    </div>
+
+    <div class="card-body table-responsive">
+      <table class="table table-bordered table-hover align-middle">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Nama</th>
+            <th>Instansi</th>
+            <th>Jurusan</th>
+            <th>NIS/NPM</th>
+            <th>Email</th>
+            <th>No.HP</th>
+            <th>Unit</th>
+            <th>Rincian</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if ($result && $result->num_rows > 0): $no = 1; ?>
+            <?php while ($row = $result->fetch_assoc()): ?>
+              <tr>
+                <td class="text-center"><?= $no++ ?></td>
+                <td><?= htmlspecialchars($row['nama']) ?></td>
+                <td><?= htmlspecialchars($row['instansi_pendidikan']) ?></td>
+                <td><?= htmlspecialchars($row['jurusan']) ?></td>
+                <td><?= htmlspecialchars($row['nis_npm']) ?></td>
+                <td><?= htmlspecialchars($row['email']) ?></td>
+                <td><?= htmlspecialchars($row['no_hp']) ?></td>
+                <td><?= htmlspecialchars($row['nama_unit']) ?></td>
+
+                <td class="text-center">
+                  <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal<?= $row['peserta_id']; ?>">
+                    🔍
+                  </button>
+                </td>
+
+                <td class="text-center">
+                  <?php if ($row['status'] == 'selesai' || date('Y-m-d') > $row['tgl_selesai']): ?>
+                    <span class="badge bg-secondary">Selesai</span>
+                  <?php else: ?>
+                    <span class="badge bg-success">Berlangsung</span>
+                  <?php endif; ?>
+                </td>
+
+                <td class="text-center">
+                  <?php if ($row['status'] == 'berlangsung' && date('Y-m-d') <= $row['tgl_selesai']): ?>
+                    <form 
+                      id="formSelesai<?= $row['peserta_id'] ?>" 
+                      action="ubah_status.php" 
+                      method="POST" 
+                      style="display:inline;">
+                      <input type="hidden" name="id" value="<?= $row['peserta_id'] ?>">
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-warning"
+                        onclick="konfirmasiSelesai(<?= $row['peserta_id'] ?>)"
+                      >
+                        <i class="bi bi-check2-circle"></i> Selesai
+                      </button>
+                    </form>
+                  <?php endif; ?>
+                </td>
+              </tr>
+
+              <!-- Modal Detail Peserta -->
+              <div class="modal fade" id="detailModal<?= $row['peserta_id']; ?>" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                      <h5 class="modal-title">Rincian Peserta: <?= htmlspecialchars($row['nama']); ?></h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                      <div class="row">
+                        <div class="col-md-6">
+                          <p><strong>Tanggal Daftar:</strong> <?= htmlspecialchars($row['tgl_daftar']); ?></p>
+                          <p><strong>Nama:</strong> <?= htmlspecialchars($row['nama']); ?></p>
+                          <p><strong>Email:</strong> <?= htmlspecialchars($row['email']); ?></p>
+                          <p><strong>No HP:</strong> <?= htmlspecialchars($row['no_hp']); ?></p>
+                          <p><strong>NIS/NPM:</strong> <?= htmlspecialchars($row['nis_npm']); ?></p>
+                          <p><strong>Instansi:</strong> <?= htmlspecialchars($row['instansi_pendidikan']); ?></p>
+                          <p><strong>Jurusan:</strong> <?= htmlspecialchars($row['jurusan']); ?></p>
+                          <p><strong>Semester:</strong> <?= htmlspecialchars($row['semester']); ?></p>
+                        </div>
+
+                        <div class="col-md-6">
+                          <p><strong>IPK/Nilai Rata-rata:</strong> <?= htmlspecialchars($row['ipk_nilai_ratarata']); ?></p>
+                          <p><strong>Memiliki Laptop:</strong> <?= htmlspecialchars($row['memiliki_laptop']); ?></p>
+                          <p><strong>Bersedia Unit Manapun:</strong> <?= htmlspecialchars($row['bersedia_unit_manapun']); ?></p>
+                          <p><strong>Durasi:</strong> <?= htmlspecialchars($row['durasi']); ?></p>
+                          <p><strong>Nomor Surat Permohonan PKL:</strong> <?= htmlspecialchars($row['nomor_surat_permohonan']); ?></p>
+                          <p><strong>Skill:</strong> <?= htmlspecialchars($row['skill']); ?></p>
+                          <p><strong>Unit:</strong> <?= htmlspecialchars($row['nama_unit']); ?></p>
+                        </div>
+                      </div>
+
+                      <hr>
+                      <p><strong>Alamat:</strong> <?= htmlspecialchars($row['alamat']); ?></p>
+                      <p><strong>Periode:</strong> <?= htmlspecialchars($row['tgl_mulai']); ?> – <?= htmlspecialchars($row['tgl_selesai']); ?></p>
+
+                      <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                          <p><strong>Foto Formal</strong></p>
+                          <a href="../../uploads/Foto_daftarpkl/<?= htmlspecialchars($row['upload_foto']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+                        </div>
+                        <div class="col-md-4">
+                          <p><strong>Kartu Pelajar / KTM</strong></p>
+                          <a href="../../uploads/Foto_Kartuidentitas/<?= htmlspecialchars($row['upload_kartu_identitas']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+                        </div>
+                        <div class="col-md-4">
+                          <p><strong>Surat Permohonan PKL</strong></p>
+                          <a href="../../uploads/Surat_Permohonan/<?= htmlspecialchars($row['upload_surat_permohonan']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+                        </div>
+                      </div>
+
+                      <hr>
+                      <div class="text-center mt-3">
+                        <a href="id_card/generate_idcard.php?id=<?= $row['peserta_id']; ?>" target="_blank" class="btn btn-danger">
+                          <i class="bi bi-printer"></i> Cetak ID Card
+                        </a>
+                      </div>
+                    </div>
+
+                    <div class="modal-footer">
+                      <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <?php endwhile; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="12" class="text-center text-muted">Belum ada peserta PKL</td>
+            </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </div>
+
+
   <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const menuToggle = document.getElementById('menuToggle');
@@ -395,6 +522,22 @@ $current_page = basename($_SERVER['PHP_SELF']);
         sidebar.classList.remove('active');
         overlay.style.display = 'none';
         menuToggle.style.display = 'inline-block';
+      });
+    }
+    function konfirmasiSelesai(id) {
+      Swal.fire({
+        title: 'Yakin?',
+        text: "Apakah Anda yakin ingin menyelesaikan peserta PKL ini?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Ya, Selesaikan!',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          document.getElementById('formSelesai' + id).submit();
+        }
       });
     }
   </script>

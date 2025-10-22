@@ -242,7 +242,6 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
     }
 }
 
-
       // === STATUS: DITOLAK ===
       elseif ($status === 'ditolak') {
           $delPeserta = $conn->prepare("DELETE FROM peserta_pkl WHERE email=?");

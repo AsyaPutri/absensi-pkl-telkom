@@ -259,6 +259,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
             <table class="table table-bordered table-hover text-center align-middle shadow-sm">
               <thead class="table-header-red">
                 <tr>
+                  <th>No<th/>
                   <th>Tanggal</th>
                   <th>Jam Masuk</th>
                   <th>Aktivitas Masuk</th>
