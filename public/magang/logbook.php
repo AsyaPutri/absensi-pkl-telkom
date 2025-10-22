@@ -59,116 +59,59 @@ while ($row = mysqli_fetch_assoc($queryLogbook)) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
     <style>
         :root {
             --telkom-red: #e60012;
-            --telkom-dark-red: #c40010;
-            --telkom-light-red: #ff1a2e;
+            --telkom-dark-red: #b80000;
             --telkom-gray: #f8f9fa;
         }
-        
+
         body {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #e60012 100%);
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 60%, #ffe5e5 100%);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         .main-container {
-            background: rgba(255, 255, 255, 0.95);
+            background: #fff;
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(230, 0, 18, 0.1);
-            backdrop-filter: blur(10px);
-            margin: 20px 0;
+            box-shadow: 0 15px 40px rgba(230, 0, 18, 0.15);
+            margin: 30px auto;
             padding: 30px;
             border: 2px solid rgba(230, 0, 18, 0.1);
+            max-width: 1300px;
         }
-        
-        /* Header Section - Putih dengan logo gambar */
+
+        /* Header */
         .header-section {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            color: #333;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
             text-align: center;
-            position: relative;
-            overflow: hidden;
-            border: 2px solid rgba(230, 0, 18, 0.1);
-            box-shadow: 0 8px 25px rgba(230, 0, 18, 0.08);
+            margin-bottom: 30px;
         }
-        
-        .header-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 10px,
-                rgba(230, 0, 18, 0.02) 10px,
-                rgba(230, 0, 18, 0.02) 20px
-            );
-            animation: slide 20s linear infinite;
-        }
-        
-        @keyframes slide {
-            0% { transform: translateX(-50px); }
-            100% { transform: translateX(50px); }
-        }
-        
-        .header-section .content {
-            position: relative;
-            z-index: 2;
-        }
-        
-        .header-section h1 {
-            margin: 0;
-            font-weight: 700;
-            color: #333;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-            font-size: 2.2rem;
-        }
-        
-        .header-section p {
-            margin: 10px 0 0 0;
-            opacity: 0.8;
-            font-size: 1.1rem;
-            color: #666;
-        }
-        
-        /* Logo Telkom dari gambar */
-        .telkom-logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 5px;
-            gap: 0;
-        }
-        
+
         .telkom-logo-img {
-            height: 150px;
-            width: auto;
-            max-width: 200px;
+            height: 100px;
             object-fit: contain;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-            transition: all 0.3s ease;
+            margin-bottom: 10px;
         }
-        
-        .telkom-logo-img:hover {
-            transform: scale(1.05);
-            filter: drop-shadow(0 6px 12px rgba(230, 0, 18, 0.2));
+
+        .header-section h1 {
+            color: var(--telkom-red);
+            font-weight: 700;
+        }
+
+        .header-section p {
+            color: #555;
+            margin-top: 5px;
         }
 
         /* Profile Section */
         .profile-section {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
+            border: 1.5px solid rgba(230, 0, 18, 0.2);
             border-radius: 15px;
             padding: 25px;
-            margin-bottom: 30px;
-            border: 2px solid rgba(230, 0, 18, 0.1);
+            margin-bottom: 25px;
             box-shadow: 0 8px 25px rgba(230, 0, 18, 0.08);
         }
 
@@ -176,9 +119,6 @@ while ($row = mysqli_fetch_assoc($queryLogbook)) {
             color: var(--telkom-red);
             font-weight: 700;
             margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
         .profile-info {
@@ -188,470 +128,216 @@ while ($row = mysqli_fetch_assoc($queryLogbook)) {
         }
 
         .profile-item {
-            display: flex;
-            align-items: center;
             padding: 10px;
             background: rgba(230, 0, 18, 0.05);
-            border-radius: 8px;
             border-left: 4px solid var(--telkom-red);
+            border-radius: 8px;
         }
 
         .profile-item strong {
             color: var(--telkom-red);
-            min-width: 100px;
-            margin-right: 10px;
         }
-        
+
+        /* ===================== TELKOM THEMED TABLE STYLE ===================== */
         .table-container {
-            background: white;
-            border-radius: 15px;
+            background: linear-gradient(180deg, #ffffff 0%, #fff4f4 100%);
+            border-radius: 18px;
             padding: 25px;
-            box-shadow: 0 8px 25px rgba(230, 0, 18, 0.08);
+            box-shadow: 0 10px 30px rgba(230, 0, 18, 0.15);
+            border: 1.5px solid rgba(230, 0, 18, 0.15);
             overflow-x: auto;
-            border: 1px solid rgba(230, 0, 18, 0.1);
+            transition: all 0.3s ease-in-out;
         }
-        
-        .table {
-            margin: 0;
-            border-radius: 10px;
-            overflow: hidden;
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-        
-        .table thead th {
-            background: linear-gradient(45deg, var(--telkom-red), var(--telkom-dark-red));
-            color: white;
-            border: none;
-            padding: 20px 15px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            font-size: 0.85rem;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            text-align: center;
-            vertical-align: middle;
-            white-space: nowrap;
-        }
-        
-        .table thead th:first-child {
-            border-top-left-radius: 10px;
-        }
-        
-        .table thead th:last-child {
-            border-top-right-radius: 10px;
-        }
-        
-        .table tbody td {
-            padding: 18px 15px;
-            vertical-align: top;
-            border: 1px solid rgba(230, 0, 18, 0.08);
-            border-top: none;
-            transition: all 0.3s ease;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            hyphens: auto;
-            line-height: 1.6;
-            font-size: 0.9rem;
-        }
-        
-        .table tbody tr:hover {
-            background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+
+        .table-container:hover {
+            box-shadow: 0 12px 35px rgba(230, 0, 18, 0.25);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(230, 0, 18, 0.12);
         }
-        
-        .table tbody tr:nth-child(even) {
-            background-color: rgba(248, 249, 250, 0.6);
-        }
-        
-        .table tbody tr:last-child td:first-child {
-            border-bottom-left-radius: 10px;
-        }
-        
-        .table tbody tr:last-child td:last-child {
-            border-bottom-right-radius: 10px;
-        }
-        
-        /* Pengaturan lebar kolom yang lebih proporsional dan rapi */
-        .col-no { 
-            width: 60px; 
-            min-width: 60px;
-            max-width: 60px;
-        }
-        .col-date { 
-            width: 120px; 
-            min-width: 120px;
-            max-width: 120px;
-        }
-        .col-activity-in { 
-            width: 35%; 
-            min-width: 250px;
-        }
-        .col-constraint-in { 
-            width: 20%; 
-            min-width: 180px;
-        }
-        .col-activity-out { 
-            width: 35%; 
-            min-width: 250px;
-        }
-        .col-constraint-out { 
-            width: 10%; 
-            min-width: 120px;
-        }
-        
-        .badge {
-            font-size: 0.8rem;
-            padding: 8px 16px;
-            border-radius: 25px;
-            font-weight: 600;
-            white-space: nowrap;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .badge-info {
-            background: linear-gradient(45deg, #17a2b8, #138496);
-            color: white;
-            box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
-        }
-        
-        .badge-success {
-            background: linear-gradient(45deg, #28a745, #20c997);
-            color: white;
-            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-        }
-        
-        .badge-warning {
-            background: linear-gradient(45deg, #ffc107, #fd7e14);
-            color: white;
-            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
-        }
-        
-        .badge-danger {
-            background: linear-gradient(45deg, var(--telkom-red), var(--telkom-dark-red));
-            color: white;
-            box-shadow: 0 2px 8px rgba(230, 0, 18, 0.3);
-        }
-        
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
-        }
-        
-        .status-masuk { background-color: #28a745; }
-        .status-keluar { background-color: var(--telkom-red); }
-        .status-kendala { background-color: #ffc107; }
-        
-        .activity-text {
-            font-size: 0.9rem;
-            line-height: 1.5;
-            color: #333;
-            text-align: justify;
-            text-justify: inter-word;
-        }
-        
-        .constraint-text {
-            font-size: 0.85rem;
-            line-height: 1.4;
-        }
-        
-        .date-info {
-            text-align: center;
-            padding: 5px;
-        }
-        
-        .date-main {
-            font-weight: bold;
-            color: #333;
-            font-size: 0.95rem;
-            margin-bottom: 3px;
-        }
-        
-        .date-day {
-            color: #666;
-            font-size: 0.75rem;
-            font-style: italic;
-        }
-        
-        .no-data-cell {
-            color: #999;
-            font-style: italic;
-            font-size: 0.85rem;
-            text-align: center;
-        }
-        
-        .constraint-ok {
-            color: #28a745;
-            font-size: 0.8rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .constraint-issue {
-            color: #dc3545;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-        
+
         .table-header {
+            background: linear-gradient(90deg, #e60012, #b80000);
+            color: #fff;
+            padding: 20px 25px;
+            border-radius: 15px 15px 0 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
-            padding: 20px;
-            background: linear-gradient(135deg, #fff 0%, rgba(230, 0, 18, 0.05) 100%);
-            border-radius: 12px;
-            border-left: 5px solid var(--telkom-red);
-            box-shadow: 0 4px 15px rgba(230, 0, 18, 0.08);
+            box-shadow: 0 4px 15px rgba(230, 0, 18, 0.25);
         }
-        
+
         .table-header h5 {
             margin: 0;
             font-weight: 700;
             font-size: 1.2rem;
         }
-        
-        .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .btn-telkom {
-            background: linear-gradient(45deg, var(--telkom-red), var(--telkom-dark-red));
-            border: none;
-            color: white;
-            border-radius: 10px;
-            padding: 10px 24px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
+
+        .table thead th {
+            background: linear-gradient(90deg, #ff0028, #b80000);
+            color: #fff;
             text-transform: uppercase;
+            font-weight: 700;
+            border: none;
+            padding: 15px 10px;
             letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(230, 0, 18, 0.2);
+            font-size: 0.85rem;
+            text-align: center;
+            vertical-align: middle;
         }
-        
-        .btn-telkom:hover {
-            background: linear-gradient(45deg, var(--telkom-dark-red), var(--telkom-red));
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(230, 0, 18, 0.4);
-            color: white;
+
+        .table tbody tr {
+            transition: all 0.25s ease-in-out;
         }
-        
+
+        .table tbody tr:hover {
+            background: rgba(230, 0, 18, 0.07);
+            transform: scale(1.01);
+            box-shadow: 0 6px 15px rgba(230, 0, 18, 0.1);
+        }
+
+        .table tbody td {
+            padding: 14px 12px;
+            border-bottom: 1px solid rgba(230, 0, 18, 0.1);
+            color: #333;
+            vertical-align: top;
+            background-color: #fff;
+        }
+
+        .table tbody tr:nth-child(even) td {
+            background-color: #fff9f9;
+        }
+
         .number-cell {
             text-align: center;
             font-weight: bold;
-            font-size: 1rem;
-            color: var(--telkom-red);
-            background: rgba(230, 0, 18, 0.05);
-            border-radius: 8px;
-            margin: 5px;
-            padding: 8px;
+            color: #e60012;
         }
-        
-        @media (max-width: 1400px) {
-            .col-activity-in,
-            .col-activity-out {
-                width: 32%;
-                min-width: 220px;
-            }
-            .col-constraint-in {
-                width: 18%;
-                min-width: 160px;
-            }
-            .col-constraint-out {
-                width: 12%;
-                min-width: 110px;
-            }
-        }
-        
-        @media (max-width: 1200px) {
-            .main-container {
-                padding: 25px;
-            }
-            
-            .table-container {
-                padding: 20px;
-            }
-            
-            .col-activity-in,
-            .col-activity-out {
-                width: 30%;
-                min-width: 200px;
-            }
-            .col-constraint-in {
-                width: 20%;
-                min-width: 150px;
-            }
-            .col-constraint-out {
-                width: 15%;
-                min-width: 100px;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .main-container {
-                margin: 10px;
-                padding: 20px;
-            }
-            
-            .header-section {
-                padding: 20px;
-            }
-            
-            .header-section h1 {
-                font-size: 1.8rem;
-            }
-            
-            .table-container {
-                padding: 15px;
-            }
-            
-            .table-header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-            
-            .header-controls {
-                justify-content: center;
-            }
-            
-            .table thead th {
-                font-size: 0.7rem;
-                padding: 15px 10px;
-            }
-            
-            .table tbody td {
-                padding: 15px 10px;
-                font-size: 0.8rem;
-            }
-            
-            .col-no { 
-                width: 50px; 
-                min-width: 50px;
-            }
-            .col-date { 
-                width: 100px; 
-                min-width: 100px;
-            }
-            .col-activity-in { 
-                width: 28%; 
-                min-width: 180px;
-            }
-            .col-constraint-in { 
-                width: 22%; 
-                min-width: 140px;
-            }
-            .col-activity-out { 
-                width: 28%; 
-                min-width: 180px;
-            }
-            .col-constraint-out { 
-                width: 18%; 
-                min-width: 100px;
-            }
-            
-            .telkom-logo-img {
-                height: 60px;
-            }
 
-            .profile-info {
-                grid-template-columns: 1fr;
-            }
+        .activity-text {
+            font-size: 0.9rem;
+            color: #222;
+            line-height: 1.6;
+            border-left: 3px solid #e60012;
+            padding-left: 8px;
+        }
+
+        .constraint-text {
+            font-size: 0.85rem;
+            color: #555;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .status-masuk { background-color: #28a745; }
+        .status-keluar { background-color: #e60012; }
+
+        .btn-telkom {
+            background: linear-gradient(90deg, #e60012, #b80000);
+            border: none;
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 24px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 10px rgba(230, 0, 18, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-telkom:hover {
+            background: linear-gradient(90deg, #b80000, #ff0028);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(230, 0, 18, 0.4);
+        }
+
+        .badge-info {
+            background: #fff;
+            color: #e60012;
+            border: 1.5px solid #e60012;
+            font-weight: 600;
+            border-radius: 20px;
+            padding: 6px 14px;
+            box-shadow: 0 2px 8px rgba(230, 0, 18, 0.15);
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="main-container">
-            <!-- Header -->
-            <div class="header-section">
-                <div class="content">
-                    <div class="telkom-logo-container">
-                        <img src="../assets/img/logo_telkom.png" class="telkom-logo-img">
-                    </div>
-                    <h1><i class="fas fa-clipboard-list me-3" style="color: var(--telkom-red);"></i>Logbook Aktivitas</h1>
-                    <p>Sistem Pencatatan Aktivitas Harian</p>
+<div class="container-fluid">
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header-section">
+            <img src="../assets/img/logo_telkom.png" class="telkom-logo-img">
+            <h1><i class="fas fa-clipboard-list me-2"></i> Logbook Aktivitas</h1>
+            <p>Sistem Pencatatan Aktivitas Harian - PT Telkom Indonesia</p>
+        </div>
+
+        <!-- Profile -->
+        <div class="profile-section">
+            <h5><i class="fas fa-user-circle me-2"></i> Informasi Peserta</h5>
+            <div class="profile-info">
+                <div class="profile-item"><strong>Nama:</strong> <?= $userProfile['nama'] ?? '-' ?></div>
+                <div class="profile-item"><strong>Asal Instansi:</strong> <?= $userProfile['instansi'] ?? '-' ?></div>
+                <div class="profile-item"><strong>Unit Kerja:</strong> <?= $userProfile['unit'] ?? '-' ?></div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <h5><i class="fas fa-table me-2"></i> Data Logbook Aktivitas</h5>
+                <div class="header-controls">
+                    <button class="btn btn-telkom btn-sm" onclick="exportToPDF()">
+                        <i class="fas fa-file-pdf me-2"></i> Export PDF
+                    </button>
+                    <span class="badge badge-info">
+                        <i class="fas fa-database me-1"></i> Total: <?= count($logbookData) ?> Records
+                    </span>
                 </div>
             </div>
 
-            <!-- Profile -->
-            <div class="profile-section">
-                <h5><i class="fas fa-user-circle"></i> Informasi Peserta</h5>
-                <div class="profile-info">
-                    <div class="profile-item"><strong>Nama:</strong> <span id="profileName"><?= $userProfile['nama'] ?? '-' ?></span></div>
-                    <div class="profile-item"><strong>Asal Instansi:</strong> <span id="profileInstitution"><?= $userProfile['instansi'] ?? '-' ?></span></div>
-                    <div class="profile-item"><strong>Unit Kerja:</strong> <span id="profileUnit"><?= $userProfile['unit'] ?? '-' ?></span></div>
-                </div>
-            </div>
-
-            <!-- Table -->
-            <div class="table-container">
-                <div class="table-header">
-                    <h5 class="mb-0 text-dark"><i class="fas fa-table me-2 text-danger"></i> Data Logbook Aktivitas</h5>
-                    <div class="header-controls">
-                        <button class="btn btn-telkom btn-sm" onclick="exportToPDF()">
-                            <i class="fas fa-file-pdf me-2"></i>Export PDF
-                        </button>
-                        <span class="badge badge-info" id="totalRecords">
-                            <i class="fas fa-database me-1"></i>Total: <?= count($logbookData) ?> Records
-                        </span>
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Tanggal</th>
+                        <th>Aktivitas Masuk</th>
+                        <th>Kendala Masuk</th>
+                        <th>Aktivitas Keluar</th>
+                        <th>Kendala Keluar</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (empty($logbookData)): ?>
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">Tidak ada data yang ditemukan</h5>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($logbookData as $i => $log): ?>
                             <tr>
-                                <th class="col-no">No</th>
-                                <th class="col-date">Tanggal</th>
-                                <th class="col-activity-in">Aktivitas Masuk</th>
-                                <th class="col-constraint-in">Kendala Masuk</th>
-                                <th class="col-activity-out">Aktivitas Keluar</th>
-                                <th class="col-constraint-out">Kendala Keluar</th>
+                                <td class="number-cell"><?= $i + 1 ?></td>
+                                <td><?= date('d-m-Y', strtotime($log['tanggal'])) ?></td>
+                                <td><div class="activity-text"><span class="status-dot status-masuk"></span><?= $log['aktivitas_masuk'] ?: 'Tidak ada aktivitas' ?></div></td>
+                                <td><div class="constraint-text"><?= $log['kendala_masuk'] ?: '<i class="text-success">Tidak ada kendala</i>' ?></div></td>
+                                <td><div class="activity-text"><span class="status-dot status-keluar"></span><?= $log['aktivitas_keluar'] ?: '<i class="text-muted">Belum ada aktivitas</i>' ?></div></td>
+                                <td><div class="constraint-text"><?= $log['kendala_keluar'] ?: '<i class="text-success">OK</i>' ?></div></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($logbookData)): ?>
-                                <tr>
-                                    <td colspan="6" class="text-center py-5">
-                                        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
-                                        <h5 class="text-muted">Tidak ada data yang ditemukan</h5>
-                                    </td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($logbookData as $i => $log): ?>
-                                    <tr>
-                                        <td><div class="number-cell"><?= $i + 1 ?></div></td>
-                                        <td class="date-info">
-                                            <div class="date-main"><?= date('d-m-Y', strtotime($log['tanggal'])) ?></div>
-                                        </td>
-                                        <td><div class="activity-text"><span class="status-dot status-masuk"></span><?= $log['aktivitas_masuk'] ?: 'Tidak ada aktivitas' ?></div></td>
-                                        <td><div class="constraint-text"><?= $log['kendala_masuk'] ?: '<div class="constraint-ok"><i class="fas fa-check-circle me-1"></i>Tidak ada kendala</div>' ?></div></td>
-                                        <td><div class="activity-text"><span class="status-dot status-keluar"></span><?= $log['aktivitas_keluar'] ?: '<span class="no-data-cell">Belum ada aktivitas</span>' ?></div></td>
-                                        <td><div class="constraint-text"><?= $log['kendala_keluar'] ?: '<div class="constraint-ok"><i class="fas fa-check-circle me-1"></i>OK</div>' ?></div></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+</div>
 
 <script>
 function exportToPDF() {
@@ -660,22 +346,20 @@ function exportToPDF() {
 
     doc.setFontSize(16);
     doc.text("Logbook Aktivitas - PT Telkom Indonesia", 14, 20);
-
     doc.setFontSize(12);
-    doc.text("Informasi Peserta", 14, 35);
-    doc.text("Nama: <?= $userProfile['nama'] ?? '-' ?>", 14, 42);
-    doc.text("Asal Instansi: <?= $userProfile['instansi'] ?? '-' ?>", 14, 48);
-    doc.text("Unit Kerja: <?= $userProfile['unit'] ?? '-' ?>", 14, 54);
+    doc.text("Nama: <?= $userProfile['nama'] ?? '-' ?>", 14, 35);
+    doc.text("Asal Instansi: <?= $userProfile['instansi'] ?? '-' ?>", 14, 42);
+    doc.text("Unit Kerja: <?= $userProfile['unit'] ?? '-' ?>", 14, 49);
 
     const tableData = [
         <?php foreach ($logbookData as $i => $log): ?>
         [
             "<?= $i+1 ?>",
             "<?= date('d-m-Y', strtotime($log['tanggal'])) ?>",
-            "<?= substr(addslashes($log['aktivitas_masuk']),0,100) ?>",
-            "<?= substr(addslashes($log['kendala_masuk']),0,50) ?>",
-            "<?= substr(addslashes($log['aktivitas_keluar']),0,100) ?>",
-            "<?= substr(addslashes($log['kendala_keluar']),0,50) ?>"
+            "<?= addslashes($log['aktivitas_masuk']) ?>",
+            "<?= addslashes($log['kendala_masuk']) ?>",
+            "<?= addslashes($log['aktivitas_keluar']) ?>",
+            "<?= addslashes($log['kendala_keluar']) ?>"
         ],
         <?php endforeach; ?>
     ];
@@ -683,12 +367,12 @@ function exportToPDF() {
     doc.autoTable({
         head: [['No', 'Tanggal', 'Aktivitas Masuk', 'Kendala Masuk', 'Aktivitas Keluar', 'Kendala Keluar']],
         body: tableData,
-        startY: 80,
+        startY: 60,
         styles: { fontSize: 8 },
         headStyles: { fillColor: [230, 0, 18] }
     });
 
-    doc.save("Logbook_Peserta.pdf");
+    doc.save("Logbook.pdf");
 }
 </script>
 </body>

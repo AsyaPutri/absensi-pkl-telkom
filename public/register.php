@@ -21,8 +21,6 @@ function uploadFileUnique($fileKey, $upload_dir, $allowed_types = []) {
   if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) return '';
 
   $ext = strtolower(pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION));
-
-  // Validasi tipe file
   if (!empty($allowed_types) && !in_array($ext, $allowed_types)) {
     echo "<script>alert('Format file tidak valid! Hanya diperbolehkan: " . implode(', ', $allowed_types) . "'); history.back();</script>";
     exit;
@@ -59,10 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $tgl_selesai     = trim($_POST['tgl_selesai'] ?? null);
   $status          = 'pending';
 
-  // Upload file
   $foto  = uploadFileUnique('upload_foto', $foto_dir, ['jpg', 'jpeg', 'png', 'gif']);
   $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir, ['jpg', 'jpeg', 'png', 'gif']);
-  $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir); // surat bisa PDF
+  $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
 
   $sql = "INSERT INTO daftar_pkl (
       nama, email, nis_npm, instansi_pendidikan, jurusan,
@@ -86,170 +83,569 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $surat, $foto, $ktm, $status
   );
 
-  if ($stmt->execute()) {
-    $showSuccess = true;
-  } else {
-    die('Gagal menyimpan data: ' . $stmt->error);
-  }
+  if ($stmt->execute()) $showSuccess = true;
 }
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registrasi PKL - Witel Bekasi Karawang</title>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: linear-gradient(135deg, #d32f2f, #f44336);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .container {
-      background: #fff;
-      max-width: 1200px;
-      border-radius: 16px;
-      box-shadow: 0 6px 25px rgba(0,0,0,0.2);
-      display: flex;
-      flex-wrap: wrap;
-      overflow: hidden;
-      width: 100%;
-    }
-    .info-section {
-      flex: 1;
-      background: #fff5f5;
-      padding: 40px 30px;
-      border-right: 4px solid #f44336;
-    }
-    .info-section h2 {
-      color: #d32f2f;
-      margin-bottom: 15px;
-      font-size: 1.8rem;
-    }
-    .info-section p, .info-section li {
-      color: #444;
-      line-height: 1.5;
-    }
-    .form-section {
-      flex: 2;
-      padding: 40px;
-      background: #fff;
-    }
-    .form-section h2 {
-      margin-bottom: 25px;
-      color: #d32f2f;
-      text-align: center;
-      font-size: 1.8rem;
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-    .form-group { display: flex; flex-direction: column; }
-    label { font-weight: 600; margin-bottom: 6px; color: #444; }
-    input, select, textarea {
-      padding: 12px; border: 1px solid #ddd; border-radius: 8px;
-      font-size: 14px; background: #fafafa; transition: 0.2s;
-    }
-    input:focus, select:focus, textarea:focus {
-      border-color: #e53935; outline: none;
-      box-shadow: 0 0 6px rgba(229,57,53,0.25); background: #fff;
-    }
-    textarea { resize: vertical; min-height: 70px; }
-    .form-full { grid-column: 1 / 3; }
-    button {
-      background: linear-gradient(135deg, #e53935, #d32f2f);
-      color: white; padding: 14px; border: none; border-radius: 10px;
-      cursor: pointer; font-size: 16px; font-weight: 600;
-      margin-top: 10px; width: 100%; transition: all 0.2s ease;
-    }
-    button:hover { transform: scale(1.03); background: #c62828; }
-    .note { font-size: 13px; color: #777; margin-top: 8px; text-align: center; }
-    .login-link { text-align: center; margin-top: 12px; font-size: 14px; color: #444; }
-    .login-link a { color: #e53935; font-weight: 600; text-decoration: none; }
-    .login-link a:hover { text-decoration: underline; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registrasi PKL - Telkom Witel Bekasi Karawang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-    @media (max-width: 992px) {
-      .container { flex-direction: column; }
-      .info-section { border-right: none; border-bottom: 4px solid #f44336; text-align: center; }
-    }
-    @media (max-width: 768px) {
-      .form-grid { grid-template-columns: 1fr; }
-      .form-full { grid-column: 1 / 2; }
-      .info-section, .form-section { padding: 25px; }
-      button { font-size: 15px; padding: 12px; }
-    }
-    @media (max-width: 480px) {
-      body { padding: 10px; }
-      .info-section h2, .form-section h2 { font-size: 1.4rem; }
-      input, select, textarea { font-size: 13px; padding: 10px; }
-      button { font-size: 14px; padding: 10px; }
-    }
-  </style>
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding: 30px 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.header-logo {
+  text-align: center;
+  margin-bottom: 30px;
+  animation: fadeInDown 0.8s ease;
+}
+
+.logo-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.logo-telkom {
+  height: 130px;
+  object-fit: contain;
+}
+
+.logo-akhlak {
+  height: 65px;
+  object-fit: contain;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  position: relative;
+  animation: fadeInUp 0.8s ease;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.info-section {
+  background: linear-gradient(180deg, #ED1C24 0%, #C71C1C 100%);
+  color: white;
+  padding: 50px 35px;
+  position: relative;
+  overflow: hidden;
+}
+
+.info-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.info-content {
+  position: relative;
+  z-index: 2;
+}
+
+.info-section h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+  line-height: 1.3;
+}
+
+.info-section p {
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+  opacity: 0.95;
+  line-height: 1.6;
+}
+
+.info-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  color: #ED1C24;
+  padding: 12px 24px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  margin-bottom: 25px;
+}
+
+.info-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.requirements-box {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 25px;
+}
+
+.requirements-box h3 {
+  font-size: 1.15rem;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.requirements-box ul {
+  list-style: none;
+  padding: 0;
+}
+
+.requirements-box li {
+  padding: 10px 0;
+  padding-left: 28px;
+  position: relative;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.requirements-box li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  background: white;
+  color: #ED1C24;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.contact-info {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 12px;
+  border-left: 4px solid white;
+}
+
+.contact-info strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.95rem;
+}
+
+.form-section {
+  padding: 50px 45px;
+  background: #FAFAFA;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+.form-header h2 {
+  color: #ED1C24;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.form-header p {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+label .required {
+  color: #ED1C24;
+}
+
+input, select, textarea {
+  border: 2px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: white;
+  font-size: 0.95rem;
+  font-family: 'Poppins', sans-serif;
+  transition: all 0.3s ease;
+  color: #333;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #ED1C24;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(237, 28, 36, 0.1);
+  background: white;
+}
+
+input[type="file"] {
+  padding: 12px;
+  cursor: pointer;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: 'Poppins', sans-serif;
+}
+
+select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+
+.submit-button {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #ED1C24 0%, #C71C1C 100%);
+  border: none;
+  color: white;
+  padding: 16px 32px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(237, 28, 36, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.submit-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(237, 28, 36, 0.4);
+}
+
+.submit-button:active {
+  transform: translateY(0);
+}
+
+.form-footer {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.note {
+  color: #666;
+  font-size: 0.85rem;
+  margin-bottom: 15px;
+}
+
+.login-link {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.login-link a {
+  color: #ED1C24;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.login-link a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-section {
+    padding: 40px 30px;
+  }
+  
+  .form-section {
+    padding: 40px 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 20px 15px;
+  }
+  
+  .logo-wrapper {
+    flex-direction: row;
+    gap: 20px;
+    padding: 0;
+  }
+  
+  .logo-telkom {
+    height: 55px;
+  }
+  
+  .logo-akhlak {
+    height: 55px;
+    padding-left: 0;
+    border-left: none;
+    padding-top: 0;
+    border-top: none;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .info-section h2 {
+    font-size: 1.5rem;
+  }
+  
+  .form-header h2 {
+    font-size: 1.6rem;
+  }
+  
+  .form-section {
+    padding: 30px 20px;
+  }
+  
+  .info-section {
+    padding: 30px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-wrapper {
+    padding: 0;
+    gap: 15px;
+  }
+  
+  .logo-telkom {
+    height: 45px;
+  }
+  
+  .logo-akhlak {
+    height: 45px;
+  }
+  
+  .info-section h2 {
+    font-size: 1.3rem;
+  }
+  
+  .form-header h2 {
+    font-size: 1.4rem;
+  }
+  
+  input, select, textarea {
+    padding: 12px 14px;
+    font-size: 0.9rem;
+  }
+  
+  .submit-button {
+    padding: 14px 24px;
+    font-size: 1rem;
+  }
+}
+
+/* Loading Animation */
+.loading-spinner {
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
 </head>
 <body>
+
 <div class="container">
   <div class="info-section">
-    <h2>Registrasi Internship<br>Witel Bekasi - Karawang</h2>
-    <p>Silakan isi form berikut untuk mendaftar PKL.</p>
-    <div style="margin-top:25px; padding:15px; background:#fff; border-radius:10px;">
-      <p style="font-weight:bold; color:#e53935;">Harap dilihat disini terlebih dahulu 👇</p>
-      <hr style="border:none; border-top:1px solid #f44336;">
-      <a href="https://www.canva.com/design/DAFshvFSOu8/8oKHE3loBGx3jD3tgRqOVA/edit?utm_content=DAFshvFSOu8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton"
-         target="_blank"
-         style="display:inline-block; color:#fff; background:#e53935; padding:10px 18px; border-radius:8px; text-decoration:none;">
-         🔗 Klik Informasi ini
+    <div class="info-content">
+      <h2>📋 Registrasi PKL<br>Witel Bekasi - Karawang</h2>
+      <p>Bergabunglah dengan program Praktik Kerja Lapangan di Telkom Indonesia dan kembangkan pengalaman profesional Anda!</p>
+      
+      <a href="https://www.canva.com/design/DAFshvFSOu8/8oKHE3loBGx3jD3tgRqOVA/edit?utm_content=DAFshvFSOu8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton" target="_blank" class="info-link">
+        <span>🔗</span>
+        <span>Lihat Informasi Lengkap</span>
       </a>
+      
+      <div class="requirements-box">
+        <h3>📌 Persyaratan PKL</h3>
+        <ul>
+          <li>Pas foto formal 3x4 (1 lembar)</li>
+          <li>Surat permohonan resmi dari institusi pendidikan</li>
+          <li>Kartu Tanda Mahasiswa / Kartu Pelajar</li>
+          <li>Materai 10.000 rupiah</li>
+          <li>Nomor HP Telkomsel terhubung dengan WhatsApp Aktif</li>
+          <li>Membawa laptop pribadi</li>
+          <li>Bersedia ditempatkan di unit manapun sesuai domisili</li>
+        </ul>
+      </div>
+      
+      <div class="contact-info">
+        <strong>📞 Informasi & Bantuan:</strong>
+        Orient (085316144454)
+      </div>
     </div>
-    <p><strong>Syarat PKL:</strong></p>
-    <ul>
-      <li>Pas foto 3x4 = 1 lembar</li>
-      <li>Surat permohonan dari sekolah/kampus</li>
-      <li>Materai 10K</li>
-      <li>Nomor HP Telkomsel</li>
-      <li>Mempunyai laptop</li>
-    </ul>
-    <p><em>Catatan:</em> Bersedia ditempatkan di unit manapun sesuai domisili.</p>
-    <p>Info: <strong>Orient (62 85316144454)</strong></p>
   </div>
 
   <div class="form-section">
-    <h2>Form Registrasi PKL</h2>
+    <div class="header-logo" style="text-align: center; margin-bottom: 25px;">
+      <div class="logo-wrapper">
+        <img src="assets/img/logo_telkom.png" alt="Telkom Indonesia" class="logo-telkom">
+        <img src="assets/img/akhlak-removebg.png" alt="AKHLAK" class="logo-akhlak">
+      </div>
+    </div>
+    
+    <div class="form-header">
+      <h2>Formulir Pendaftaran PKL</h2>
+      <p>Lengkapi data dengan benar dan teliti</p>
+    </div>
+    
     <form id="regForm" method="POST" enctype="multipart/form-data" class="form-grid">
-      <div class="form-group"><label>Nama Lengkap</label><input type="text" name="nama" required></div>
-      <div class="form-group"><label>Email</label><input type="email" name="email" required></div>
-      <div class="form-group"><label>NIS/NPM</label><input type="text" name="nis_npm" required></div>
-      <div class="form-group"><label>Instansi Pendidikan</label><input type="text" name="instansi_pendidikan" required></div>
-      <div class="form-group"><label>Jurusan</label><input type="text" name="jurusan" required></div>
-      <div class="form-group"><label>Semester/Tingkat</label><input type="text" name="semester"></div>
-      <div class="form-group"><label>IPK/Nilai Rata-rata</label><input type="number" step="0.01" name="ipk_nilai_ratarata"></div>
       <div class="form-group">
-        <label>Memiliki Laptop?</label>
+        <label>Nama Lengkap <span class="required">*</span></label>
+        <input type="text" name="nama" required placeholder="Masukkan nama lengkap">
+      </div>
+      
+      <div class="form-group">
+        <label>Email <span class="required">*</span></label>
+        <input type="email" name="email" required placeholder="contoh@email.com">
+      </div>
+      
+      <div class="form-group">
+        <label>NIS/NPM <span class="required">*</span></label>
+        <input type="text" name="nis_npm" required placeholder="Nomor induk siswa/mahasiswa">
+      </div>
+      
+      <div class="form-group">
+        <label>Instansi Pendidikan <span class="required">*</span></label>
+        <input type="text" name="instansi_pendidikan" required placeholder="Nama sekolah/universitas">
+      </div>
+      
+      <div class="form-group">
+        <label>Jurusan <span class="required">*</span></label>
+        <input type="text" name="jurusan" required placeholder="Program studi/jurusan">
+      </div>
+      
+      <div class="form-group">
+        <label>Semester/Tingkat <span class="required">*</span></label>
+        <input type="text" name="semester" required placeholder="Contoh: Semester 5">
+      </div>
+      
+      <div class="form-group">
+        <label>IPK/Nilai Rata-rata <span class="required">*</span></label>
+        <input type="number" step="0.01" name="ipk_nilai_ratarata" required placeholder="Contoh: 3.50/85">
+      </div>
+      
+      <div class="form-group">
+        <label>Memiliki Laptop? <span class="required">*</span></label>
         <select name="memiliki_laptop" required>
           <option value="">-- Pilih --</option>
           <option value="Ya">Ya</option>
           <option value="Tidak">Tidak</option>
         </select>
       </div>
+      
       <div class="form-group">
-        <label>Bersedia di Unit Manapun?</label>
+        <label>Bersedia di Unit Manapun? <span class="required">*</span></label>
         <select name="bersedia_unit_manapun" required>
           <option value="">-- Pilih --</option>
           <option value="Bersedia">Bersedia</option>
           <option value="Tidak Bersedia">Tidak Bersedia</option>
         </select>
       </div>
-      <div class="form-group"><label>Nomor Surat Permohonan</label><input type="text" name="nomor_surat_permohonan"></div>
-      <div class="form-group"><label>Skill</label><input type="text" name="skill"></div>
+      
       <div class="form-group">
-        <label>Durasi PKL</label>
+        <label>Unit Tujuan <span class="required">*</span></label>
+        <select name="unit_id" required>
+          <option value="">-- Pilih Unit --</option>
+          <?php foreach ($units as $u): ?>
+            <option value="<?= $u['id']; ?>"><?= safe($u['nama_unit']); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Durasi PKL <span class="required">*</span></label>
         <select name="durasi" required>
           <option value="">-- Pilih Durasi --</option>
           <option value="2 Bulan">2 Bulan</option>
@@ -259,28 +655,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <option value="6 Bulan">6 Bulan</option>
         </select>
       </div>
+      
       <div class="form-group">
-        <label>Unit Tujuan</label>
-        <select name="unit_id" required>
-          <option value="">-- Pilih Unit --</option>
-          <?php foreach ($units as $u): ?>
-            <option value="<?= $u['id']; ?>"><?= safe($u['nama_unit']); ?></option>
-          <?php endforeach; ?>
-        </select>
+        <label>No HP WhatsApp <span class="required">*</span></label>
+        <input type="text" name="no_hp" required placeholder="08xxxxxxxxxx">
       </div>
-      <div class="form-group"><label>No HP (WhatsApp)</label><input type="text" name="no_hp" required></div>
-      <div class="form-full form-group"><label>Alamat</label><textarea name="alamat"></textarea></div>
-      <div class="form-group"><label>Tanggal Usulan Mulai</label><input type="date" name="tgl_mulai"></div>
-      <div class="form-group"><label>Tanggal Usulan Selesai</label><input type="date" name="tgl_selesai"></div>
-      <div class="form-group"><label>Surat Permohonan PKL / Magang</label><input type="file" name="upload_surat_permohonan" required></div>
-      <div class="form-group"><label>Foto Formal</label><input type="file" name="upload_foto" accept=".jpg,.jpeg,.png,.gif" required></div>
-      <div class="form-group"><label>Kartu Pelajar / KTM</label><input type="file" name="upload_kartu_identitas" accept=".jpg,.jpeg,.png,.gif" required></div>
+      
+      <div class="form-group">
+        <label>Nomor Surat Permohonan <span class="required">*</span></label>
+        <input type="text" name="nomor_surat_permohonan" required placeholder="Contoh: 001/PKL/2024">
+      </div>
+      
+      <div class="form-group">
+        <label>Tanggal Mulai <span class="required">*</span></label>
+        <input type="date" name="tgl_mulai" required>
+      </div>
+      
+      <div class="form-group">
+        <label>Tanggal Selesai <span class="required">*</span></label>
+        <input type="date" name="tgl_selesai" required>
+      </div>
+      
+      <div class="form-group full-width">
+        <label>Skill & Keahlian <span class="required">*</span></label>
+        <input type="text" name="skill" required placeholder="Contoh: Microsoft Office, Desain Grafis, Programming">
+      </div>
+      
+      <div class="form-group full-width">
+        <label>Alamat Lengkap <span class="required">*</span></label>
+        <textarea name="alamat" required placeholder="Masukkan alamat lengkap Anda"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>Upload Surat Permohonan <span class="required">*</span></label>
+        <input type="file" name="upload_surat_permohonan" required>
+      </div>
+      
+      <div class="form-group">
+        <label>Upload Foto Formal <span class="required">*</span></label>
+        <input type="file" name="upload_foto" accept=".jpg,.jpeg,.png" required>
+      </div>
+      
+      <div class="form-group">
+        <label>Upload Kartu Pelajar/KTM <span class="required">*</span></label>
+        <input type="file" name="upload_kartu_identitas" accept=".jpg,.jpeg,.png" required>
+      </div>
 
-      <div class="form-full">
-        <button type="submit">Daftar Sekarang</button>
-        <p class="note">Pastikan data sudah benar sebelum submit.</p>
+      <button type="submit" class="submit-button">
+        <span>🚀</span>
+        <span>Kirim Pendaftaran</span>
+      </button>
+      
+      <div class="form-footer">
+        <p class="note">⚠️ Pastikan semua data yang diisi sudah benar sebelum mengirim formulir</p>
         <div class="login-link">
-          Sudah punya akun? <a href="login.php">👉 Login di sini</a>
+          Sudah memiliki akun? <a href="login.php">Login di sini</a>
         </div>
       </div>
     </form>
@@ -291,28 +720,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 document.getElementById("regForm").addEventListener("submit", function(e) {
   e.preventDefault();
   Swal.fire({
-    title: "Apakah data sudah benar?",
-    text: "Pastikan semua data sudah sesuai sebelum dikirim.",
+    title: "Konfirmasi Pendaftaran",
+    text: "Pastikan semua data yang Anda masukkan sudah benar dan sesuai.",
     icon: "question",
     showCancelButton: true,
-    confirmButtonText: "Sudah Benar",
-    cancelButtonText: "Periksa Lagi",
-    confirmButtonColor: "#d32f2f"
+    confirmButtonText: "Ya, Kirim Sekarang!",
+    cancelButtonText: "Periksa Kembali",
+    confirmButtonColor: "#ED1C24",
+    cancelButtonColor: "#757575",
+    reverseButtons: true
   }).then((result) => {
-    if (result.isConfirmed) this.submit();
+    if (result.isConfirmed) {
+      this.submit();
+    }
   });
 });
 </script>
 
-<?php if (!empty($showSuccess) && $showSuccess): ?>
+<?php if ($showSuccess): ?>
 <script>
 Swal.fire({
   icon: 'success',
-  title: 'Registrasi Berhasil 🎉',
-  html: 'Apabila kamu dinyatakan lolos seleksi magang, tim HC Telkom akan menghubungi melalui nomor WhatsApp yang telah kamu cantumkan di form 📱✨.<br><br><b>Pastikan nomor tersebut aktif agar tidak terlewat ya 😉.</b>',
-  confirmButtonColor: '#d32f2f'
-}).then(() => { window.location = 'login.php'; });
+  title: 'Pendaftaran Berhasil! 🎉',
+  html: '<p style="line-height: 1.6;">Terima kasih telah mendaftar program PKL Telkom Indonesia.<br><br><strong>Tim HC Telkom akan segera menghubungi Anda melalui WhatsApp.</strong><br><br>Pastikan nomor HP Anda aktif dan dapat dihubungi. 📱✨</p>',
+  confirmButtonColor: '#ED1C24',
+  confirmButtonText: 'OKE',
+  allowOutsideClick: false
+}).then(() => {
+  window.location = 'login.php';
+});
 </script>
 <?php endif; ?>
+
 </body>
 </html>
