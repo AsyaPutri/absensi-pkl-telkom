@@ -125,12 +125,7 @@ body {
 }
 
 .logo-telkom {
-  height: 130px;
-  object-fit: contain;
-}
-
-.logo-akhlak {
-  height: 65px;
+  height: 180px;
   object-fit: contain;
 }
 
@@ -452,16 +447,9 @@ select {
   }
   
   .logo-telkom {
-    height: 55px;
+    height: 160px;
   }
   
-  .logo-akhlak {
-    height: 55px;
-    padding-left: 0;
-    border-left: none;
-    padding-top: 0;
-    border-top: none;
-  }
   
   .form-grid {
     grid-template-columns: 1fr;
@@ -492,12 +480,9 @@ select {
   }
   
   .logo-telkom {
-    height: 45px;
+    height: 140px;
   }
   
-  .logo-akhlak {
-    height: 45px;
-  }
   
   .info-section h2 {
     font-size: 1.3rem;
@@ -571,7 +556,6 @@ select {
     <div class="header-logo" style="text-align: center; margin-bottom: 25px;">
       <div class="logo-wrapper">
         <img src="assets/img/logo_telkom.png" alt="Telkom Indonesia" class="logo-telkom">
-        <img src="assets/img/akhlak-removebg.png" alt="AKHLAK" class="logo-akhlak">
       </div>
     </div>
     
@@ -742,7 +726,7 @@ document.getElementById("regForm").addEventListener("submit", function(e) {
 Swal.fire({
   icon: 'success',
   title: 'Pendaftaran Berhasil! 🎉',
-  html: '<p style="line-height: 1.6;">Terima kasih telah mendaftar program PKL Telkom Indonesia.<br><br><strong>Tim HC Telkom akan segera menghubungi Anda melalui WhatsApp.</strong><br><br>Pastikan nomor HP Anda aktif dan dapat dihubungi. 📱✨</p>',
+  html: '<p style="line-height: 1.6;">Terima kasih telah mendaftar program PKL Telkom Indonesia Witel Bekasi - Karawang.<br><br><strong>Tim HC Telkom akan segera menghubungi Anda melalui WhatsApp.</strong><br><br>Pastikan nomor HP Anda aktif dan dapat dihubungi. 📱✨</p>',
   confirmButtonColor: '#ED1C24',
   confirmButtonText: 'OKE',
   allowOutsideClick: false

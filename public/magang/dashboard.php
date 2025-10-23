@@ -463,22 +463,6 @@ $pengumuman = $result->fetch_assoc();
                                     <strong>📍 Status:</strong> Memuat data lokasi kantor dan mendeteksi posisi Anda...
                                 </div>
                             </div>
-
-                            <!-- Location Action Buttons - KEPT ORIGINAL -->
-                            <div class="d-flex flex-wrap location-buttons">
-                                <button type="button" class="btn btn-primary btn-location me-2 mb-2" onclick="refreshUserLocation()">
-                                    <i class="bi bi-arrow-clockwise me-1"></i>
-                                    Refresh Lokasi
-                                </button>
-                                <button type="button" class="btn btn-info btn-location me-2 mb-2" onclick="centerToOffice()">
-                                    <i class="bi bi-building me-1"></i>
-                                    Ke Kantor
-                                </button>
-                                <button type="button" class="btn btn-success btn-location mb-2" onclick="checkLocation()">
-                                    <i class="bi bi-geo-alt me-1"></i>
-                                    Cek Jarak
-                                </button>
-                            </div>
                         </div>
 
                         <!-- Form Fields -->
