@@ -249,9 +249,12 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header bg-danger text-white">
-          <h5 class="modal-title fw-bold">Detail Rekap: <span id="modalNama"></span></h5>
+          <h5 class="modal-title fw-bold">
+            Detail Rekap: <span id="modalNama"></span>
+          </h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
+
         <div class="modal-body">
           <div id="infoPeserta" class="mb-3"></div>
           <hr>
@@ -259,7 +262,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
             <table class="table table-bordered table-hover text-center align-middle shadow-sm">
               <thead class="table-header-red">
                 <tr>
-                  <th>No<th/>
+                  <th>No</th>
                   <th>Tanggal</th>
                   <th>Jam Masuk</th>
                   <th>Aktivitas Masuk</th>
@@ -276,6 +279,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
             </table>
           </div>
         </div>
+
         <div class="modal-footer bg-light">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
           <button class="btn btn-primary" id="exportPerPeserta">Export</button>
@@ -424,7 +428,6 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
     fetch(url)
       .then(res => res.text())
       .then(txt => {
-        console.log("RAW response detail_absensi:", txt);
         let data;
         try {
           data = JSON.parse(txt);
@@ -434,7 +437,6 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
           return;
         }
 
-        console.log("PARSED DATA DETAIL:", data);
         let peserta = null;
         let absensi = [];
 
@@ -468,24 +470,22 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
         }
 
         const tbody = document.getElementById("modalBody");
-        if (!tbody) return console.warn("modalBody element not found");
         tbody.innerHTML = "";
 
         if (absensi.length > 0) {
-          absensi.forEach(row => {
+          absensi.forEach((row, index) => {
             const kondisi = row.kondisi ?? row.kondisi_kesehatan ?? "-";
             const lokasi = row.lokasi ?? row.lokasi_kerja ?? "-";
             const fotoRaw = row.foto ?? row.foto_absen ?? null;
             const fotoHref = fotoRaw
-              ? fotoRaw.startsWith("http") || fotoRaw.startsWith("/")
+              ? (fotoRaw.startsWith("http") || fotoRaw.startsWith("/"))
                 ? fotoRaw
                 : `../../uploads/absensi/${fotoRaw}`
               : null;
-            const exportBtn = document.getElementById("exportPerPeserta");
-            if (exportBtn) exportBtn.onclick = () => downloadPDF(peserta, absensi);
 
             tbody.innerHTML += `
               <tr>
+                <td>${index + 1}</td>
                 <td>${row.tanggal ?? "-"}</td>
                 <td>${row.jam_masuk ?? "-"}</td>
                 <td>${row.aktivitas_masuk ?? "-"}</td>
@@ -503,8 +503,11 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
               </tr>`;
           });
         } else {
-          tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">Tidak ada data absensi</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="11" class="text-center text-muted">Tidak ada data absensi</td></tr>`;
         }
+
+        const exportBtn = document.getElementById("exportPerPeserta");
+        if (exportBtn) exportBtn.onclick = () => downloadPDF(peserta, absensi);
 
         new bootstrap.Modal(document.getElementById("detailModal")).show();
       })
@@ -541,7 +544,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
       doc.text(`Unit: ${peserta.unit || "-"}`, 14, y); y += 7;
       doc.text(`Periode PKL: ${peserta.tgl_mulai || "-"} s/d ${peserta.tgl_selesai || "-"}`, 14, y);
 
-      // Siapkan data tabel
+      // Tabel data
       const tableData = absensi.map((r, i) => [
         i + 1,
         r.tanggal || "-",
@@ -555,7 +558,6 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
         r.jam_keluar || "-"
       ]);
 
-      // Tabel
       doc.autoTable({
         startY: y + 10,
         head: [[
