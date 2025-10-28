@@ -113,6 +113,7 @@ include "daftar_pkl_action.php";
             <option value="pending" <?= ($filter_status === 'pending') ? 'selected' : '' ?>>Pending</option>
             <option value="diterima" <?= ($filter_status === 'diterima') ? 'selected' : '' ?>>Diterima</option>
             <option value="ditolak" <?= ($filter_status === 'ditolak') ? 'selected' : '' ?>>Ditolak</option>
+            <option value="nonaktif" <?= ($filter_status === 'nonaktif') ? 'selected' : '' ?>>Nonaktif</option>
           </select>
 
           <input type="text" name="search" class="form-control form-control-sm w-auto"
@@ -162,17 +163,26 @@ include "daftar_pkl_action.php";
                   <td class="text-center">
                     <?php if($row['status']==='pending'): ?>
                       <span class="badge bg-warning text-dark">Pending</span>
-                      <?php elseif($row['status']==='diterima'): ?>
-                        <span class="badge bg-success">Diterima</span>
-                      <?php elseif($row['status']==='ditolak'): ?>
-                        <span class="badge bg-danger">Ditolak</span>
-                      <?php elseif($row['status']==='berlangsung'): ?>
-                        <span class="badge bg-primary">Sedang Berlangsung</span>
-                      <?php elseif($row['status']==='batal'): ?>
-                        <span class="badge bg-secondary">Batal</span>
-                      <?php else: ?>
-                        <span class="badge bg-light text-dark">-</span>
-                      <?php endif; ?>
+
+                    <?php elseif($row['status']==='diterima'): ?>
+                      <span class="badge bg-success">Diterima</span>
+
+                    <?php elseif($row['status']==='ditolak'): ?>
+                      <span class="badge bg-danger">Ditolak</span>
+
+                    <?php elseif($row['status']==='berlangsung'): ?>
+                      <span class="badge bg-primary">Sedang Berlangsung</span>
+
+                    <?php elseif($row['status']==='batal'): ?>
+                      <span class="badge bg-secondary">Batal</span>
+
+                    <!-- 🔹 Tambahan baru di sini -->
+                    <?php elseif($row['status']==='nonaktif'): ?>
+                      <span class="badge bg-dark">Nonaktif</span>
+
+                    <?php else: ?>
+                      <span class="badge bg-light text-dark">-</span>
+                    <?php endif; ?>
                   </td>
 
                   <td class="text-center">

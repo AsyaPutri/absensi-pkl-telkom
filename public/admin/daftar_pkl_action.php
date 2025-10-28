@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'inser
 if (isset($_GET['id']) && isset($_GET['status'])) {
   $id     = (int) $_GET['id'];
   $status = $_GET['status'];
-  $allowed = ['diterima', 'pending', 'ditolak'];
+  $allowed = ['diterima', 'pending', 'ditolak', 'nonaktif'];
 
   if (!in_array($status, $allowed)) {
       $_SESSION['error'] = "❌ Status tidak valid!";
@@ -263,6 +263,15 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
           $updPeserta->close();
       }
 
+      // === STATUS: NONAKTIF ===
+      elseif ($status === 'nonaktif') {
+        // Update status daftar_pkl jadi nonaktif
+        $updStatus = $conn->prepare("UPDATE daftar_pkl SET status='nonaktif' WHERE id=?");
+        $updStatus->bind_param("i", $id);
+        $updStatus->execute();
+        $updStatus->close();
+      }
+
       $conn->commit();
       $_SESSION['success'] = "✅ Status berhasil diubah menjadi $status";
 
@@ -273,7 +282,7 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
 
   // Redirect kembali ke halaman daftar, pertahankan filter jika ada
   $redirect = "daftar_pkl.php";
-  if (isset($_GET['filter_status']) && in_array($_GET['filter_status'], ['all','pending','diterima','ditolak'])) {
+  if (isset($_GET['filter_status']) && in_array($_GET['filter_status'], ['all','pending','diterima','ditolak', 'nonaktif'])) {
     $redirect .= '?filter_status=' . urlencode($_GET['filter_status']);
   }
   header("Location: " . $redirect);

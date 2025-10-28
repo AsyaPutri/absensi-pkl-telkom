@@ -227,7 +227,7 @@ $result = $stmt->get_result();
           <select name="status" id="status" class="form-select shadow-sm border-0 bg-light" onchange="this.form.submit()">
             <option value="all" <?= $status_filter == 'all' ? 'selected' : '' ?>>Semua Status</option>
             <option value="selesai" <?= $status_filter == 'selesai' ? 'selected' : '' ?>>Selesai</option>
-            <option value="keluar" <?= $status_filter == 'keluar' ? 'selected' : '' ?>>Keluar</option>
+            <option value="keluar" <?= $status_filter == 'nonaktif' ? 'selected' : '' ?>>Nonaktif</option>
           </select>
         </div>
 
@@ -287,12 +287,20 @@ $result = $stmt->get_result();
                   <?= $row['tgl_mulai'] ? date('d M Y', strtotime($row['tgl_mulai'])) : '-' ?> -
                   <?= $row['tgl_selesai'] ? date('d M Y', strtotime($row['tgl_selesai'])) : '-' ?>
                 </td>
-                <td><span class="badge bg-secondary"><?= htmlspecialchars($row['status']) ?></span></td>
                 <td>
-                  <form method="POST" action="keluar_riwayat_peserta.php" class="form-keluar">
+                  <?php if ($row['status'] == 'nonaktif'): ?>
+                    <span class="badge bg-dark text-white">Nonaktif</span>
+                  <?php elseif ($row['status'] == 'selesai'): ?>
+                    <span class="badge bg-success text-white">Selesai</span>
+                  <?php else: ?>
+                    <span class="badge bg-secondary text-white"><?= htmlspecialchars($row['status']) ?></span>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <form method="POST" action="keluar_riwayat_peserta.php" class="form-nonaktif">
                     <input type="hidden" name="id" value="<?= $row['id'] ?>">
-                    <button type="button" class="btn btn-sm btn-danger btn-keluar">
-                      <i class="bi bi-box-arrow-right"></i> Keluar
+                    <button type="button" class="btn btn-sm btn-danger btn-nonaktif">
+                      <i class="bi bi-box-arrow-right"></i> Nonaktif
                     </button>
                   </form>
                 </td>
@@ -343,9 +351,9 @@ $result = $stmt->get_result();
   <script>
   document.addEventListener('DOMContentLoaded', function () {
     // Konfirmasi keluar akun
-    document.querySelectorAll('.btn-keluar').forEach(button => {
+    document.querySelectorAll('.btn-nonaktif').forEach(button => {
       button.addEventListener('click', function () {
-        const form = this.closest('.form-keluar');
+        const form = this.closest('.form-nonaktif');
         Swal.fire({
           title: 'Yakin ingin menghapus akun peserta PKL ini?',
           text: 'Akun dan data login anak PKL akan dihapus secara permanen dari sistem!',
@@ -388,7 +396,7 @@ $result = $stmt->get_result();
       Swal.fire({
         icon: 'success',
         title: 'Akun peserta berhasil dihapus!',
-        text: 'Status peserta telah berubah menjadi "keluar".',
+        text: 'Status peserta telah berubah menjadi "Nonaktif".',
         showConfirmButton: false,
         timer: 3000,
         timerProgressBar: true,

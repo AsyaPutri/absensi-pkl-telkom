@@ -244,7 +244,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
 
   </div>
 
-  <!-- Modal Detail -->
+ <!-- Modal Detail -->
   <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content">
@@ -287,10 +287,12 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
       </div>
     </div>
   </div>
+
 <!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
 <script>
   // ======================================================
   // ========== SIDEBAR MENU TOGGLE =======================
@@ -319,8 +321,6 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
   // ======================================================
   function loadRekap(params = {}) {
     const url = new URL("rekap_absensi.php", window.location.href);
-
-    // Tambahkan parameter jika ada
     Object.keys(params).forEach(k => {
       if (params[k]) url.searchParams.append(k, params[k]);
     });
@@ -392,7 +392,6 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
         alert("Silahkan isi Tanggal Awal dan Tanggal Akhir terlebih dahulu.");
         return;
       }
-
       loadRekap(params);
     });
   }
@@ -404,7 +403,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
   if (resetBtn) {
     resetBtn.addEventListener("click", function () {
       if (filterForm) filterForm.reset();
-      loadRekap(); // tampilkan semua data lagi setelah reset
+      loadRekap();
     });
   }
 
@@ -412,7 +411,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
   // ========== AUTO LOAD SAAT HALAMAN DIBUKA =============
   // ======================================================
   document.addEventListener("DOMContentLoaded", function () {
-    loadRekap(); // tampilkan semua data langsung tanpa filter
+    loadRekap();
   });
 
   // ======================================================
@@ -428,6 +427,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
     fetch(url)
       .then(res => res.text())
       .then(txt => {
+        console.log("RAW response detail_absensi:", txt);
         let data;
         try {
           data = JSON.parse(txt);
@@ -437,6 +437,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
           return;
         }
 
+        console.log("PARSED DATA DETAIL:", data);
         let peserta = null;
         let absensi = [];
 
@@ -470,6 +471,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
         }
 
         const tbody = document.getElementById("modalBody");
+        if (!tbody) return console.warn("modalBody element not found");
         tbody.innerHTML = "";
 
         if (absensi.length > 0) {
@@ -478,10 +480,14 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
             const lokasi = row.lokasi ?? row.lokasi_kerja ?? "-";
             const fotoRaw = row.foto ?? row.foto_absen ?? null;
             const fotoHref = fotoRaw
-              ? (fotoRaw.startsWith("http") || fotoRaw.startsWith("/"))
+              ? fotoRaw.startsWith("http") || fotoRaw.startsWith("/")
                 ? fotoRaw
                 : `../../uploads/absensi/${fotoRaw}`
               : null;
+
+            // Set tombol export
+            const exportBtn = document.getElementById("exportPerPeserta");
+            if (exportBtn) exportBtn.onclick = () => downloadPDF(peserta, absensi);
 
             tbody.innerHTML += `
               <tr>
@@ -495,19 +501,18 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
                 <td>${row.aktivitas_keluar ?? "-"}</td>
                 <td>${row.kendala_keluar ?? "-"}</td>
                 <td>${row.jam_keluar ?? "-"}</td>
-                <td>${
-                  fotoHref
-                    ? `<a href="${fotoHref}" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>`
-                    : "-"
-                }</td>
+                <td>
+                  ${
+                    fotoHref
+                      ? `<a href="${fotoHref}" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>`
+                      : "-"
+                  }
+                </td>
               </tr>`;
           });
         } else {
-          tbody.innerHTML = `<tr><td colspan="11" class="text-center text-muted">Tidak ada data absensi</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">Tidak ada data absensi</td></tr>`;
         }
-
-        const exportBtn = document.getElementById("exportPerPeserta");
-        if (exportBtn) exportBtn.onclick = () => downloadPDF(peserta, absensi);
 
         new bootstrap.Modal(document.getElementById("detailModal")).show();
       })
@@ -538,13 +543,17 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
       // Info Peserta
       doc.setFontSize(11);
       let y = 35;
-      doc.text(`Nama: ${peserta.nama || "-"}`, 14, y); y += 7;
-      doc.text(`NIM/NIS: ${peserta.nis_npm || "-"}`, 14, y); y += 7;
-      doc.text(`Instansi: ${peserta.instansi_pendidikan || "-"}`, 14, y); y += 7;
-      doc.text(`Unit: ${peserta.unit || "-"}`, 14, y); y += 7;
+      doc.text(`Nama: ${peserta.nama || "-"}`, 14, y);
+      y += 7;
+      doc.text(`NIM/NIS: ${peserta.nis_npm || "-"}`, 14, y);
+      y += 7;
+      doc.text(`Instansi: ${peserta.instansi_pendidikan || "-"}`, 14, y);
+      y += 7;
+      doc.text(`Unit: ${peserta.unit || "-"}`, 14, y);
+      y += 7;
       doc.text(`Periode PKL: ${peserta.tgl_mulai || "-"} s/d ${peserta.tgl_selesai || "-"}`, 14, y);
 
-      // Tabel data
+      // Siapkan data tabel
       const tableData = absensi.map((r, i) => [
         i + 1,
         r.tanggal || "-",
@@ -558,6 +567,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
         r.jam_keluar || "-"
       ]);
 
+      // Tabel
       doc.autoTable({
         startY: y + 10,
         head: [[
@@ -576,6 +586,5 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
     }
   }
 </script>
-
 </body>
 </html>
