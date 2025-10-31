@@ -27,7 +27,7 @@ if ($user_id <= 0) {
 $pkCandidates = ['id','user_id','peserta_id'];
 $pkPeserta = null;
 $colsPeserta = [];
-$colRes = $conn->query("SHOW COLUMNS FROM `peserta_pkl`");
+$colRes = $conn->query("SHOW COLUMNS FROM peserta_pkl");
 if ($colRes) {
     while ($c = $colRes->fetch_assoc()) $colsPeserta[] = $c['Field'];
     foreach ($pkCandidates as $cand) {
@@ -95,7 +95,7 @@ if ($tgl_awal && $tgl_akhir) {
 
 /* ---------- deteksi kolom di tabel absen ---------- */
 $colsAbsen = [];
-$colRes2 = $conn->query("SHOW COLUMNS FROM `absen`");
+$colRes2 = $conn->query("SHOW COLUMNS FROM absen");
 if ($colRes2) {
     while ($c = $colRes2->fetch_assoc()) $colsAbsen[] = $c['Field'];
 }

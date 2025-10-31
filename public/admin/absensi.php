@@ -177,17 +177,11 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
     <!-- Filter -->
     <div class="card mb-3 shadow-sm">
       <div class="card-body">
-        <form id="filterForm" class="row g-2 align-items-end">
-          <div class="col-md-3">
-            <label class="form-label small">Tanggal Awal</label>
-            <input type="date" name="tgl_awal" class="form-control" required>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label small">Tanggal Akhir</label>
-            <input type="date" name="tgl_akhir" class="form-control" required>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label small">Unit</label>
+        <form id="filterForm" class="row g-3 align-items-end">
+
+          <!-- Filter Unit -->
+          <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+            <label class="form-label fw-semibold text-secondary">Unit</label>
             <select name="unit" class="form-select">
               <option value="all" <?= $unit === 'all' ? 'selected' : '' ?>>Semua Unit</option>
               <?php
@@ -199,9 +193,34 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
               ?>
             </select>
           </div>
-          <div class="col-md-3 d-flex gap-2">
-            <button type="submit" class="btn btn-danger"><i class="bi bi-filter"></i> Filter</button>
-            <button type="button" id="resetBtn" class="btn btn-outline-secondary">Reset</button>
+
+          <!-- Pencarian -->
+          <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+            <label for="q" class="form-label fw-semibold text-secondary">
+              Cari (Nama / NIS )
+            </label>
+            <div class="input-group shadow-sm">
+              <span class="input-group-text bg-danger text-white border-0">
+                <i class="bi bi-search"></i>
+              </span>
+              <input 
+                type="text" 
+                name="search" 
+                value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>" 
+                class="form-control border-0 bg-light" 
+                placeholder="Ketik kata kunci..."
+              >
+            </div>
+          </div>
+
+          <!-- Tombol -->
+          <div class="col-xl-3 col-lg-3 col-md-12 col-sm-12 d-flex gap-2">
+            <button type="submit" class="btn btn-danger flex-fill">
+              <i class="bi bi-filter"></i> Filter
+            </button>
+            <button type="button" id="resetBtn" class="btn btn-outline-secondary flex-fill">
+              Reset
+            </button>
           </div>
         </form>
       </div>
@@ -357,7 +376,15 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
               btn.className = "btn btn-sm btn-info";
               btn.innerHTML = '<i class="bi bi-eye"></i> Detail';
               btn.addEventListener("click", () => {
-                loadDetail(idForDetail, params.tgl_awal || "", params.tgl_akhir || "");
+                // 🟢 kirim data rekap ke modal detail
+                loadDetail(
+                  idForDetail,
+                  params.tgl_awal || "",
+                  params.tgl_akhir || "",
+                  row.hari_kerja ?? 0,
+                  jumlahHadir,
+                  row.persen ?? 0
+                );
               });
               tdBtn.appendChild(btn);
             } else {
@@ -388,11 +415,6 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
       const formData = new FormData(this);
       let params = {};
       formData.forEach((v, k) => (params[k] = v));
-
-      if (!params.tgl_awal || !params.tgl_akhir) {
-        alert("Silahkan isi Tanggal Awal dan Tanggal Akhir terlebih dahulu.");
-        return;
-      }
       loadRekap(params);
     });
   }
@@ -418,7 +440,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
   // ======================================================
   // ========== DETAIL MODAL & EXPORT PDF =================
   // ======================================================
-  function loadDetail(user_id, tgl_awal, tgl_akhir) {
+  function loadDetail(user_id, tgl_awal, tgl_akhir, hariKerja, jumlahHadir, persenKehadiran) {
     console.log("Request detail untuk user_id/peserta_id:", user_id);
     const url = new URL("detail_absensi.php", window.location.href);
     url.searchParams.append("user_id", user_id);
@@ -457,6 +479,11 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
           absensi = data;
         }
 
+        // 🟢 simpan data statistik di peserta agar bisa dipakai di export
+        peserta.hari_kerja = hariKerja;
+        peserta.jumlah_hadir = jumlahHadir;
+        peserta.persen = persenKehadiran;
+
         if (peserta) {
           document.getElementById("modalNama").innerText = peserta.nama ?? "-";
           document.getElementById("infoPeserta").innerHTML = `
@@ -467,6 +494,10 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
                 <p><strong>Instansi:</strong> ${peserta.instansi_pendidikan ?? "-"}</p>
                 <p><strong>Unit:</strong> ${peserta.unit ?? "-"}</p>
                 <p><strong>Periode PKL:</strong> ${peserta.tgl_mulai ?? "-"} s/d ${peserta.tgl_selesai ?? "-"}</p>
+                <hr>
+                <p><strong>Jumlah Hari Kerja:</strong> ${hariKerja}</p>
+                <p><strong>Jumlah Hadir:</strong> ${jumlahHadir}</p>
+                <p><strong>Persentase Kehadiran:</strong> ${persenKehadiran}%</p>
               </div>
             </div>`;
         }
@@ -485,10 +516,6 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
                 ? fotoRaw
                 : `../../uploads/absensi/${fotoRaw}`
               : null;
-
-            // Set tombol export
-            const exportBtn = document.getElementById("exportPerPeserta");
-            if (exportBtn) exportBtn.onclick = () => downloadPDF(peserta, absensi);
 
             tbody.innerHTML += `
               <tr>
@@ -515,77 +542,96 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
           tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">Tidak ada data absensi</td></tr>`;
         }
 
+        // 🟢 Set tombol export
+        const exportBtn = document.getElementById("exportPerPeserta");
+        if (exportBtn)
+          exportBtn.onclick = () =>
+            downloadPDF(peserta, absensi, {
+              totalHariKerja: hariKerja,
+              jumlahHadir: jumlahHadir,
+              persen: persenKehadiran,
+            });
+
         new bootstrap.Modal(document.getElementById("detailModal")).show();
       })
       .catch(err => {
         console.error("Error fetch detail_absensi:", err);
         alert("Gagal memuat detail peserta. Cek console untuk detail.");
       });
+  }
 
-    // ======================================================
-    // ========== EXPORT PDF DETAIL ABSENSI ================
-    // ======================================================
-    function downloadPDF(peserta, absensi) {
-      if (!absensi || absensi.length === 0) {
-        alert("Tidak ada data absensi untuk diunduh.");
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: "landscape" });
-
-      // Header
-      doc.setFontSize(16);
-      doc.text("REKAP DETAIL ABSENSI PKL", 150, 15, { align: "center" });
-      doc.setFontSize(12);
-      doc.text("PT TELKOM INDONESIA", 150, 22, { align: "center" });
-      doc.line(14, 25, 283, 25);
-
-      // Info Peserta
-      doc.setFontSize(11);
-      let y = 35;
-      doc.text(`Nama: ${peserta.nama || "-"}`, 14, y);
-      y += 7;
-      doc.text(`NIM/NIS: ${peserta.nis_npm || "-"}`, 14, y);
-      y += 7;
-      doc.text(`Instansi: ${peserta.instansi_pendidikan || "-"}`, 14, y);
-      y += 7;
-      doc.text(`Unit: ${peserta.unit || "-"}`, 14, y);
-      y += 7;
-      doc.text(`Periode PKL: ${peserta.tgl_mulai || "-"} s/d ${peserta.tgl_selesai || "-"}`, 14, y);
-
-      // Siapkan data tabel
-      const tableData = absensi.map((r, i) => [
-        i + 1,
-        r.tanggal || "-",
-        r.jam_masuk || "-",
-        r.aktivitas_masuk || "-",
-        r.kendala_masuk || "-",
-        r.kondisi_kesehatan || "-",
-        r.lokasi_kerja || "-",
-        r.aktivitas_keluar || "-",
-        r.kendala_keluar || "-",
-        r.jam_keluar || "-"
-      ]);
-
-      // Tabel
-      doc.autoTable({
-        startY: y + 10,
-        head: [[
-          "No", "Tanggal", "Jam Masuk", "Aktivitas Masuk", "Kendala Masuk",
-          "Kondisi Kesehatan", "Lokasi", "Aktivitas Keluar", "Kendala Keluar", "Jam Keluar"
-        ]],
-        body: tableData,
-        styles: { fontSize: 8, cellPadding: 2, halign: "center", valign: "middle" },
-        headStyles: { fillColor: [220, 53, 69], textColor: 255, halign: "center" },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        margin: { left: 14, right: 14 }
-      });
-
-      const namaFile = `rekap_absensi_${(peserta.nama || "user").replace(/\s+/g, "_")}.pdf`;
-      doc.save(namaFile);
+  // ======================================================
+  // ========== EXPORT PDF DETAIL ABSENSI ================
+  // ======================================================
+  function downloadPDF(peserta, absensi, statistik = {}) {
+    if (!absensi || absensi.length === 0) {
+      alert("Tidak ada data absensi untuk diunduh.");
+      return;
     }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape" });
+
+    // Header
+    doc.setFontSize(16);
+    doc.text("REKAP DETAIL ABSENSI PKL", 150, 15, { align: "center" });
+    doc.setFontSize(12);
+    doc.text("PT TELKOM INDONESIA", 150, 22, { align: "center" });
+    doc.line(14, 25, 283, 25);
+
+    // Info Peserta
+    doc.setFontSize(11);
+    let y = 35;
+    doc.text(`Nama: ${peserta.nama || "-"}`, 14, y);
+    y += 7;
+    doc.text(`NIM/NIS: ${peserta.nis_npm || "-"}`, 14, y);
+    y += 7;
+    doc.text(`Instansi: ${peserta.instansi_pendidikan || "-"}`, 14, y);
+    y += 7;
+    doc.text(`Unit: ${peserta.unit || "-"}`, 14, y);
+    y += 7;
+    doc.text(`Periode PKL: ${peserta.tgl_mulai || "-"} s/d ${peserta.tgl_selesai || "-"}`, 14, y);
+
+    // 🟢 Tambahkan statistik di bawah periode
+    y += 10;
+    doc.text(`Jumlah Hari Kerja: ${statistik.totalHariKerja || "-"}`, 14, y);
+    y += 7;
+    doc.text(`Jumlah Hadir: ${statistik.jumlahHadir || "-"}`, 14, y);
+    y += 7;
+    doc.text(`Persentase Kehadiran: ${statistik.persen || 0}%`, 14, y);
+
+    // Siapkan data tabel
+    const tableData = absensi.map((r, i) => [
+      i + 1,
+      r.tanggal || "-",
+      r.jam_masuk || "-",
+      r.aktivitas_masuk || "-",
+      r.kendala_masuk || "-",
+      r.kondisi_kesehatan || "-",
+      r.lokasi_kerja || "-",
+      r.aktivitas_keluar || "-",
+      r.kendala_keluar || "-",
+      r.jam_keluar || "-"
+    ]);
+
+    // Tabel
+    doc.autoTable({
+      startY: y + 10,
+      head: [[
+        "No", "Tanggal", "Jam Masuk", "Aktivitas Masuk", "Kendala Masuk",
+        "Kondisi Kesehatan", "Lokasi", "Aktivitas Keluar", "Kendala Keluar", "Jam Keluar"
+      ]],
+      body: tableData,
+      styles: { fontSize: 8, cellPadding: 2, halign: "center", valign: "middle" },
+      headStyles: { fillColor: [220, 53, 69], textColor: 255, halign: "center" },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { left: 14, right: 14 }
+    });
+
+    const namaFile = `rekap_absensi_${(peserta.nama || "user").replace(/\s+/g, "_")}.pdf`;
+    doc.save(namaFile);
   }
 </script>
 </body>
 </html>
+
