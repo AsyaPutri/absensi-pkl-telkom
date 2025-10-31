@@ -316,7 +316,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
     });
   }
 
-  // ======================================================
+ // ======================================================
   // ========== LOAD REKAP ABSENSI ========================
   // ======================================================
   function loadRekap(params = {}) {
@@ -335,8 +335,9 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
 
         if (Array.isArray(data) && data.length > 0) {
           data.forEach((row, i) => {
-            const jumlahHadir = (parseInt(row.hadir_office) || 0) + (parseInt(row.hadir_wfh) || 0);
-            const idForDetail = row.user_id ?? row.id ?? row.peserta_id ?? row.peserta ?? null;
+            const jumlahHadir = parseInt(row.jumlah_hadir) || 0;
+            const jumlahTidakHadir = parseInt(row.jumlah_tidak_hadir) || 0;
+            const idForDetail = row.user_id ?? row.id ?? row.peserta_id ?? null;
 
             const tr = document.createElement("tr");
             tr.innerHTML = `
@@ -346,7 +347,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
               <td>${row.unit ?? "-"}</td>
               <td>${row.hari_kerja ?? "-"}</td>
               <td>${jumlahHadir}</td>
-              <td>${row.alpha ?? "-"}</td>
+              <td>${jumlahTidakHadir}</td>
               <td>${row.persen ?? 0}%</td>
             `;
 
