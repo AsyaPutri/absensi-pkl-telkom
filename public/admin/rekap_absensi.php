@@ -9,6 +9,7 @@ include "../../config/database.php";
 $tgl_awal  = isset($_GET['tgl_awal']) && $_GET['tgl_awal'] !== '' ? date('Y-m-d', strtotime($_GET['tgl_awal'])) : null;
 $tgl_akhir = isset($_GET['tgl_akhir']) && $_GET['tgl_akhir'] !== '' ? date('Y-m-d', strtotime($_GET['tgl_akhir'])) : null;
 $unit      = isset($_GET['unit']) ? $_GET['unit'] : 'all';
+$search    = $_GET['search'] ?? '';
 
 // ============================
 // Escape input
@@ -23,6 +24,18 @@ $unit_esc      = $conn->real_escape_string($unit);
 $where = "WHERE 1=1";
 if ($unit !== '' && $unit !== 'all') {
     $where .= " AND p.unit_id = '{$unit_esc}'";
+}
+
+// 🔍 Filter pencarian
+if (!empty($search)) {
+    $s = $conn->real_escape_string($search);
+    $where .= " AND (
+        p.nama LIKE '%$s%'
+        OR p.nis_npm LIKE '%$s%'
+        OR p.instansi_pendidikan LIKE '%$s%'
+        OR p.jurusan LIKE '%$s%'
+        OR d.skill LIKE '%$s%'
+    )";
 }
 
 // ============================
@@ -40,6 +53,7 @@ SELECT
     COUNT(a.id) AS total_hadir
 FROM peserta_pkl p
 LEFT JOIN unit_pkl u ON p.unit_id = u.id
+LEFT JOIN daftar_pkl d ON p.email = d.email
 LEFT JOIN absen a 
     ON a.user_id = p.user_id
     " . ($tgl_awal_esc && $tgl_akhir_esc ? "AND a.tanggal BETWEEN '$tgl_awal_esc' AND '$tgl_akhir_esc'" : "") . "
@@ -102,7 +116,5 @@ while ($row = $result->fetch_assoc()) {
 // ============================
 // Output JSON
 // ============================
-header('Content-Type: application/json; charset=utf-8');
 echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 exit;
-?>

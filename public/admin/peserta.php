@@ -62,22 +62,22 @@ if ($filter_unit !== 'all') {
 // Filter berdasarkan status
 // ============================
 if ($status_filter === 'berlangsung') {
-  $sql .= " AND (p.status = 'berlangsung' OR CURDATE() <= p.tgl_selesai)";
+  $sql .= " AND p.status = 'berlangsung'";
 } elseif ($status_filter === 'selesai') {
-  $sql .= " AND (p.status = 'selesai' OR CURDATE() > p.tgl_selesai)";
+  $sql .= " AND p.status = 'selesai'";
 }
 
-// Inisialisasi variabel biar gak undefined
-$q = isset($_GET['q']) ? trim($_GET['q']) : '';
-$params = [];
-$types = '';
-
 // Pencarian (nama, NIS, instansi, jurusan)
-if ($q !== '') {
-  $sql .= " AND (r.nama LIKE ? OR r.nis_npm LIKE ? OR r.instansi_pendidikan LIKE ? OR r.jurusan LIKE ?)";
-  $like = '%' . $q . '%';
-  $params = array_merge($params, [$like, $like, $like, $like]);
-  $types .= "ssss";
+$search = $_GET['search'] ?? '';
+if (!empty($search)) {
+  $s = $conn->real_escape_string($search);
+  $sql .= " AND (
+      p.nama LIKE '%$s%' 
+      OR p.nis_npm LIKE '%$s%'
+      OR p.instansi_pendidikan LIKE '%$s%' 
+      OR p.jurusan LIKE '%$s%'
+      OR d.skill LIKE '%$s%'
+  )";
 }
 
 // ============================
@@ -314,14 +314,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
         <!-- Pencarian -->
         <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
-          <label for="q" class="form-label fw-semibold text-secondary">Cari (Nama / NIS / Instansi / Jurusan)</label>
+          <label for="q" class="form-label fw-semibold text-secondary">
+            Cari (Nama / NIS / Instansi / Jurusan)
+          </label>
           <div class="input-group shadow-sm">
             <span class="input-group-text bg-danger text-white border-0">
               <i class="bi bi-search"></i>
             </span>
-            <input type="text" id="q" name="q" value="<?= htmlspecialchars($q) ?>" 
-                  class="form-control border-0 bg-light"
-                  placeholder="Ketik kata kunci...">
+            <input 
+              type="text" 
+              name="search" 
+              value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>" 
+              class="form-control border-0 bg-light" 
+              placeholder="Ketik kata kunci..."
+            >
           </div>
         </div>
 
@@ -349,7 +355,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
       </form>
     </div>
   </div>
-
 
   <!-- Data Peserta PKL -->
   <div class="card mt-4 shadow-sm mx-3 mb-4">
@@ -397,7 +402,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
                 <td class="text-center">
                   <?php if ($row['status'] == 'selesai' || date('Y-m-d') > $row['tgl_selesai']): ?>
-                    <span class="badge bg-secondary">Selesai</span>
+                    <span class="badge bg-success text-white">Selesai</span>
                   <?php else: ?>
                     <span class="badge bg-success">Berlangsung</span>
                   <?php endif; ?>

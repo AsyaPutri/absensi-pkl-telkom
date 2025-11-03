@@ -54,6 +54,7 @@ $total_berlangsung = ambilJumlah($koneksi, "SELECT COUNT(*) AS total_berlangsung
 $tanggal_hari_ini = date("Y-m-d");
 $total_hadir = ambilJumlah($koneksi, "SELECT COUNT(*) AS total_hadir FROM absen WHERE tanggal='$tanggal_hari_ini'", "total_hadir");
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>

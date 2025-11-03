@@ -1,17 +1,14 @@
 <?php
-// ============================
-// riwayat_peserta.php
-// ============================
 include "../../includes/auth.php";
 checkRole('admin');
 include "../../config/database.php";
 
 // ============================
-// Ambil filter dari URL
+// Ambil filter 
 // ============================
 $status_filter = $_GET['status'] ?? 'all';
 $filter_unit   = $_GET['unit'] ?? 'all';
-$q             = trim($_GET['q'] ?? '');
+$search        = $_GET['search'] ?? '';
 
 // ============================
 // Ambil daftar unit untuk dropdown
@@ -31,7 +28,25 @@ $sql = "
 ";
 
 $params = [];
-$types = "";
+$types  = "";
+
+// ============================
+// 🔍 Filter pencarian
+// ============================
+if (!empty($search)) {
+  $sql .= " AND (
+      r.nama LIKE ?
+      OR r.nis_npm LIKE ?
+      OR r.instansi_pendidikan LIKE ?
+      OR r.jurusan LIKE ?
+  )";
+  // karena prepared statement, tambahkan parameter 4x
+  $params[] = "%$search%";
+  $params[] = "%$search%";
+  $params[] = "%$search%";
+  $params[] = "%$search%";
+  $types .= "ssss";
+}
 
 // ============================
 // Filter berdasarkan unit
@@ -47,18 +62,8 @@ if ($filter_unit !== 'all') {
 // ============================
 if ($status_filter === 'selesai') {
   $sql .= " AND r.status = 'selesai'";
-} elseif ($status_filter === 'keluar') {
-  $sql .= " AND r.status = 'keluar'";
-}
-
-// ============================
-// Pencarian (nama, NIS, instansi, jurusan)
-// ============================
-if ($q !== '') {
-  $sql .= " AND (r.nama LIKE ? OR r.nis_npm LIKE ? OR r.instansi_pendidikan LIKE ? OR r.jurusan LIKE ?)";
-  $like = "%$q%";
-  $params = array_merge($params, [$like, $like, $like, $like]);
-  $types .= "ssss";
+} elseif ($status_filter === 'keluar' || $status_filter === 'nonaktif') {
+  $sql .= " AND r.status = 'nonaktif'";
 }
 
 $sql .= " ORDER BY r.tgl_selesai DESC";
@@ -210,14 +215,20 @@ $result = $stmt->get_result();
 
         <!-- Pencarian -->
         <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
-          <label for="q" class="form-label fw-semibold text-secondary">Cari (Nama / NIS / Instansi / Jurusan)</label>
+          <label for="q" class="form-label fw-semibold text-secondary">
+            Cari (Nama / NIS )
+          </label>
           <div class="input-group shadow-sm">
             <span class="input-group-text bg-danger text-white border-0">
               <i class="bi bi-search"></i>
             </span>
-            <input type="text" id="q" name="q" value="<?= htmlspecialchars($q) ?>" 
-                  class="form-control border-0 bg-light"
-                  placeholder="Ketik kata kunci...">
+            <input 
+              type="text" 
+              name="search" 
+              value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>" 
+              class="form-control border-0 bg-light" 
+              placeholder="Ketik kata kunci..."
+            >
           </div>
         </div>
 

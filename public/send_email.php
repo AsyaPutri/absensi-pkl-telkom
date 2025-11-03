@@ -61,4 +61,5 @@ while ($peserta = $result->fetch_assoc()) {
     } catch (Exception $e) {
         echo "Gagal mengirim email untuk {$peserta['nama']}: {$mail->ErrorInfo}<br>";
     }
+
 }

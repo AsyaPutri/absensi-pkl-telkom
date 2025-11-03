@@ -51,13 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'inser
   $nis_npm          = trim($_POST['nis_npm'] ?? '');
   $instansi         = trim($_POST['instansi_pendidikan'] ?? '');
   $jurusan          = trim($_POST['jurusan'] ?? '');
-  $ipk              = isset($_POST['ipk_nilai_ratarata']) && $_POST['ipk_nilai_ratarata'] !== ''
-                      ? (float) $_POST['ipk_nilai_ratarata']
-                      : null;
+  $ipk              = isset($_POST['ipk']) && $_POST['ipk'] !== '' ? (float) $_POST['ipk'] : null;
   $semester         = trim($_POST['semester'] ?? '');
   $memiliki_laptop  = trim($_POST['memiliki_laptop'] ?? '');
-  $bersedia_unit    = trim($_POST['bersedia_unit_manapun'] ?? '');
-  $no_surat         = trim($_POST['nomor_surat_permohonan'] ?? '');
+  $no_surat         = trim($_POST['no_surat'] ?? '');
+  $bersedia_unit    = trim($_POST['bersedia_unit'] ?? '');
   $skill            = trim($_POST['skill'] ?? '');
   $durasi           = trim($_POST['durasi'] ?? '');
   $unit_id          = !empty($_POST['unit_id']) ? (int) $_POST['unit_id'] : null;
@@ -71,9 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'inser
   // ==========================
   // Upload file
   // ==========================
-  $foto  = uploadFileUnique('upload_foto', $foto_dir);
-  $ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
-  $surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
+  $upload_foto  = uploadFileUnique('upload_foto', $foto_dir);
+  $upload_ktm   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
+  $upload_surat = uploadFileUnique('upload_surat_permohonan', $surat_dir);
+
 
   // ==========================
   // Query Insert
@@ -89,14 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'inser
           )
           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-  $stmt = $conn->prepare($sql);
-
-  if (!$stmt) {
-    $_SESSION['error'] = "❌ Prepare failed: " . $conn->error;
-    header("Location: daftar_pkl.php");
-    exit;
-  }
-
   // ==========================
   // Bind parameter (22 kolom)
   // ==========================
@@ -104,13 +95,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'inser
   if(!$stmt){
     $_SESSION['error'] = "DB prepare error: " . $conn->error;
   } else {
-    // types: 7x s + i + many s + d + s...
-    $types = "sssssssisssssssdssssss"; // 22 params
-    $bind = $stmt->bind_param(
+    $types = "sssssssisssssssdssssss"; // tetap 22 param
+    $stmt->bind_param(
       $types,
-      $nama, $email, $nis_npm, $instansi, $jurusan, $skill, $durasi,
-      $unit_id,
-      $no_hp, $alamat,
+      $nama, $email, $nis_npm, $instansi, $jurusan,
+      $skill, $durasi, $unit_id, $no_hp, $alamat,
       $tgl_mulai, $tgl_selesai,
       $upload_surat, $upload_foto, $upload_ktm,
       $ipk, $semester, $memiliki_laptop, $bersedia_unit,
