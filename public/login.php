@@ -18,6 +18,8 @@ try {
 if (isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true) {
     if ($_SESSION['role'] === 'magang') {
         header("Location: magang/dashboard.php");
+    } elseif ($_SESSION['role'] === 'mentor') {
+        header("Location: mentor/dashboard.php");
     } else {
         header("Location: admin/dashboard.php");
     }
@@ -87,6 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Redirect berdasarkan role
                     if ($role === 'magang') {
                         header("Location: magang/dashboard.php");
+                    } elseif ($role === 'mentor') {
+                        header("Location: mentor/dashboard.php");
                     } else {
                         header("Location: admin/dashboard.php");
                     }
@@ -222,6 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select id="role" name="role" class="form-select" required>
                         <option value="">-- Pilih --</option>
                         <option value="magang" <?php echo (($_POST['role'] ?? '') === 'magang') ? 'selected' : ''; ?>>Magang</option>
+                        <option value="mentor" <?php echo (($_POST['role'] ?? '') === 'mentor') ? 'selected' : ''; ?>>Mentor</option>
                         <option value="admin" <?php echo (($_POST['role'] ?? '') === 'admin') ? 'selected' : ''; ?>>Admin</option>
                     </select>
                 </div>
