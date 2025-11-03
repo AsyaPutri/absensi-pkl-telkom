@@ -28,7 +28,6 @@ $data_hadir = mysqli_fetch_assoc($query_hadir);
 $total_hadir = $data_hadir['total_hadir'];
 ?>
 
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
