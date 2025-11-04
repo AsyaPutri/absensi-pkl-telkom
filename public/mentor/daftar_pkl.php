@@ -1,236 +1,216 @@
 <?php
 include "../../includes/auth.php";
 include "../../config/database.php";
+
+// ✅ Ambil data PKL dengan status pending
+$query = "SELECT * FROM daftar_pkl WHERE status = 'pending' ORDER BY id DESC";
+$result = mysqli_query($conn, $query);
+
+if (!$result) {
+  die("<h3 style='color:red; text-align:center;'>Query gagal: " . mysqli_error($conn) . "</h3>");
+}
 ?>
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Daftar PKL - Admin</title>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Pendaftar Internship - Mentor</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-
   <style>
     :root {
       --telkom-red: #cc0000;
       --telkom-dark: #990000;
+      --light-bg: #f8f9fc;
     }
-
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      background: var(--light-bg);
       min-height: 100vh;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      width: 260px;
-      min-height: 100vh;
-      background: linear-gradient(135deg, var(--telkom-red), var(--telkom-dark));
-      color: #fff;
-      padding: 1rem;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1000;
-      transition: left .3s;
-    }
-    .sidebar .nav-link {
-      color: #eee;
-      border-radius: 12px;
-      padding: 12px 16px;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-    }
-    .sidebar .nav-link.active, .sidebar .nav-link:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff !important;
-      transform: translateX(5px);
-    }
-
-    /* Overlay untuk HP */
-    .sidebar-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, .5);
-      z-index: 900;
-    }
-
-    /* Konten Utama */
-    .main-content {
-      margin-left: 260px;
-      transition: margin-left .3s;
-      min-height: 100vh;
+      margin: 0;
+      padding: 0;
     }
     .header {
       background: #fff;
-      border-bottom: 1px solid #eee;
-      padding: 1rem 1.5rem;
+      border-bottom: 2px solid var(--telkom-red);
+      padding: 1rem 2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    .telkom-logo {
-      height: 70px;
-    }
-
-    /* Card dan Table */
-    .card {
-      border: none;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-    .table thead th {
+    .header img { height: 60px; }
+    .header .title h4 { color: var(--telkom-red); font-weight: 700; margin-bottom: 4px; }
+    .header .title small { color: #6c757d; }
+    .back-btn {
       background: var(--telkom-red);
       color: #fff;
-      text-align: center;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all .3s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
+    .back-btn:hover { background: var(--telkom-dark); color: #fff; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .card-header { background: #fff; border-bottom: 3px solid var(--telkom-red); padding: 1rem 1.5rem; }
+    .card-header h5 { color: var(--telkom-red); font-weight: 700; margin: 0; }
+    .table thead th { background: var(--telkom-red); color: #fff; }
+    .table-hover tbody tr:hover { background-color: #ffecec; }
 
-    /* Responsif */
-    @media(max-width: 768px) {
-      .sidebar {
-        left: -260px;
-      }
-      .sidebar.active {
-        left: 0;
-      }
-      .main-content {
-        margin-left: 0;
-      }
+    /* Modal styling */
+    .modal-header {
+      background-color: var(--telkom-red);
+      color: white;
+      border-bottom: none;
+    }
+    .modal-body label {
+      font-weight: 600;
+    }
+    .modal-body .row {
+      margin-bottom: 8px;
     }
   </style>
 </head>
-
 <body>
-  <!-- Overlay -->
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-  <!-- Sidebar -->
-  <div class="sidebar" id="sidebarMenu">
-    <div class="text-center py-3">
-      <i class="bi bi-person-circle fs-1 text-white"></i>
-      <p class="fw-bold mb-0">Admin PKL</p>
-      <small class="text-white-50">Telkom Witel Bekasi</small>
-    </div>
-    <hr class="text-white-50">
-    <ul class="nav flex-column">
-      <li><a href="dashboard.php" class="nav-link"><i class="bi bi-house-door me-2"></i> Beranda</a></li>
-      <li><a href="daftar_pkl.php" class="nav-link active"><i class="bi bi-journal-text me-2"></i> Daftar PKL</a></li>
-      <li><a href="peserta.php" class="nav-link"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
-      <li><a href="absensi.php" class="nav-link"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
-      <li><a href="riwayat_peserta.php" class="nav-link"><i class="bi bi-clock-history me-2"></i> Riwayat Peserta</a></li>
-      <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
-    </ul>
-  </div>
-
-  <!-- Main Content -->
-  <div class="main-content">
-    <div class="header">
-      <div class="d-flex align-items-center">
-        <button class="btn btn-outline-secondary d-md-none me-2" id="menuToggle"><i class="bi bi-list"></i></button>
-        <div>
-          <h4 class="mb-0 fw-bold text-danger">Data Daftar PKL</h4>
-          <small class="text-muted">Sistem Manajemen Praktik Kerja Lapangan</small>
-        </div>
-      </div>
-      <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
-    </div>
-
-    <div class="container-fluid p-4">
-
-      <!-- Alert -->
-      <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success alert-dismissible fade show">
-          <?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      <?php endif; ?>
-
-      <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show">
-          <?= htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      <?php endif; ?>
-
-      <!-- Filter dan Pencarian -->
-      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <form method="get" class="d-flex flex-wrap align-items-center gap-2">
-          <label class="fw-semibold mb-0">Status:</label>
-          <select name="filter_status" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-            <option value="all">Semua</option>
-            <option value="pending">Pending</option>
-            <option value="diterima">Diterima</option>
-            <option value="ditolak">Ditolak</option>
-            <option value="nonaktif">Nonaktif</option>
-          </select>
-
-          <input type="text" name="search" class="form-control form-control-sm w-auto" placeholder="Cari Jurusan / Instansi">
-          <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-search"></i> Cari</button>
-        </form>
-      </div>
-
-      <!-- Tabel Data -->
-      <div class="card">
-        <div class="card-header bg-white">
-          <h5 class="fw-bold text-danger mb-0"><i class="bi bi-list-check me-2"></i> Daftar PKL</h5>
-        </div>
-        <div class="card-body table-responsive">
-          <table class="table table-bordered table-hover align-middle">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Nama</th>
-                <th>Instansi</th>
-                <th>Jurusan</th>
-                <th>No HP</th>
-                <th>Status</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="text-center">1</td>
-                <td>Rizky Ramadhan</td>
-                <td>SMK Telkom</td>
-                <td>RPL</td>
-                <td>08123456789</td>
-                <td class="text-center"><span class="badge bg-warning text-dark">Pending</span></td>
-                <td class="text-center">
-                  <button class="btn btn-success btn-sm">✔ Terima</button>
-                  <button class="btn btn-danger btn-sm">❌ Tolak</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+<!-- Header -->
+<div class="header">
+  <div class="d-flex align-items-center">
+    <img src="../assets/img/logo_telkom.png" alt="Telkom Logo">
+    <div class="title ms-3">
+      <h4>Data Pendaftar Internship</h4>
+      <small>Sistem Monitoring Internship | Telkom Witel Bekasi - Karawang</small>
     </div>
   </div>
+  <a href="dashboard.php" class="back-btn"><i class="bi bi-arrow-left"></i> Kembali ke Dashboard</a>
+</div>
+
+<!-- Konten -->
+<div class="container-fluid mt-4">
+  <div class="card">
+    <div class="card-header">
+      <h5><i class="bi bi-list-check me-2"></i> Daftar Pendaftar</h5>
+    </div>
+    <div class="card-body table-responsive">
+      <table class="table table-bordered table-hover align-middle">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Nama</th>
+            <th>Instansi</th>
+            <th>Jurusan</th>
+            <th>No HP</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php $no = 1;
+          while ($row = mysqli_fetch_assoc($result)): ?>
+          <tr>
+            <td><?= $no++; ?></td>
+            <td><?= htmlspecialchars($row['nama']); ?></td>
+            <td><?= htmlspecialchars($row['instansi_pendidikan']); ?></td>
+            <td><?= htmlspecialchars($row['jurusan']); ?></td>
+            <td><?= htmlspecialchars($row['no_hp']); ?></td>
+            <td><span class="badge bg-warning text-dark"><?= ucfirst($row['status']); ?></span></td>
+            <td>
+              <button class="btn btn-primary btn-sm" 
+                data-bs-toggle="modal" 
+                data-bs-target="#rincianModal" 
+                data-nama="<?= htmlspecialchars($row['nama']); ?>"
+                data-email="<?= htmlspecialchars($row['email']); ?>"
+                data-instansi="<?= htmlspecialchars($row['instansi_pendidikan']); ?>"
+                data-jurusan="<?= htmlspecialchars($row['jurusan']); ?>"
+                data-ipk="<?= htmlspecialchars($row['ipk_nilai_ratarata']); ?>"
+                data-semester="<?= htmlspecialchars($row['semester']); ?>"
+                data-nis="<?= htmlspecialchars($row['nis_npm']); ?>"
+                data-nomorsurat="<?= htmlspecialchars($row['nomor_surat_permohonan']); ?>"
+                data-skill="<?= htmlspecialchars($row['skill']); ?>"
+                data-unit="<?= htmlspecialchars($row['unit_id']); ?>"
+                data-alamat="<?= htmlspecialchars($row['alamat']); ?>"
+                data-periode="<?= htmlspecialchars($row['tgl_mulai']); ?> - <?= htmlspecialchars($row['tgl_selesai']); ?>"
+                data-foto="<?= htmlspecialchars($row['upload_foto']); ?>"
+                data-ktm="<?= htmlspecialchars($row['upload_kartu_identitas']); ?>"
+                data-surat="<?= htmlspecialchars($row['upload_surat_permohonan']); ?>"
+              >
+                <i class="bi bi-eye"></i> Rincian
+              </button>
+            </td>
+          </tr>
+          <?php endwhile; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Rincian -->
+<div class="modal fade" id="rincianModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Rincian Peserta</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <label>Nama:</label> <p id="r-nama"></p>
+            <label>Email:</label> <p id="r-email"></p>
+            <label>Instansi:</label> <p id="r-instansi"></p>
+            <label>Jurusan:</label> <p id="r-jurusan"></p>
+            <label>Semester:</label> <p id="r-semester"></p>
+            <label>NIS/NPM:</label> <p id="r-nis"></p>
+          </div>
+          <div class="col-md-6">
+            <label>IPK:</label> <p id="r-ipk"></p>
+            <label>Nomor Surat:</label> <p id="r-nomorsurat"></p>
+            <label>Skill:</label> <p id="r-skill"></p>
+            <label>Unit:</label> <p id="r-unit"></p>
+            <label>Alamat:</label> <p id="r-alamat"></p>
+            <label>Periode:</label> <p id="r-periode"></p>
+          </div>
+        </div>
+        <hr>
+        <div class="d-flex justify-content-around mt-3">
+          <a id="r-foto" class="btn btn-outline-primary" target="_blank">Foto Formal</a>
+          <a id="r-ktm" class="btn btn-outline-primary" target="_blank">Kartu Pelajar / KTM</a>
+          <a id="r-surat" class="btn btn-outline-primary" target="_blank">Surat Permohonan PKL</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // Sidebar Toggle
-  const sidebar = document.getElementById("sidebarMenu");
-  const overlay = document.getElementById("sidebarOverlay");
-  const toggle = document.getElementById("menuToggle");
-
-  toggle.addEventListener("click", () => {
-    sidebar.classList.toggle("active");
-    overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
-  });
-
-  overlay.addEventListener("click", () => {
-    sidebar.classList.remove("active");
-    overlay.style.display = "none";
-  });
+const rincianModal = document.getElementById('rincianModal');
+rincianModal.addEventListener('show.bs.modal', event => {
+  const button = event.relatedTarget;
+  document.getElementById('r-nama').textContent = button.getAttribute('data-nama');
+  document.getElementById('r-email').textContent = button.getAttribute('data-email');
+  document.getElementById('r-instansi').textContent = button.getAttribute('data-instansi');
+  document.getElementById('r-jurusan').textContent = button.getAttribute('data-jurusan');
+  document.getElementById('r-ipk').textContent = button.getAttribute('data-ipk');
+  document.getElementById('r-semester').textContent = button.getAttribute('data-semester');
+  document.getElementById('r-nis').textContent = button.getAttribute('data-nis');
+  document.getElementById('r-nomorsurat').textContent = button.getAttribute('data-nomorsurat');
+  document.getElementById('r-skill').textContent = button.getAttribute('data-skill');
+  document.getElementById('r-unit').textContent = button.getAttribute('data-unit');
+  document.getElementById('r-alamat').textContent = button.getAttribute('data-alamat');
+  document.getElementById('r-periode').textContent = button.getAttribute('data-periode');
+  document.getElementById('r-foto').href = '../../uploads/' + button.getAttribute('data-foto');
+  document.getElementById('r-ktm').href = '../../uploads/' + button.getAttribute('data-ktm');
+  document.getElementById('r-surat').href = '../../uploads/' + button.getAttribute('data-surat');
+});
 </script>
+
 </body>
 </html>
