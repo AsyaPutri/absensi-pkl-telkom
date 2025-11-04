@@ -1,5 +1,6 @@
 <?php
 session_start();
+include __DIR__ . '/../public/send_email.php'; // koneksi database MySQL
 
 // Database configuration
 $host = 'localhost';
@@ -18,6 +19,8 @@ try {
 if (isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true) {
     if ($_SESSION['role'] === 'magang') {
         header("Location: magang/dashboard.php");
+    } elseif ($_SESSION['role'] === 'mentor') {
+        header("Location: mentor/dashboard.php");
     } else {
         header("Location: admin/dashboard.php");
     }
@@ -72,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['role'] = $user['role'];
                     $_SESSION['name'] = isset($user['name']) ? $user['name'] : $user['email'];
                     $_SESSION['login_time'] = date('Y-m-d H:i:s');
+                    if ($_SESSION['role'] === 'peserta') {
+                        include __DIR__ . '/send_email.php';
+                    }                    
                     
                     // Update last login jika kolom ada
                     try {
@@ -87,6 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Redirect berdasarkan role
                     if ($role === 'magang') {
                         header("Location: magang/dashboard.php");
+                    } elseif ($role === 'mentor') {
+                        header("Location: mentor/dashboard.php");
                     } else {
                         header("Location: admin/dashboard.php");
                     }
@@ -188,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="login-title">
                     <img src="assets/img/telkom-removebg.png" width="200" alt="Logo Telkom">
                 </div>
-                <div class="login-subtitle">Sistem Absensi Magang</div>
+                <div class="login-subtitle">Sistem Absensi Internship</div>
             </div>
             
             <form class="login-form" method="POST" action="">
@@ -222,6 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select id="role" name="role" class="form-select" required>
                         <option value="">-- Pilih --</option>
                         <option value="magang" <?php echo (($_POST['role'] ?? '') === 'magang') ? 'selected' : ''; ?>>Magang</option>
+                        <option value="mentor" <?php echo (($_POST['role'] ?? '') === 'mentor') ? 'selected' : ''; ?>>Mentor</option>
                         <option value="admin" <?php echo (($_POST['role'] ?? '') === 'admin') ? 'selected' : ''; ?>>Admin</option>
                     </select>
                 </div>
@@ -243,12 +252,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" class="login-button" id="login-button" disabled>LOGIN</button>
 
                 <!-- Link Register -->
-<div style="margin-top: 15px; text-align: center;">
-   <a href="register.php" style="text-decoration: none;">
-    <span style="color: #000;">Ingin bergabung dalam program PKL kami?</span>
-    <strong style="color: #d32f2f;"> Daftar sekarang!</strong>
-    </a>
-</div>
+                <div style="margin-top: 15px; text-align: center;">
+                <a href="register.php" style="text-decoration: none;">
+                    <span style="color: #000;">Ingin bergabung dalam program Internship kami?</span>
+                    <strong style="color: #d32f2f;"> Daftar sekarang!</strong>
+                    </a>
+                </div>
                 
                 <div class="powered-by">
                     Powered by Telkom Indonesia, Witel Bekasi - Karawang

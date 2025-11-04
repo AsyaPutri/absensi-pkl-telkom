@@ -1,12 +1,23 @@
 <?php
+// ===============================================
+// File: send_email.php
+// Fungsi: Mengirim notifikasi ke mentor & admin
+//         jika masa PKL peserta akan segera berakhir
+// ===============================================
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+// ======================================================
+// Load library PHPMailer dan koneksi database
+// ======================================================
 require '../vendor/autoload.php';
-include '../config/database.php'; // file koneksi database MySQL
+include '../config/database.php'; // File koneksi database MySQL
 
-// Ambil peserta yang masa PKL-nya akan berakhir dalam 3 hari dan belum dikirim
+// ======================================================
+// Ambil peserta yang masa PKL-nya akan berakhir dalam 3 hari
+// dan status_email masih 'belum'
+// ======================================================
 $query = "
     SELECT 
         p.id AS pkl_id,
@@ -21,28 +32,40 @@ $query = "
     WHERE p.tgl_selesai <= DATE_ADD(CURDATE(), INTERVAL 3 DAY)
       AND p.status_email = 'belum'
 ";
+
 $result = $conn->query($query);
 
+// ======================================================
+// Loop setiap peserta dan kirim email pemberitahuan
+// ======================================================
 while ($peserta = $result->fetch_assoc()) {
+
     $mail = new PHPMailer(true);
+
     try {
-        // Konfigurasi SMTP
+        // -----------------------------------------------
+        // Konfigurasi SMTP (Gunakan akun Gmail)
+        // -----------------------------------------------
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'mfaisalsholeh@gmail.com';
-        $mail->Password   = 'qiae zqjd itlg fhwd';
+        $mail->Username   = 'mfaisalsholeh@gmail.com';       // Ganti dengan email pengirim
+        $mail->Password   = 'qiae zqjd itlg fhwd';           // Gunakan App Password Gmail
         $mail->SMTPSecure = 'tls';
         $mail->Port       = 587;
 
-        // Penerima (bisa mentor, admin, dsb)
+        // -----------------------------------------------
+        // Penerima Email
+        // -----------------------------------------------
         $mail->addAddress('sahlarizki40@gmail.com', 'Admin PKL');
         $mail->addAddress('asyaherawatiputri.08@gmail.com', 'Mentor PKL');
-        // $mail->addCC('admin@pkl.id', 'Admin PKL');
+        // $mail->addCC('admin@pkl.id', 'Admin PKL'); // (Opsional)
 
-        // Subjek & isi
-        $mail->Subject = 'PESERTA PKL AKAN BERAKHIR';
+        // -----------------------------------------------
+        // Konten Email
+        // -----------------------------------------------
         $mail->isHTML(true);
+        $mail->Subject = 'PESERTA PKL AKAN BERAKHIR';
         $mail->Body = "
             <h3>Informasi Akhir Masa PKL</h3>
             <p>Peserta: <b>{$peserta['nama_peserta']}</b></p>
@@ -51,15 +74,30 @@ while ($peserta = $result->fetch_assoc()) {
             <p>Mohon mentor mempersiapkan penilaian dan laporan akhir.</p>
         ";
 
+        // -----------------------------------------------
+        // Kirim Email
+        // -----------------------------------------------
         $mail->send();
 
-        // Update status agar tidak dikirim lagi
-        $update = "UPDATE peserta_pkl SET status_email = 'terkirim' WHERE user_id = {$peserta['user_id']}";
+        // -----------------------------------------------
+        // Update status_email agar tidak dikirim ulang
+        // -----------------------------------------------
+        $update = "
+            UPDATE peserta_pkl 
+            SET status_email = 'terkirim' 
+            WHERE user_id = {$peserta['user_id']}
+        ";
         $conn->query($update);
 
-        echo "Email terkirim ke mentor untuk peserta {$peserta['nama_peserta']}<br>";
-    } catch (Exception $e) {
-        echo "Gagal mengirim email untuk {$peserta['nama']}: {$mail->ErrorInfo}<br>";
-    }
+        // -----------------------------------------------
+        // Output hasil
+        // -----------------------------------------------
+        echo "✅ Email terkirim ke mentor untuk peserta {$peserta['nama_peserta']}<br>";
 
+    } catch (Exception $e) {
+        // -----------------------------------------------
+        // Jika gagal kirim email
+        // -----------------------------------------------
+        echo "❌ Gagal mengirim email untuk {$peserta['nama_peserta']}: {$mail->ErrorInfo}<br>";
+    }
 }
