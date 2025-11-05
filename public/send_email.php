@@ -1,5 +1,4 @@
 <?php
-date_default_timezone_set('Asia/Jakarta');
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
