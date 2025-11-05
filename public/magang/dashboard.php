@@ -1,6 +1,7 @@
 <?php
 include "../../includes/auth.php";
 include '../../config/database.php';
+include '../send_email.php';
 checkRole('magang');
 
 // Get user data from session (auth.php already started the session)

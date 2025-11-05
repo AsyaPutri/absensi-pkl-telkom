@@ -1,6 +1,6 @@
 <?php
 session_start();
-include __DIR__ . '/../public/send_email.php'; // koneksi database MySQL
+ // koneksi database MySQL
 
 // Database configuration
 $host = 'localhost';
