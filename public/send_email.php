@@ -12,7 +12,7 @@ if (!is_dir($logDir)) {
 }
 
 // ===============================
-// Ambil peserta yang masa PKL berakhir dalam 5 hari dan belum dikirim email
+// Ambil peserta yang masa PKL berakhir tepat H-3 (3 hari lagi) dan belum dikirim email
 // ===============================
 $query = "
     SELECT 
@@ -28,17 +28,16 @@ $query = "
     LEFT JOIN users u ON p.user_id = u.id
     LEFT JOIN unit_pkl up ON p.unit_id = up.id
     LEFT JOIN cp_karyawan ck ON p.unit_id = ck.unit_id
-    WHERE p.tgl_selesai <= DATE_ADD(CURDATE(), INTERVAL 5 DAY)
+    WHERE DATE(p.tgl_selesai) = DATE_ADD(CURDATE(), INTERVAL 3 DAY)
       AND p.status_email = 'belum'
 ";
 
 $result = $conn->query($query);
 
 // ===============================
-// Proses setiap peserta yang ditemukan
+// Proses setiap peserta
 // ===============================
 while ($peserta = $result->fetch_assoc()) {
-    // Lewati jika tidak ada email mentor
     if (empty($peserta['email_mentor'])) {
         file_put_contents(
             $logDir . '/email_error.log',
@@ -51,31 +50,25 @@ while ($peserta = $result->fetch_assoc()) {
     $mail = new PHPMailer(true);
 
     try {
-        // ===============================
         // Konfigurasi SMTP
-        // ===============================
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'mfaisalsholeh@gmail.com'; // email pengirim
-        $mail->Password   = 'qiae zqjd itlg fhwd';     // app password Gmail
+        $mail->Username   = 'mfaisalsholeh@gmail.com';
+        $mail->Password   = 'qiae zqjd itlg fhwd';
         $mail->SMTPSecure = 'tls';
         $mail->Port       = 587;
 
-        // ===============================
-        // Penerima email
-        // ===============================
+        // Penerima
         $mail->setFrom('mfaisalsholeh@gmail.com', 'Sistem PKL Telkom');
-        $mail->addAddress($peserta['email_mentor'], $peserta['nama_mentor']); // mentor sesuai unit
-        $mail->addCC('tjslhcwitelbekasi@gmail.com', 'Admin PKL'); // opsional
+        $mail->addAddress($peserta['email_mentor'], $peserta['nama_mentor']);
+        $mail->addCC('tjslhcwitelbekasi@gmail.com', 'Admin PKL');
 
-        // ===============================
         // Isi email
-        // ===============================
         $mail->isHTML(true);
         $mail->CharSet = 'UTF-8';
         $mail->Encoding = 'base64';
-        $mail->Subject = 'Pemberitahuan: Masa Internship Peserta Akan Berakhir';
+        $mail->Subject = 'Pemberitahuan: Masa Internship Peserta Akan Berakhir (H-3)';
         $mail->Body = "
         <!DOCTYPE html>
         <html lang='id'>
@@ -85,22 +78,21 @@ while ($peserta = $result->fetch_assoc()) {
         </head>
         <body style='margin:0; padding:0; background-color:#f4f4f4;'>
             <div style='max-width:600px; margin:20px auto; background-color:#ffffff; border-radius:10px; padding:20px; font-family: Arial, sans-serif; color:#222; line-height:1.6; border:1px solid #eee;'>
-
-                <h2 style='color:#d60000; text-align:center; margin-bottom:15px;'>📢 Informasi Akhir Masa PKL</h2>
-                
+                <h2 style='color:#d60000; text-align:center; margin-bottom:15px;'>📢 Informasi Akhir Masa Internship</h2>
                 <p><b>Peserta:</b> {$peserta['nama_peserta']}</p>
                 <p><b>Unit Peserta:</b> {$peserta['nama_unit']}</p>
-                <p><b>Tanggal Berakhir:</b> <span style='color:#d60000;'>{$peserta['tgl_selesai']}</span></p>
-
+                <p>
+                    <b>Tanggal Berakhir:</b>
+                    <span style='color:#d60000;'>{$peserta['tgl_selesai']}</span>
+                    <span style='color:#555; font-size:0.9em;'>(H-3 Peserta Internship Berakhir)</span>
+                </p>
                 <hr style='border:1px solid #ddd; margin:20px 0;'>
-
                 <div style='margin-bottom:20px;'>
                     <h3 style='margin-bottom:5px;'>🧑‍🏫 Kepada Mentor <b>{$peserta['nama_mentor']}</b></h3>
                     <p style='margin:0;'>
                         Mohon untuk segera menyiapkan <b>penilaian</b> dan <b>laporan akhir</b> bagi peserta tersebut agar proses akhir <i>Internship</i> dapat berjalan lancar.
                     </p>
                 </div>
-
                 <div style='background-color:#eef6ff; padding:15px; border-radius:8px; border-left:5px solid #007bff;'>
                     <h3 style='margin-bottom:5px;'>👩‍💼 Kepada Admin PKL</h3>
                     <p style='margin:0;'>
@@ -108,31 +100,24 @@ while ($peserta = $result->fetch_assoc()) {
                         untuk mengaktifkan fitur <b>cetak Sertifikat</b> dan <b>Surat Selesai Magang</b>.
                     </p>
                 </div>
-
                 <br>
                 <p>Terima kasih atas kerja samanya 🙏</p>
                 <p style='color:#555; font-size:0.9em; text-align:center;'>
                     <i>-- Sistem InStep Telkom Witel Bekasi - Karawang</i>
                 </p>
-
             </div>
         </body>
         </html>
         ";
 
-
-        // ===============================
         // Kirim email
-        // ===============================
         $mail->send();
 
-        // ===============================
-        // Update status agar tidak dikirim ulang
-        // ===============================
+        // Update status
         $update = "UPDATE peserta_pkl SET status_email = 'terkirim' WHERE user_id = {$peserta['user_id']}";
         $conn->query($update);
 
-        // Simpan log sukses (tidak tampil di browser)
+        // Log sukses
         file_put_contents(
             $logDir . '/email_success.log',
             date('Y-m-d H:i:s') . " - SUKSES: Email ke {$peserta['email_mentor']} untuk peserta {$peserta['nama_peserta']}\n",
@@ -140,7 +125,6 @@ while ($peserta = $result->fetch_assoc()) {
         );
 
     } catch (Exception $e) {
-        // Simpan error ke file log
         file_put_contents(
             $logDir . '/email_error.log',
             date('Y-m-d H:i:s') . " - GAGAL: {$peserta['nama_peserta']} ({$peserta['email_mentor']}) - {$mail->ErrorInfo}\n",
