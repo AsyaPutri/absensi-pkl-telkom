@@ -20,12 +20,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
     $user_id = $row['user_id'];
     $stmt->close();
 
-    // 2️⃣ Hapus data dari tabel rekap_absensi
-    $delAbsensi = $conn->prepare("DELETE FROM absen WHERE user_id = ?");
-    if (!$delAbsensi) throw new Exception("Gagal prepare DELETE absen: " . $conn->error);
-    $delAbsensi->bind_param("i", $user_id);
-    $delAbsensi->execute();
-    $delAbsensi->close();
+    // Setelah hapus dari riwayat_peserta_pkl dan absen
+    $delPeserta = $conn->prepare("DELETE FROM peserta_pkl WHERE user_id = ?");
+    if (!$delPeserta) throw new Exception("Gagal prepare DELETE peserta_pkl: " . $conn->error);
+    $delPeserta->bind_param("i", $user_id);
+    $delPeserta->execute();
+    $delPeserta->close();
+
+    // 3️⃣ Hapus data akun dari tabel users
+    $delUser = $conn->prepare("DELETE FROM users WHERE email=? AND role='magang'");
+    $delUser->bind_param("s", $email);
+    $delUser->execute();
+    $delUser->close();
 
     // 4️⃣ Hapus data dari tabel riwayat_peserta_pkl
     $delRiwayat = $conn->prepare("DELETE FROM riwayat_peserta_pkl WHERE id = ?");

@@ -12,7 +12,7 @@ if (!is_dir($logDir)) {
 }
 
 // ===============================
-// Ambil peserta yang masa PKL berakhir dalam 3 hari dan belum dikirim email
+// Ambil peserta yang masa PKL berakhir dalam 5 hari dan belum dikirim email
 // ===============================
 $query = "
     SELECT 
@@ -73,9 +73,19 @@ while ($peserta = $result->fetch_assoc()) {
         // Isi email
         // ===============================
         $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+        $mail->Encoding = 'base64';
         $mail->Subject = 'Pemberitahuan: Masa Internship Peserta Akan Berakhir';
         $mail->Body = "
-            <div style='font-family: Arial, sans-serif; color:#222; line-height:1.6; background-color:#fafafa; padding:20px; border-radius:10px; border:1px solid #eee;'>
+        <!DOCTYPE html>
+        <html lang='id'>
+        <head>
+            <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        </head>
+        <body style='margin:0; padding:0; background-color:#f4f4f4;'>
+            <div style='max-width:600px; margin:20px auto; background-color:#ffffff; border-radius:10px; padding:20px; font-family: Arial, sans-serif; color:#222; line-height:1.6; border:1px solid #eee;'>
+
                 <h2 style='color:#d60000; text-align:center; margin-bottom:15px;'>📢 Informasi Akhir Masa PKL</h2>
                 
                 <p><b>Peserta:</b> {$peserta['nama_peserta']}</p>
@@ -85,24 +95,31 @@ while ($peserta = $result->fetch_assoc()) {
                 <hr style='border:1px solid #ddd; margin:20px 0;'>
 
                 <div style='margin-bottom:20px;'>
-                    <h3 style='margin-bottom:5px;'>👨‍🏫 Kepada Mentor <b>{$peserta['nama_mentor']}</b></h3>
-                    <p style='margin:0;'>Mohon untuk segera menyiapkan <b>penilaian</b> dan <b>laporan akhir</b> bagi peserta tersebut agar proses akhir <i>Internship</i> dapat berjalan lancar.</p>
+                    <h3 style='margin-bottom:5px;'>🧑‍🏫 Kepada Mentor <b>{$peserta['nama_mentor']}</b></h3>
+                    <p style='margin:0;'>
+                        Mohon untuk segera menyiapkan <b>penilaian</b> dan <b>laporan akhir</b> bagi peserta tersebut agar proses akhir <i>Internship</i> dapat berjalan lancar.
+                    </p>
                 </div>
 
                 <div style='background-color:#eef6ff; padding:15px; border-radius:8px; border-left:5px solid #007bff;'>
-                    <h3 style='margin-bottom:5px;'>🧑‍💻 Kepada Admin PKL</h3>
+                    <h3 style='margin-bottom:5px;'>👩‍💼 Kepada Admin PKL</h3>
                     <p style='margin:0;'>
                         Setelah masa <i>Internship</i> peserta selesai, silakan <b>klik tombol “Selesai”</b> pada data peserta di sistem InStep
                         untuk mengaktifkan fitur <b>cetak Sertifikat</b> dan <b>Surat Selesai Magang</b>.
                     </p>
                 </div>
+
                 <br>
                 <p>Terima kasih atas kerja samanya 🙏</p>
                 <p style='color:#555; font-size:0.9em; text-align:center;'>
                     <i>-- Sistem InStep Telkom Witel Bekasi - Karawang</i>
                 </p>
+
             </div>
+        </body>
+        </html>
         ";
+
 
         // ===============================
         // Kirim email
