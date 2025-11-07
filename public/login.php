@@ -1,5 +1,6 @@
 <?php
 session_start();
+ // koneksi database MySQL
 
 // Database configuration
 $host = 'localhost';
@@ -74,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['role'] = $user['role'];
                     $_SESSION['name'] = isset($user['name']) ? $user['name'] : $user['email'];
                     $_SESSION['login_time'] = date('Y-m-d H:i:s');
+                    if ($_SESSION['role'] === 'peserta') {
+                        include __DIR__ . '/send_email.php';
+                    }                    
                     
                     // Update last login jika kolom ada
                     try {
@@ -250,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Link Register -->
 <div style="margin-top: 15px; text-align: center;">
    <a href="register.php" style="text-decoration: none;">
-    <span style="color: #000;">Ingin Bergabung Dalam Program Internship Kami?</span>
+    <span style="color: #000;">Ingin bergabung dalam program PKL kami?</span>
     <strong style="color: #d32f2f;"> Daftar sekarang!</strong>
     </a>
 </div>
