@@ -2,8 +2,14 @@
 include "../../includes/auth.php";
 include "../../config/database.php";
 
-// ✅ Ambil data PKL dengan status pending
-$query = "SELECT * FROM daftar_pkl WHERE status = 'pending' ORDER BY id DESC";
+// ✅ Ambil data PKL dengan JOIN ke tabel unit_pkl
+$query = "
+SELECT d.*, u.nama_unit 
+FROM daftar_pkl d
+LEFT JOIN unit_pkl u ON d.unit_id = u.id
+WHERE d.status = 'pending'
+ORDER BY d.id DESC
+";
 $result = mysqli_query($conn, $query);
 
 if (!$result) {
@@ -57,9 +63,11 @@ if (!$result) {
       gap: 6px;
     }
     .back-btn:hover { background: var(--telkom-dark); color: #fff; }
+
     .card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     .card-header { background: #fff; border-bottom: 3px solid var(--telkom-red); padding: 1rem 1.5rem; }
     .card-header h5 { color: var(--telkom-red); font-weight: 700; margin: 0; }
+
     .table thead th { background: var(--telkom-red); color: #fff; }
     .table-hover tbody tr:hover { background-color: #ffecec; }
 
@@ -69,11 +77,34 @@ if (!$result) {
       color: white;
       border-bottom: none;
     }
-    .modal-body label {
+    .modal-body label { font-weight: 600; }
+    .modal-body .row { margin-bottom: 8px; }
+
+    .btn-outline-primary {
+      border-color: var(--telkom-red);
+      color: var(--telkom-red);
       font-weight: 600;
     }
-    .modal-body .row {
-      margin-bottom: 8px;
+    .btn-outline-primary:hover {
+      background: var(--telkom-red);
+      color: #fff;
+    }
+
+    /* Search bar */
+    .search-box {
+      max-width: 350px;
+      margin-bottom: 15px;
+      position: relative;
+    }
+    .search-box input {
+      border-radius: 30px;
+      padding-left: 35px;
+    }
+    .search-box i {
+      position: absolute;
+      left: 12px;
+      top: 9px;
+      color: var(--telkom-red);
     }
   </style>
 </head>
@@ -94,11 +125,18 @@ if (!$result) {
 <!-- Konten -->
 <div class="container-fluid mt-4">
   <div class="card">
-    <div class="card-header">
-      <h5><i class="bi bi-list-check me-2"></i> Daftar Pendaftar</h5>
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+      <h5><i class="bi bi-list-check me-2"></i> Data Pendaftar Internship</h5>
+
+      <!-- 🔍 Search Box -->
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchInput" class="form-control" placeholder="Search....">
+      </div>
     </div>
+
     <div class="card-body table-responsive">
-      <table class="table table-bordered table-hover align-middle">
+      <table id="dataTable" class="table table-bordered table-hover align-middle">
         <thead>
           <tr>
             <th>No</th>
@@ -133,14 +171,14 @@ if (!$result) {
                 data-nis="<?= htmlspecialchars($row['nis_npm']); ?>"
                 data-nomorsurat="<?= htmlspecialchars($row['nomor_surat_permohonan']); ?>"
                 data-skill="<?= htmlspecialchars($row['skill']); ?>"
-                data-unit="<?= htmlspecialchars($row['unit_id']); ?>"
+                data-unit="<?= htmlspecialchars($row['nama_unit']); ?>"
                 data-alamat="<?= htmlspecialchars($row['alamat']); ?>"
                 data-periode="<?= htmlspecialchars($row['tgl_mulai']); ?> - <?= htmlspecialchars($row['tgl_selesai']); ?>"
                 data-foto="<?= htmlspecialchars($row['upload_foto']); ?>"
                 data-ktm="<?= htmlspecialchars($row['upload_kartu_identitas']); ?>"
                 data-surat="<?= htmlspecialchars($row['upload_surat_permohonan']); ?>"
               >
-                <i class="bi bi-eye"></i> Rincian
+                <i class="bi bi-eye"></i> Detail
               </button>
             </td>
           </tr>
@@ -151,12 +189,12 @@ if (!$result) {
   </div>
 </div>
 
-<!-- Modal Rincian -->
+<!-- Modal Detail -->
 <div class="modal fade" id="rincianModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Rincian Peserta</h5>
+        <h5 class="modal-title">Detail Pendaftar</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -170,7 +208,7 @@ if (!$result) {
             <label>NIS/NPM:</label> <p id="r-nis"></p>
           </div>
           <div class="col-md-6">
-            <label>IPK:</label> <p id="r-ipk"></p>
+            <label>IPK/Nilai Rata-Rata:</label> <p id="r-ipk"></p>
             <label>Nomor Surat:</label> <p id="r-nomorsurat"></p>
             <label>Skill:</label> <p id="r-skill"></p>
             <label>Unit:</label> <p id="r-unit"></p>
@@ -191,6 +229,7 @@ if (!$result) {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Modal handler
 const rincianModal = document.getElementById('rincianModal');
 rincianModal.addEventListener('show.bs.modal', event => {
   const button = event.relatedTarget;
@@ -206,9 +245,19 @@ rincianModal.addEventListener('show.bs.modal', event => {
   document.getElementById('r-unit').textContent = button.getAttribute('data-unit');
   document.getElementById('r-alamat').textContent = button.getAttribute('data-alamat');
   document.getElementById('r-periode').textContent = button.getAttribute('data-periode');
-  document.getElementById('r-foto').href = '../../uploads/' + button.getAttribute('data-foto');
-  document.getElementById('r-ktm').href = '../../uploads/' + button.getAttribute('data-ktm');
-  document.getElementById('r-surat').href = '../../uploads/' + button.getAttribute('data-surat');
+  document.getElementById('r-foto').href = '../../uploads/Foto_daftarpkl/' + button.getAttribute('data-foto');
+  document.getElementById('r-ktm').href = '../../uploads/Foto_Kartuidentitas/' + button.getAttribute('data-ktm');
+  document.getElementById('r-surat').href = '../../uploads/Surat_Permohonan/' + button.getAttribute('data-surat');
+});
+
+// 🔍 Fungsi pencarian tabel
+document.getElementById("searchInput").addEventListener("keyup", function() {
+  let value = this.value.toLowerCase();
+  let rows = document.querySelectorAll("#dataTable tbody tr");
+  rows.forEach(row => {
+    let text = row.textContent.toLowerCase();
+    row.style.display = text.includes(value) ? "" : "none";
+  });
 });
 </script>
 

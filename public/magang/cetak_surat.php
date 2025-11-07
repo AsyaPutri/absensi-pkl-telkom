@@ -100,7 +100,7 @@ if (!isset($_SESSION['user_id'])) {
               </div>
               <div>
                 <div class="fw-semibold">Surat Balasan</div>
-                <small class="text-muted">Cetak surat balasan permohonan PKL</small>
+                <small class="text-muted">Cetak surat balasan permohonan Internship</small>
               </div>
             </a>
 
@@ -111,7 +111,7 @@ if (!isset($_SESSION['user_id'])) {
               </div>
               <div>
                 <div class="fw-semibold">Surat Konfirmasi</div>
-                <small class="text-muted">Cetak surat konfirmasi penerimaan PKL</small>
+                <small class="text-muted">Cetak surat konfirmasi penerimaan Internship</small>
               </div>
             </a>
 
@@ -122,7 +122,7 @@ if (!isset($_SESSION['user_id'])) {
               </div>
               <div>
                 <div class="fw-semibold">Surat Selesai</div>
-                <small class="text-muted">Cetak surat selesai kegiatan PKL</small>
+                <small class="text-muted">Cetak surat selesai kegiatan Internship</small>
               </div>
             </a>
 
@@ -133,7 +133,7 @@ if (!isset($_SESSION['user_id'])) {
               </div>
               <div>
                 <div class="fw-semibold">Sertifikat</div>
-                <small class="text-muted">Cetak sertifikat penyelesaian PKL</small>
+                <small class="text-muted">Cetak sertifikat Internship</small>
               </div>
             </a>
           </div>

@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Registrasi PKL - Telkom Witel Bekasi Karawang</title>
+<title>Registrasi Internship - Telkom Witel Bekasi Karawang</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -524,8 +524,8 @@ select {
 <div class="container">
   <div class="info-section">
     <div class="info-content">
-      <h2>📋 Registrasi PKL<br>Witel Bekasi - Karawang</h2>
-      <p>Bergabunglah dengan program Praktik Kerja Lapangan di Telkom Indonesia dan kembangkan pengalaman profesional Anda!</p>
+      <h2>📋 Registrasi Internship<br>Witel Bekasi - Karawang</h2>
+      <p>Bergabunglah dengan program Internship di Telkom Indonesia dan kembangkan pengalaman profesional Anda!</p>
       
       <a href="https://www.canva.com/design/DAFshvFSOu8/8oKHE3loBGx3jD3tgRqOVA/edit?utm_content=DAFshvFSOu8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton" target="_blank" class="info-link">
         <span>🔗</span>
@@ -533,7 +533,7 @@ select {
       </a>
       
       <div class="requirements-box">
-        <h3>📌 Persyaratan PKL</h3>
+        <h3>📌 Persyaratan Internship</h3>
         <ul>
           <li>Pas foto formal 3x4 (1 lembar)</li>
           <li>Surat permohonan resmi dari institusi pendidikan</li>
@@ -560,7 +560,7 @@ select {
     </div>
     
     <div class="form-header">
-      <h2>Formulir Pendaftaran PKL</h2>
+      <h2>Formulir Pendaftaran Internship</h2>
       <p>Lengkapi data dengan benar dan teliti</p>
     </div>
     
@@ -629,7 +629,7 @@ select {
       </div>
       
       <div class="form-group">
-        <label>Durasi PKL <span class="required">*</span></label>
+        <label>Durasi<span class="required">*</span></label>
         <select name="durasi" required>
           <option value="">-- Pilih Durasi --</option>
           <option value="2 Bulan">2 Bulan</option>
@@ -726,7 +726,7 @@ document.getElementById("regForm").addEventListener("submit", function(e) {
 Swal.fire({
   icon: 'success',
   title: 'Pendaftaran Berhasil! 🎉',
-  html: '<p style="line-height: 1.6;">Terima kasih telah mendaftar program PKL Telkom Indonesia Witel Bekasi - Karawang.<br><br><strong>Tim HC Telkom akan segera menghubungi Anda melalui WhatsApp.</strong><br><br>Pastikan nomor HP Anda aktif dan dapat dihubungi. 📱✨</p>',
+  html: '<p style="line-height: 1.6;">Terima kasih telah mendaftar program Internship Telkom Indonesia Witel Bekasi - Karawang.<br><br><strong>Tim HC Telkom akan segera menghubungi Anda melalui WhatsApp.</strong><br><br>Pastikan nomor HP Anda aktif dan dapat dihubungi. 📱✨</p>',
   confirmButtonColor: '#ED1C24',
   confirmButtonText: 'OKE',
   allowOutsideClick: false

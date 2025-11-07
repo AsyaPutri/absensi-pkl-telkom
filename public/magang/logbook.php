@@ -273,7 +273,7 @@ while ($row = mysqli_fetch_assoc($queryLogbook)) {
         <div class="header-section">
             <img src="../assets/img/logo_telkom.png" class="telkom-logo-img">
             <h1><i class="fas fa-clipboard-list me-2"></i> Logbook Aktivitas</h1>
-            <p>Sistem Pencatatan Aktivitas Harian - PT Telkom Indonesia</p>
+            <p>Pencatatan Aktivitas Harian | Internship Telkom Witel Bekasi - Karawang</p>
         </div>
 
         <!-- Profile -->

@@ -192,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="login-title">
                     <img src="assets/img/telkom-removebg.png" width="200" alt="Logo Telkom">
                 </div>
-                <div class="login-subtitle">Sistem Absensi Magang</div>
+                <div class="login-subtitle">Sistem Absensi Internship</div>
             </div>
             
             <form class="login-form" method="POST" action="">
@@ -250,7 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Link Register -->
 <div style="margin-top: 15px; text-align: center;">
    <a href="register.php" style="text-decoration: none;">
-    <span style="color: #000;">Ingin bergabung dalam program PKL kami?</span>
+    <span style="color: #000;">Ingin Bergabung Dalam Program Internship Kami?</span>
     <strong style="color: #d32f2f;"> Daftar sekarang!</strong>
     </a>
 </div>

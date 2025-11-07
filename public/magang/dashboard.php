@@ -162,7 +162,7 @@ $pengumuman = $result->fetch_assoc();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absensi Magang - Telkom Indonesia</title>
+    <title>Absensi Internship - Telkom Indonesia</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -389,12 +389,12 @@ $pengumuman = $result->fetch_assoc();
             <div class="row align-items-center">
                 <div class="col-auto">
                     <div class="telkom-logo">
-                        <img src="../assets/img/telkom.png" width="80" height="80">
+                        <img src="../assets/img/instepterbaru.png" width="200" height="150">
                     </div>
                 </div>
                 <div class="col">
                     <h4 class="mb-0 text-telkom">
-                        Absensi Magang - Telkom Indonesia
+                        Absensi Internship - Telkom Indonesia
                     </h4>
                 </div>
             </div>
