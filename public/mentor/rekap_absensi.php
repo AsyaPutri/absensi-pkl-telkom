@@ -33,9 +33,10 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 // ============================
 // Query peserta & absensi
 // ============================
-$where = "WHERE 1=1";
-if ($unit !== '') $where .= " AND p.unit_id = '$unit'";
-if ($search !== '') $where .= " AND (p.nama LIKE '%$search%' OR p.nis_npm LIKE '%$search%')";
+$where = "WHERE p.unit_id = '$unit_mentor'";
+if ($search !== '') {
+  $where .= "AND (p.nama LIKE '%search%' OR p.nis_npm LIKE '%$search%')";
+}
 
 $sql = "
 SELECT 
