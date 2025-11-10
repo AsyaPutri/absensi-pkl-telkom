@@ -254,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Link Register -->
 <div style="margin-top: 15px; text-align: center;">
    <a href="register.php" style="text-decoration: none;">
-    <span style="color: #000;">Ingin bergabung dalam program PKL kami?</span>
+    <span style="color: #000;">Ingin bergabung dalam program Internship kami?</span>
     <strong style="color: #d32f2f;"> Daftar sekarang!</strong>
     </a>
 </div>
