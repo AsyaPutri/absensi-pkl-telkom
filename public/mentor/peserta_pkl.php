@@ -6,40 +6,82 @@ if (!isset($conn)) {
   die("<h3 style='color:red; text-align:center;'>Koneksi database tidak ditemukan.</h3>");
 }
 
-// Ambil semua unit untuk dropdown filter
-$unit_query = mysqli_query($conn, "SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
-$units = [];
-while ($u = mysqli_fetch_assoc($unit_query)) {
-  $units[] = $u;
+// ============================
+// Ambil email mentor dari session
+// ============================
+$mentor_email = $_SESSION['email'] ?? null;
+if (!$mentor_email) {
+  die("<h3 style='color:red; text-align:center;'>Session login mentor tidak ditemukan. Silakan login ulang.</h3>");
 }
 
-// Ambil filter unit dari input
-$filter_unit = $_GET['unit'] ?? '';
+// ============================
+// Ambil unit mentor dari tabel cp_karyawan
+// ============================
+$mentor_unit_ids = [];
+$q1 = mysqli_query($conn, "
+  SELECT unit_id 
+  FROM cp_karyawan 
+  WHERE email = '" . mysqli_real_escape_string($conn, $mentor_email) . "' 
+  LIMIT 1
+");
 
-// Tentukan kolom urutan (created_at jika ada)
+if ($q1 && mysqli_num_rows($q1) > 0) {
+  $m = mysqli_fetch_assoc($q1);
+  if (!empty($m['unit_id'])) {
+    $mentor_unit_ids[] = $m['unit_id'];
+  }
+}
+
+// ============================
+// Jika tidak ada unit_id, tampilkan pesan
+// ============================
+if (empty($mentor_unit_ids)) {
+  die("<div style='padding:2rem;text-align:center;color:#6c757d;'>Anda belum memiliki unit yang terdaftar. Hubungi admin untuk mengaitkan unit ke akun Anda.</div>");
+}
+
+// ============================
+// Siapkan list unit untuk query IN (...)
+// ============================
+$mentor_unit_ids = array_map('intval', $mentor_unit_ids);
+$unit_list = implode(',', $mentor_unit_ids);
+
+// ============================
+// Ambil nama unit untuk ditampilkan
+// ============================
+$units = [];
+$unit_q = mysqli_query($conn, "
+  SELECT id, nama_unit 
+  FROM unit_pkl 
+  WHERE id IN ($unit_list) 
+  ORDER BY nama_unit ASC
+");
+while ($u = mysqli_fetch_assoc($unit_q)) {
+  $units[$u['id']] = $u['nama_unit'];
+}
+
+// ============================
+// Tentukan urutan data (created_at / id)
+// ============================
 $col_check_q = "SHOW COLUMNS FROM peserta_pkl LIKE 'created_at'";
 $col_check_res = mysqli_query($conn, $col_check_q);
-$order_by = ($col_check_res && mysqli_num_rows($col_check_res) > 0) ? "peserta_pkl.created_at DESC" : "peserta_pkl.id DESC";
+$order_by = ($col_check_res && mysqli_num_rows($col_check_res) > 0)
+  ? "peserta_pkl.created_at DESC"
+  : "peserta_pkl.id DESC";
 
-// Query utama
+// ============================
+// Query utama: tampilkan peserta berdasarkan unit mentor
+// ============================
 $query = "
   SELECT 
     peserta_pkl.*, 
     unit_pkl.nama_unit 
   FROM peserta_pkl
   LEFT JOIN unit_pkl ON peserta_pkl.unit_id = unit_pkl.id
-  WHERE 1
+  WHERE peserta_pkl.unit_id IN ($unit_list)
+  ORDER BY $order_by
 ";
 
-// Filter unit jika dipilih
-if ($filter_unit !== '') {
-  $filter_safe = mysqli_real_escape_string($conn, $filter_unit);
-  $query .= " AND peserta_pkl.unit_id = '$filter_safe'";
-}
-
-$query .= " ORDER BY $order_by";
 $result = mysqli_query($conn, $query);
-
 if (!$result) {
   die("<h3 style='color:red; text-align:center;'>Query gagal: " . mysqli_error($conn) . "</h3>");
 }
@@ -95,16 +137,6 @@ if (!$result) {
     .table thead th { background: var(--telkom-red); color: #fff; }
     .table-hover tbody tr:hover { background-color: #ffecec; }
     .modal-header { background-color: var(--telkom-red); color: white; }
-    .filter-section {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 1rem;
-      align-items: center;
-    }
-    .filter-section select {
-      max-width: 250px;
-    }
   </style>
 </head>
 <body>
@@ -121,24 +153,15 @@ if (!$result) {
 
 <div class="container-fluid mt-4">
   <div class="card">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
       <h5><i class="bi bi-people-fill me-2"></i> Data Peserta Internship</h5>
+      <div class="text-end">
+        <small class="text-muted">
+          Unit: <?= htmlspecialchars(implode(', ', $units)); ?>
+        </small>
+      </div>
     </div>
     <div class="card-body">
-      <!-- 🔍 Filter Unit -->
-      <form method="GET" class="filter-section" id="filterForm">
-        <select name="unit" class="form-select" id="unitSelect">
-          <option value="">-- Semua Unit --</option>
-          <?php foreach ($units as $u): ?>
-            <option value="<?= $u['id']; ?>" <?= ($filter_unit == $u['id']) ? 'selected' : ''; ?>>
-              <?= htmlspecialchars($u['nama_unit']); ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-        <a href="peserta_pkl.php" class="btn btn-secondary"><i class="bi bi-arrow-repeat"></i> Reset</a>
-      </form>
-
-      <!-- 🔹 Tabel Data -->
       <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
           <thead>
@@ -166,7 +189,9 @@ if (!$result) {
               <td><?= htmlspecialchars($row['jurusan']); ?></td>
               <td><?= htmlspecialchars($row['no_hp']); ?></td>
               <td><?= htmlspecialchars($row['nama_unit']); ?></td>
-              <td><span class="badge bg-success"><?= ucfirst($row['status']); ?></span></td>
+              <td>
+                <span class="badge bg-success"><?= ucfirst(htmlspecialchars($row['status'])); ?></span>
+              </td>
               <td>
                 <button class="btn btn-primary btn-sm btn-rincian" data-email="<?= htmlspecialchars($row['email']); ?>">
                   <i class="bi bi-eye"></i> Detail
@@ -175,7 +200,7 @@ if (!$result) {
             </tr>
             <?php endwhile; else: ?>
             <tr>
-              <td colspan="8" class="text-center text-muted py-3">Tidak ada data ditemukan.</td>
+              <td colspan="8" class="text-center text-muted py-3">Tidak ada data peserta untuk unit Anda.</td>
             </tr>
             <?php endif; ?>
           </tbody>
@@ -203,11 +228,6 @@ if (!$result) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-// 🔁 Auto submit ketika dropdown unit diubah
-$('#unitSelect').on('change', function() {
-  $('#filterForm').submit();
-});
-
 // 🔍 Load detail peserta
 $(document).on('click', '.btn-rincian', function() {
   const email = $(this).data('email');
