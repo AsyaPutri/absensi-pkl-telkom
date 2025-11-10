@@ -4,26 +4,39 @@ checkRole('mentor');
 include "../../config/database.php";
 
 // ============================
-// Ambil data unit untuk filter
+// Ambil unit mentor yang login
 // ============================
-$units = [];
-$unitQuery = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
-while ($u = $unitQuery->fetch_assoc()) {
-  $units[] = $u;
+$email = $_SESSION['email'];
+$q = $conn->query("SELECT unit_id FROM cp_karyawan WHERE email = '$email' LIMIT 1");
+
+if ($q && $q->num_rows > 0) {
+  $mentor = $q->fetch_assoc();
+  $unit_mentor = $mentor['unit_id'];
+} else {
+  echo "<div class='alert alert-warning text-center m-4'>
+          Anda belum memiliki unit yang terdaftar. Hubungi admin untuk mengaitkan unit ke akun Anda.
+        </div>";
+  exit;
 }
 
 // ============================
-// Ambil parameter filter
+// Ambil nama unit mentor
 // ============================
-$unit = isset($_GET['unit']) ? $_GET['unit'] : '';
+$unitNama = $conn->query("SELECT nama_unit FROM unit_pkl WHERE id = '$unit_mentor'")
+                 ->fetch_assoc()['nama_unit'] ?? 'Tidak diketahui';
+
+// ============================
+// Ambil parameter pencarian
+// ============================
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 // ============================
-// Query peserta & absensi
+// Query peserta & absensi berdasarkan unit mentor
 // ============================
-$where = "WHERE 1=1";
-if ($unit !== '') $where .= " AND p.unit_id = '$unit'";
-if ($search !== '') $where .= " AND (p.nama LIKE '%$search%' OR p.nis_npm LIKE '%$search%')";
+$where = "WHERE p.unit_id = '$unit_mentor'";
+if ($search !== '') {
+  $where .= " AND (p.nama LIKE '%$search%' OR p.nis_npm LIKE '%$search%')";
+}
 
 $sql = "
 SELECT 
@@ -103,8 +116,7 @@ $result = $conn->query($sql);
     .table thead th { background: var(--telkom-red); color: #fff; text-align: center; }
     .table-hover tbody tr:hover { background-color: #ffecec; }
 
-    .filter-section { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem; align-items: center; }
-    .filter-section select, .filter-section input { max-width: 250px; }
+    .filter-section { display: flex; gap: 10px; margin-bottom: 1rem; align-items: center; flex-wrap: wrap; }
   </style>
 </head>
 
@@ -123,25 +135,14 @@ $result = $conn->query($sql);
   <div class="container-fluid mt-4">
     <div class="card">
       <div class="card-header">
-        <h5><i class="bi bi-calendar-check me-2"></i> Data Absensi Internship</h5>
+        <h5><i class="bi bi-calendar-check me-2"></i> Rekap Absensi Unit: <?= htmlspecialchars($unitNama); ?></h5>
       </div>
 
       <div class="card-body">
         <form method="GET" class="filter-section" id="filterForm">
-          <select name="unit" class="form-select">
-            <option value="">-- Semua Unit --</option>
-            <?php foreach ($units as $u): ?>
-              <option value="<?= $u['id']; ?>" <?= ($unit == $u['id']) ? 'selected' : ''; ?>>
-                <?= htmlspecialchars($u['nama_unit']); ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
-
           <input type="text" name="search" class="form-control"
                  placeholder="Cari Nama / NIS / NPM..."
-                 value="<?= htmlspecialchars($search); ?>"
-                 onkeyup="if(event.key === 'Enter') this.form.submit();">
-
+                 value="<?= htmlspecialchars($search); ?>">
           <button type="submit" class="btn btn-danger"><i class="bi bi-search"></i> Cari</button>
           <button type="button" id="resetBtn" class="btn btn-secondary"><i class="bi bi-arrow-repeat"></i> Reset</button>
         </form>
@@ -166,22 +167,16 @@ $result = $conn->query($sql);
             <tbody>
               <?php
               $no = 1;
-              if (mysqli_num_rows($result) > 0):
-                while ($row = mysqli_fetch_assoc($result)):
-
-                  // ===== Real-Time Perhitungan =====
+              if ($result && $result->num_rows > 0):
+                while ($row = $result->fetch_assoc()):
                   $tgl_mulai = new DateTime($row['tgl_mulai']);
                   $tgl_selesai_asli = new DateTime($row['tgl_selesai']);
                   $today = new DateTime();
 
-                  // jika hari ini belum melewati tanggal mulai
                   if ($today < $tgl_mulai) {
                     $hari_kerja = 0;
                   } else {
-                    // ambil tanggal akhir = hari ini atau tanggal selesai (mana yang lebih dulu)
                     $tgl_selesai = ($today < $tgl_selesai_asli) ? $today : $tgl_selesai_asli;
-
-                    // hitung hari kerja Senin-Jumat
                     $hari_kerja = 0;
                     $periode = clone $tgl_mulai;
                     while ($periode <= $tgl_selesai) {
@@ -212,7 +207,7 @@ $result = $conn->query($sql);
                 </td>
               </tr>
               <?php endwhile; else: ?>
-              <tr><td colspan="11" class="text-muted text-center py-3">Tidak ada data ditemukan.</td></tr>
+              <tr><td colspan="11" class="text-muted text-center py-3">Tidak ada data peserta di unit Anda.</td></tr>
               <?php endif; ?>
             </tbody>
           </table>
@@ -238,7 +233,7 @@ $result = $conn->query($sql);
               <p><strong>Instansi:</strong> <span id="rInstansi"></span></p>
               <p><strong>Unit:</strong> <span id="rUnit"></span></p>
               <p><strong>Periode PKL:</strong> <span id="rPeriode"></span></p>
-              <p><strong>Total Periode Kerja:</strong> <span id="rHariKerja"></span></p>
+              <p><strong>Total Hari Kerja:</strong> <span id="rHariKerja"></span></p>
               <p><strong>Jumlah Hadir:</strong> <span id="rHadir"></span></p>
               <p><strong>Persentase Kehadiran:</strong> <span id="rPersen"></span>%</p>
             </div>
@@ -278,43 +273,29 @@ $result = $conn->query($sql);
     </div>
   </div>
 
+  <!-- JS -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const modal = new bootstrap.Modal(document.getElementById('modalRincian'));
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const modal = new bootstrap.Modal(document.getElementById('modalRincian'));
 
-  document.querySelectorAll(".btn-detail").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const userId = btn.dataset.userid;
-      const tbody = document.getElementById("rincianTabel");
-      tbody.innerHTML = '<tr><td colspan="11">Memuat data...</td></tr>';
+    document.querySelectorAll(".btn-detail").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const userId = btn.dataset.userid;
+        const tbody = document.getElementById("rincianTabel");
+        tbody.innerHTML = '<tr><td colspan="11">Memuat data...</td></tr>';
 
-      fetch('get_rincian_absen.php?user_id=' + userId)
-        .then(response => response.text()) // ambil teks mentah untuk debug
-        .then(text => {
-          try {
-            const data = JSON.parse(text);
-            console.log("Data diterima:", data);
-
+        fetch('get_rincian_absen.php?user_id=' + userId)
+          .then(res => res.json())
+          .then(data => {
             if (data.error) {
               alert("Error: " + data.error);
               return;
             }
 
-            if (!data.absensi || !Array.isArray(data.absensi)) {
-              alert("Data absensi tidak ditemukan atau tidak valid!");
-              console.error("Data tidak sesuai:", data);
-              return;
-            }
-
-            // tampilkan modal
             modal.show();
-
-            // isi data header
             document.getElementById("rNama").innerText = data.nama;
             document.getElementById("rNim").innerText = data.nis_npm;
             document.getElementById("rInstansi").innerText = data.instansi_pendidikan || "-";
@@ -324,7 +305,6 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("rHadir").innerText = data.hadir || "-";
             document.getElementById("rPersen").innerText = data.persen || "0";
 
-            // isi tabel rincian
             tbody.innerHTML = "";
             data.absensi.forEach((a, i) => {
               tbody.innerHTML += `
@@ -339,30 +319,23 @@ document.addEventListener("DOMContentLoaded", () => {
                   <td>${a.aktivitas_keluar || '-'}</td>
                   <td>${a.kendala_keluar || '-'}</td>
                   <td>${a.jam_keluar || '-'}</td>
-                  <td>
-                    ${a.foto_absen 
-                      ? `<img src="../../uploads/absensi/${a.foto_absen}" width="60" class="rounded">`
-                      : '-'}
-                  </td>
+                  <td>${a.foto_absen 
+                    ? `<img src="../../uploads/absensi/${a.foto_absen}" width="60" class="rounded">`
+                    : '-'}</td>
                 </tr>`;
             });
-          } catch (err) {
-            console.error("JSON Parse Error:", err, text);
-            alert("Data dari server tidak valid JSON. Cek console untuk detail.");
-          }
-        })
-        .catch(err => {
-          console.error("Gagal memuat rincian:", err);
-          alert("Terjadi kesalahan saat mengambil data rincian!");
-        });
+          })
+          .catch(err => {
+            console.error("Gagal ambil data:", err);
+            alert("Terjadi kesalahan saat mengambil data rincian!");
+          });
+      });
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      window.location.href = "rekap_absensi.php";
     });
   });
-
-  // Tombol reset filter
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    window.location.href = "rekap_absensi.php";
-  });
-});
-</script>
+  </script>
 </body>
 </html>
