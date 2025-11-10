@@ -4,7 +4,15 @@ checkRole('mentor');
 include "../../config/database.php";
 
 // ============================
-// Ambil data unit untuk filter
+// Ambil unit mentor yang login
+// ============================
+$user_id = $_SESSION['user_id'];
+$mentorQuery = $conn->query("SELECT unit_id FROM users WHERE id = '$user_id' LIMIT 1");
+$mentorData = $mentorQuery->fetch_assoc();
+$mentor_unit = $mentorData ? $mentorData['unit_id'] : '';
+
+// ============================
+// Ambil data unit (untuk filter jika mau tampil di dropdown)
 // ============================
 $units = [];
 $unitQuery = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_unit ASC");
@@ -19,10 +27,9 @@ $unit = isset($_GET['unit']) ? $_GET['unit'] : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 // ============================
-// Query peserta & absensi
+// Query peserta & absensi (dibatasi unit mentor)
 // ============================
-$where = "WHERE 1=1";
-if ($unit !== '') $where .= " AND p.unit_id = '$unit'";
+$where = "WHERE p.unit_id = '$mentor_unit'";
 if ($search !== '') $where .= " AND (p.nama LIKE '%$search%' OR p.nis_npm LIKE '%$search%')";
 
 $sql = "
@@ -42,8 +49,10 @@ $where
 GROUP BY p.id, p.user_id, p.nama, p.nis_npm, u.nama_unit, p.tgl_mulai, p.tgl_selesai
 ORDER BY p.nama ASC
 ";
+
 $result = $conn->query($sql);
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -322,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("rPeriode").innerText = `${data.tgl_mulai} s/d ${data.tgl_selesai}`;
             document.getElementById("rHariKerja").innerText = data.hari_kerja || "-";
             document.getElementById("rHadir").innerText = data.hadir || "-";
-            document.getElementById("rPersen").innerText = data.persen || "0";
+            document.getElementById("rPersen").innerText = data.persentase || "0";
 
             // isi tabel rincian
             tbody.innerHTML = "";

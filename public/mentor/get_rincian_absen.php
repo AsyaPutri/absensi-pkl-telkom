@@ -87,19 +87,26 @@ while ($a = $qAbsen->fetch_assoc()) {
 // ==============================
 // Hitung statistik absensi
 // ==============================
-$total_hadir = count($absensi); // Karena tidak ada kolom status, anggap semua hadir
-
 $tgl_mulai = new DateTime($peserta['tgl_mulai']);
-$tgl_selesai = new DateTime($peserta['tgl_selesai']);
-$periode = clone $tgl_mulai;
+$tgl_selesai_db = !empty($peserta['tgl_selesai']) ? new DateTime($peserta['tgl_selesai']) : new DateTime();
+$tgl_selesai = new DateTime(); // real time
 
+// pastikan periode tidak melebihi tgl_selesai_db
+if ($tgl_selesai > $tgl_selesai_db) {
+    $tgl_selesai = $tgl_selesai_db;
+}
+
+$periode = clone $tgl_mulai;
 $hari_kerja = 0;
 while ($periode <= $tgl_selesai) {
     if ($periode->format('N') < 6) $hari_kerja++;
     $periode->modify('+1 day');
 }
 
+$total_hadir = count($absensi);
 $persen_kehadiran = $hari_kerja > 0 ? round(($total_hadir / $hari_kerja) * 100, 2) : 0;
+
+
 
 // ==============================
 // Kirim JSON ke frontend
