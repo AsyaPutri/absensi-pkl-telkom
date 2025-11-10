@@ -40,27 +40,56 @@ $mentor_query = mysqli_query($koneksi, "
 ");
 $mentor_data = mysqli_fetch_assoc($mentor_query);
 
-$nik = $mentor_data['nik'] ?? "-";
-$nama_karyawan = $mentor_data['nama_karyawan'] ?? $nama_user;
-$posisi = $mentor_data['posisi'] ?? "-";
-$no_hp = $mentor_data['no_telepon'] ?? "-";
-$email = $mentor_data['email'] ?? $email_user;
-$unit = $mentor_data['nama_unit'] ?? "-";
+$nik            = $mentor_data['nik'] ?? "-";
+$nama_karyawan  = $mentor_data['nama_karyawan'] ?? $nama_user;
+$posisi         = $mentor_data['posisi'] ?? "-";
+$no_hp          = $mentor_data['no_telepon'] ?? "-";
+$email          = $mentor_data['email'] ?? $email_user;
+$unit           = $mentor_data['nama_unit'] ?? "-";
+$unit_id_mentor = $mentor_data['unit_id'] ?? null;
 
 // ===========================
 // 📊 Hitung Data Statistik
 // ===========================
 function ambilJumlah($koneksi, $sql, $alias) {
-    $result = mysqli_query($koneksi, $sql);
-    if (!$result) return 0;
-    $data = mysqli_fetch_assoc($result);
-    return $data[$alias] ?? 0;
+  $result = mysqli_query($koneksi, $sql);
+  if (!$result) return 0;
+  $data = mysqli_fetch_assoc($result);
+  return $data[$alias] ?? 0;
 }
 
-$total_pending = ambilJumlah($koneksi, "SELECT COUNT(*) AS total_pending FROM daftar_pkl WHERE status='pending'", "total_pending");
-$total_berlangsung = ambilJumlah($koneksi, "SELECT COUNT(*) AS total_berlangsung FROM peserta_pkl WHERE status='berlangsung'", "total_berlangsung");
-$tanggal_hari_ini = date("Y-m-d");
-$total_hadir = ambilJumlah($koneksi, "SELECT COUNT(*) AS total_hadir FROM absen WHERE tanggal='$tanggal_hari_ini'", "total_hadir");
+// ===========================
+// 📈 Statistik Dashboard
+// ===========================
+
+// 1️⃣ Jumlah daftar PKL pending (semua unit)
+$total_pending = ambilJumlah(
+  $koneksi, 
+  "SELECT COUNT(*) AS total_pending FROM daftar_pkl WHERE status='pending'", 
+  "total_pending"
+);
+
+// 2️⃣ Jumlah peserta aktif (status berlangsung di unit mentor)
+$total_berlangsung = ambilJumlah(
+  $koneksi, 
+  "SELECT COUNT(*) AS total_berlangsung 
+   FROM peserta_pkl 
+   WHERE status='berlangsung' 
+   AND unit_id = '$unit_id_mentor'", 
+  "total_berlangsung"
+);
+
+// 3️⃣ Jumlah peserta yang absen hari ini di unit mentor
+$tanggal = date("Y-m-d");
+$total_hadir = ambilJumlah(
+$koneksi, 
+"SELECT COUNT(DISTINCT absen.user_id) AS total_hadir 
+ FROM absen 
+ INNER JOIN peserta_pkl ON absen.user_id = peserta_pkl.user_id
+ WHERE DATE(absen.tanggal) = '$tanggal'
+ AND peserta_pkl.unit_id = '$unit_id_mentor'",
+"total_hadir"
+);
 ?>
 
 
