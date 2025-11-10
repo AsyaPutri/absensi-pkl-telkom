@@ -55,8 +55,7 @@ $qAbsen = $conn->query("
         aktivitas_keluar,
         kendala_keluar,
         jam_keluar,
-        foto_absen,
-        status
+        foto_absen
     FROM absen
     WHERE user_id = '$user_id'
     ORDER BY tanggal ASC
@@ -80,17 +79,15 @@ while ($a = $qAbsen->fetch_assoc()) {
         "kendala_keluar" => $a["kendala_keluar"],
         "jam_keluar" => $a["jam_keluar"],
         "foto_absen" => $a["foto_absen"],
-        "status" => $a["status"]
+        // ✅ status dihapus dari query, diganti default string
+        "status" => "hadir"
     ];
 }
 
 // ==============================
 // Hitung statistik absensi
 // ==============================
-$total_hadir = 0;
-foreach ($absensi as $a) {
-    if ($a['status'] === 'hadir') $total_hadir++;
-}
+$total_hadir = count($absensi); // Karena tidak ada kolom status, anggap semua hadir
 
 $tgl_mulai = new DateTime($peserta['tgl_mulai']);
 $tgl_selesai = new DateTime($peserta['tgl_selesai']);
