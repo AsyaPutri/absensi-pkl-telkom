@@ -33,9 +33,10 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 // ============================
 // Query peserta & absensi
 // ============================
-$where = "WHERE 1=1";
-if ($unit !== '') $where .= " AND p.unit_id = '$unit'";
-if ($search !== '') $where .= " AND (p.nama LIKE '%$search%' OR p.nis_npm LIKE '%$search%')";
+$where = "WHERE p.unit_id = '$unit_mentor'";
+if ($search !== '') {
+  $where .= "AND (p.nama LIKE '%search%' OR p.nis_npm LIKE '%$search%')";
+}
 
 $sql = "
 SELECT 
@@ -280,63 +281,80 @@ $result = $conn->query($sql);
 
   <script>
   document.addEventListener("DOMContentLoaded", () => {
-    const modal = new bootstrap.Modal(document.getElementById('modalRincian'));
+  const modal = new bootstrap.Modal(document.getElementById('modalRincian'));
+  let currentUserId = null; // ✅ simpan userId di variabel global
 
-    document.querySelectorAll(".btn-detail").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const userId = btn.dataset.userid;
-        const tbody = document.getElementById("rincianTabel");
-        tbody.innerHTML = '<tr><td colspan="11">Memuat data...</td></tr>';
+  // Tombol Detail
+  document.querySelectorAll(".btn-detail").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const userId = btn.dataset.userid;
+      currentUserId = userId; // ✅ simpan userId ke variabel global
 
-        fetch('get_rincian_absen.php?user_id=' + userId)
-          .then(res => res.json())
-          .then(data => {
-            if (data.error) {
-              alert("Error: " + data.error);
-              return;
-            }
+      const tbody = document.getElementById("rincianTabel");
+      tbody.innerHTML = '<tr><td colspan="11">Memuat data...</td></tr>';
 
-            modal.show();
-            document.getElementById("rNama").innerText = data.nama;
-            document.getElementById("rNim").innerText = data.nis_npm;
-            document.getElementById("rInstansi").innerText = data.instansi_pendidikan || "-";
-            document.getElementById("rUnit").innerText = data.unit;
-            document.getElementById("rPeriode").innerText = `${data.tgl_mulai} s/d ${data.tgl_selesai}`;
-            document.getElementById("rHariKerja").innerText = data.hari_kerja || "-";
-            document.getElementById("rHadir").innerText = data.hadir || "-";
-            document.getElementById("rPersen").innerText = data.persentase || "0";
+      fetch('get_rincian_absen.php?user_id=' + userId)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            alert("Error: " + data.error);
+            return;
+          }
 
-            tbody.innerHTML = "";
-            data.absensi.forEach((a, i) => {
-              tbody.innerHTML += `
-                <tr>
-                  <td>${i + 1}</td>
-                  <td>${a.tanggal || '-'}</td>
-                  <td>${a.jam_masuk || '-'}</td>
-                  <td>${a.aktivitas_masuk || '-'}</td>
-                  <td>${a.kendala_masuk || '-'}</td>
-                  <td>${a.kondisi_kesehatan || '-'}</td>
-                  <td>${a.lokasi_kerja || '-'}</td>
-                  <td>${a.aktivitas_keluar || '-'}</td>
-                  <td>${a.kendala_keluar || '-'}</td>
-                  <td>${a.jam_keluar || '-'}</td>
-                  <td>${a.foto_absen 
-                    ? `<img src="../../uploads/absensi/${a.foto_absen}" width="60" class="rounded">`
-                    : '-'}</td>
-                </tr>`;
-            });
-          })
-          .catch(err => {
-            console.error("Gagal ambil data:", err);
-            alert("Terjadi kesalahan saat mengambil data rincian!");
+          modal.show();
+          document.getElementById("rNama").innerText = data.nama;
+          document.getElementById("rNim").innerText = data.nis_npm;
+          document.getElementById("rInstansi").innerText = data.instansi_pendidikan || "-";
+          document.getElementById("rUnit").innerText = data.unit;
+          document.getElementById("rPeriode").innerText = `${data.tgl_mulai} s/d ${data.tgl_selesai}`;
+          document.getElementById("rHariKerja").innerText = data.hari_kerja || "-";
+          document.getElementById("rHadir").innerText = data.hadir || "-";
+          document.getElementById("rPersen").innerText = data.persentase || "0";
+
+          tbody.innerHTML = "";
+          data.absensi.forEach((a, i) => {
+            tbody.innerHTML += `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${a.tanggal || '-'}</td>
+                <td>${a.jam_masuk || '-'}</td>
+                <td>${a.aktivitas_masuk || '-'}</td>
+                <td>${a.kendala_masuk || '-'}</td>
+                <td>${a.kondisi_kesehatan || '-'}</td>
+                <td>${a.lokasi_kerja || '-'}</td>
+                <td>${a.aktivitas_keluar || '-'}</td>
+                <td>${a.kendala_keluar || '-'}</td>
+                <td>${a.jam_keluar || '-'}</td>
+                <td>${a.foto_absen 
+                  ? `<img src="../../uploads/absensi/${a.foto_absen}" width="60" class="rounded">`
+                  : '-'}</td>
+              </tr>`;
           });
-      });
-    });
-
-    document.getElementById("resetBtn").addEventListener("click", () => {
-      window.location.href = "rekap_absensi.php";
+        })
+        .catch(err => {
+          console.error("Gagal ambil data:", err);
+          alert("Terjadi kesalahan saat mengambil data rincian!");
+        });
     });
   });
+
+  // Tombol reset
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    window.location.href = "rekap_absensi.php";
+  });
+
+  // ✅ Tombol Export PDF
+  document.getElementById("btnExportPdf").addEventListener("click", function() {
+    if (!currentUserId) {
+      alert("User ID tidak ditemukan! Silakan buka rincian peserta dulu.");
+      return;
+    }
+
+    // arahkan ke file export PDF
+    window.open(`export_rincian_pdf.php?user_id=${currentUserId}`, "_blank");
+  });
+});
+
   </script>
 </body>
 </html>
