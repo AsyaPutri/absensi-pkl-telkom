@@ -35,7 +35,8 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 // ============================
 $where = "WHERE p.unit_id = '$unit_mentor'";
 if ($search !== '') {
-  $where .= "AND (p.nama LIKE '%search%' OR p.nis_npm LIKE '%$search%')";
+  $searchSafe = $conn->real_escape_string($search);
+  $where .= " AND (p.nama LIKE '%$searchSafe%' OR p.nis_npm LIKE '%$searchSafe%')";
 }
 
 $sql = "
@@ -141,13 +142,22 @@ $result = $conn->query($sql);
       </div>
 
       <div class="card-body">
-        <form method="GET" class="filter-section" id="filterForm">
-          <input type="text" name="search" class="form-control"
-                 placeholder="Cari Nama / NIS / NPM..."
-                 value="<?= htmlspecialchars($search); ?>">
-          <button type="submit" class="btn btn-danger"><i class="bi bi-search"></i> Cari</button>
-          <button type="button" id="resetBtn" class="btn btn-secondary"><i class="bi bi-arrow-repeat"></i> Reset</button>
-        </form>
+        <form method="GET" class="filter-section d-flex align-items-center gap-2" id="filterForm" style="margin-bottom: 20px;">
+  <div class="input-group" style="max-width: 280px;">
+    <input 
+      type="text" 
+      name="search" 
+      class="form-control border-danger" 
+      placeholder="Cari Nama / NIS / NPM..."
+      value="<?= htmlspecialchars($search); ?>" 
+      style="border-radius: 8px 0 0 8px; font-size: 14px;"
+    >
+    <button type="submit" class="btn btn-danger" style="border-radius: 0 8px 8px 0;">
+      <i class="bi bi-search"></i>
+    </button>
+  </div>
+</form>
+
 
         <div class="table-responsive">
           <table class="table table-bordered table-hover align-middle text-center">

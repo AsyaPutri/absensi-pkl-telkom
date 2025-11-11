@@ -90,22 +90,36 @@ if (!$result) {
       color: #fff;
     }
 
-    /* Search bar */
-    .search-box {
-      max-width: 350px;
-      margin-bottom: 15px;
-      position: relative;
-    }
-    .search-box input {
-      border-radius: 30px;
-      padding-left: 35px;
-    }
-    .search-box i {
-      position: absolute;
-      left: 12px;
-      top: 9px;
-      color: var(--telkom-red);
-    }
+    /* Search box */
+.search-box {
+  position: relative;
+  width: 280px; /* proporsional */
+  margin-bottom: 10px;
+}
+
+.search-box input {
+  border-radius: 30px;
+  padding: 8px 35px 8px 35px;
+  border: 1.5px solid #ddd;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+  border-color: var(--telkom-red);
+  box-shadow: 0 0 6px rgba(204,0,0,0.3);
+  outline: none;
+}
+
+.search-box i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--telkom-red);
+  font-size: 1rem;
+}
+
   </style>
 </head>
 <body>
@@ -250,13 +264,22 @@ rincianModal.addEventListener('show.bs.modal', event => {
   document.getElementById('r-surat').href = '../../uploads/Surat_Permohonan/' + button.getAttribute('data-surat');
 });
 
-// 🔍 Fungsi pencarian tabel
+// 🔍 Fungsi pencarian tabel (nama, universitas, jurusan)
 document.getElementById("searchInput").addEventListener("keyup", function() {
-  let value = this.value.toLowerCase();
-  let rows = document.querySelectorAll("#dataTable tbody tr");
+  const value = this.value.toLowerCase();
+  const rows = document.querySelectorAll("#dataTable tbody tr");
+
   rows.forEach(row => {
-    let text = row.textContent.toLowerCase();
-    row.style.display = text.includes(value) ? "" : "none";
+    const nama = row.cells[1].textContent.toLowerCase();
+    const instansi = row.cells[2].textContent.toLowerCase();
+    const jurusan = row.cells[3].textContent.toLowerCase();
+
+    // tampilkan baris jika salah satu kolom cocok
+    if (nama.includes(value) || instansi.includes(value) || jurusan.includes(value)) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
   });
 });
 </script>

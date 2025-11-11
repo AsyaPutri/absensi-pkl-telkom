@@ -32,21 +32,15 @@ if ($q1 && mysqli_num_rows($q1) > 0) {
   }
 }
 
-// ============================
-// Jika tidak ada unit_id, tampilkan pesan
-// ============================
 if (empty($mentor_unit_ids)) {
   die("<div style='padding:2rem;text-align:center;color:#6c757d;'>Anda belum memiliki unit yang terdaftar. Hubungi admin untuk mengaitkan unit ke akun Anda.</div>");
 }
 
-// ============================
-// Siapkan list unit untuk query IN (...)
-// ============================
 $mentor_unit_ids = array_map('intval', $mentor_unit_ids);
 $unit_list = implode(',', $mentor_unit_ids);
 
 // ============================
-// Ambil nama unit untuk ditampilkan
+// Ambil nama unit
 // ============================
 $units = [];
 $unit_q = mysqli_query($conn, "
@@ -60,7 +54,21 @@ while ($u = mysqli_fetch_assoc($unit_q)) {
 }
 
 // ============================
-// Tentukan urutan data (created_at / id)
+// Search filter
+// ============================
+$search = $_GET['search'] ?? '';
+$search_filter = '';
+if (!empty($search)) {
+  $safe_search = mysqli_real_escape_string($conn, $search);
+  $search_filter = "AND (
+    peserta_pkl.nama LIKE '%$safe_search%' OR
+    peserta_pkl.instansi_pendidikan LIKE '%$safe_search%' OR
+    peserta_pkl.jurusan LIKE '%$safe_search%'
+  )";
+}
+
+// ============================
+// Tentukan urutan data
 // ============================
 $col_check_q = "SHOW COLUMNS FROM peserta_pkl LIKE 'created_at'";
 $col_check_res = mysqli_query($conn, $col_check_q);
@@ -69,7 +77,7 @@ $order_by = ($col_check_res && mysqli_num_rows($col_check_res) > 0)
   : "peserta_pkl.id DESC";
 
 // ============================
-// Query utama: tampilkan peserta berdasarkan unit mentor
+// Query utama
 // ============================
 $query = "
   SELECT 
@@ -78,6 +86,7 @@ $query = "
   FROM peserta_pkl
   LEFT JOIN unit_pkl ON peserta_pkl.unit_id = unit_pkl.id
   WHERE peserta_pkl.unit_id IN ($unit_list)
+  $search_filter
   ORDER BY $order_by
 ";
 
@@ -153,15 +162,31 @@ if (!$result) {
 
 <div class="container-fluid mt-4">
   <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
       <h5><i class="bi bi-people-fill me-2"></i> Data Peserta Internship</h5>
-      <div class="text-end">
-        <small class="text-muted">
-          Unit: <?= htmlspecialchars(implode(', ', $units)); ?>
-        </small>
-      </div>
+      <small class="text-muted">Unit: <?= htmlspecialchars(implode(', ', $units)); ?></small>
     </div>
     <div class="card-body">
+      <!-- 🔍 Form Search -->
+      <form method="GET" class="d-flex align-items-center gap-2 mb-3">
+        <div class="input-group" style="max-width: 280px;">
+          <input 
+            type="text" 
+            name="search" 
+            class="form-control border-danger" 
+            placeholder="Cari Nama / Instansi / Jurusan..."
+            value="<?= htmlspecialchars($search); ?>" 
+            style="border-radius: 8px 0 0 8px; font-size: 14px;"
+          >
+          <button type="submit" class="btn btn-danger" style="border-radius: 0 8px 8px 0;">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+        <a href="rekap_absensi.php" class="btn btn-light border" style="border-radius: 8px; color: #d00;">
+          <i class="bi bi-arrow-repeat"></i> Reset
+        </a>
+      </form>
+
       <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
           <thead>
@@ -189,9 +214,7 @@ if (!$result) {
               <td><?= htmlspecialchars($row['jurusan']); ?></td>
               <td><?= htmlspecialchars($row['no_hp']); ?></td>
               <td><?= htmlspecialchars($row['nama_unit']); ?></td>
-              <td>
-                <span class="badge bg-success"><?= ucfirst(htmlspecialchars($row['status'])); ?></span>
-              </td>
+              <td><span class="badge bg-success"><?= ucfirst(htmlspecialchars($row['status'])); ?></span></td>
               <td>
                 <button class="btn btn-primary btn-sm btn-rincian" data-email="<?= htmlspecialchars($row['email']); ?>">
                   <i class="bi bi-eye"></i> Detail
@@ -228,7 +251,6 @@ if (!$result) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-// 🔍 Load detail peserta
 $(document).on('click', '.btn-rincian', function() {
   const email = $(this).data('email');
   $('#rincianModal').modal('show');
