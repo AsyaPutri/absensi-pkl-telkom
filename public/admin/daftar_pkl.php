@@ -10,7 +10,7 @@ include "daftar_pkl_action.php";
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Daftar PKL - Admin</title>
+  <title>Daftar Internship (InStep) - Admin</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
@@ -25,7 +25,7 @@ include "daftar_pkl_action.php";
 
     .main-content{ margin-left:260px; transition:margin-left .3s; min-height:100vh; }
     .header{ background:#fff; border-bottom:1px solid #eee; padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center; }
-    .telkom-logo{ height:80px; }
+    .telkom-logo{ height:125px; width: auto;}
 
     .card{ border:none; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
     .table thead th{ background:var(--telkom-red); color:#fff; text-align:center; }
@@ -33,16 +33,19 @@ include "daftar_pkl_action.php";
     .badge-berlangsung{ background:#28a745; }
     .badge-batal{ background:#dc3545; }
 
-    @media(max-width:768px){
-      .sidebar{ left:-260px; }
-      .sidebar.active{ left:0; }
-      .main-content{ margin-left:0; }
-      .telkom-logo{ height:70px; }
+    @media (max-width: 768px) {
+      .sidebar { left: -280px; }
+      .sidebar.active { left: 0; }
+      .main-content { margin-left: 0; }
+      .telkom-logo { height: 70px; }
+      .card-number { font-size: 2rem; }
     }
     @media (max-width: 576px) {
-      form.d-flex select {
-      flex: 1;
-      min-width: 150px; }
+      .stats-card .card-body { padding: 1rem; }
+      .card-number { font-size: 1.8rem; }
+      .header h4 { font-size: 1.2rem; }
+      .header small { font-size: 0.8rem; }
+      .telkom-logo { height: 50px; }
     }
   </style>
 </head>
@@ -52,16 +55,16 @@ include "daftar_pkl_action.php";
   <div class="sidebar" id="sidebarMenu">
     <div class="text-center py-3">
       <i class="bi bi-person-circle fs-1 text-white"></i>
-      <p class="fw-bold mb-0 text-white">Admin PKL</p>
-      <small class="text-white-50">Telkom Witel Bekasi</small>
+      <p class="fw-bold mb-0 text-white">Admin Internship | InStep</p>
+      <small class="text-white-50">Telkom Witel Bekasi - Karawang</small>
     </div>
     <hr class="text-white-50">
     <ul class="nav flex-column">
       <li><a href="dashboard.php" class="nav-link <?= ($current_page=='dashboard.php')?'active':'' ?>"><i class="bi bi-house-door me-2"></i> Beranda</a></li>
-      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Daftar PKL</a></li>
-      <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
+      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Daftar Internship</a></li>
+      <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta Internship</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
-      <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page== 'riwayat_peserta.php') ?'active':'' ?> "><i class="bi bi-clock-history me-2"></i> Riwayat Peserta</a></li>
+      <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page== 'riwayat_peserta.php') ?'active':'' ?> "><i class="bi bi-clock-history me-2"></i> Riwayat Peserta </a></li>
       <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
     </ul>
   </div>
@@ -71,11 +74,11 @@ include "daftar_pkl_action.php";
       <div class="d-flex align-items-center">
         <button class="btn btn-outline-secondary d-md-none me-2" id="menuToggle"><i class="bi bi-list"></i></button>
         <div>
-          <h4 class="mb-0 fw-bold text-danger">Data Daftar PKL</h4>
-          <small class="text-muted">Sistem Manajemen Praktik kerja Lapangan</small>
+          <h4 class="mb-0 fw-bold text-danger">Data Daftar Internship | InStep </h4>
+          <small class="text-muted">Sistem Manajemen Internship </small>
         </div>
       </div>
-      <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
+      <img src="../assets/img/instepterbaru.png" class="telkom-logo" alt="Telkom Logo">
     </div>
 
     <div class="container-fluid p-4">
@@ -134,7 +137,7 @@ include "daftar_pkl_action.php";
 
       <div class="card shadow-sm">
         <div class="card-header bg-white">
-        <h5 class="fw-bold text-danger mb-0"><i class="bi bi-list-check me-2"></i> Daftar PKL</h5>
+        <h5 class="fw-bold text-danger mb-0"><i class="bi bi-list-check me-2"></i> Daftar Internship</h5>
       </div>
       <div class="card">
         <div class="card-body table-responsive">
@@ -228,7 +231,7 @@ include "daftar_pkl_action.php";
                             <p><strong>Bersedia Unit Manapun:</strong> <?= safe($row['bersedia_unit_manapun']); ?></p>
                             <p><strong>Memiliki Laptop:</strong> <?= safe($row['memiliki_laptop']); ?></p>
                             <p><strong>Durasi:</strong> <?= safe($row['durasi']); ?></p>
-                            <p><strong>Nomor Surat Permohonan PKL:</strong> <?= safe($row['nomor_surat_permohonan']); ?></p>
+                            <p><strong>Nomor Surat Permohonan Magang:</strong> <?= safe($row['nomor_surat_permohonan']); ?></p>
                           </div>
                         </div>
                         <hr>
@@ -237,7 +240,7 @@ include "daftar_pkl_action.php";
                         <div class="row g-3">
                           <div class="col-md-4"><strong>Foto Formal</strong><br><?= $row['upload_foto'] ? '<a href="'. $foto_dir . safe($row['upload_foto']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
                           <div class="col-md-4"><strong>Kartu Peljar / KTM</strong><br><?= $row['upload_kartu_identitas'] ? '<a href="'. $ktm_dir . safe($row['upload_kartu_identitas']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
-                          <div class="col-md-4"><strong>Surat Permohonan PKL </strong><br><?= $row['upload_surat_permohonan'] ? '<a href="'. $surat_dir . safe($row['upload_surat_permohonan']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
+                          <div class="col-md-4"><strong>Surat Permohonan Magang </strong><br><?= $row['upload_surat_permohonan'] ? '<a href="'. $surat_dir . safe($row['upload_surat_permohonan']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
                         </div>
                       </div>
                       <div class="modal-footer">
@@ -308,7 +311,7 @@ include "daftar_pkl_action.php";
                           </div>
 
                           <div class="col-md-6">
-                            <label class="form-label">Nomor Surat Permohonan PKL</label>
+                            <label class="form-label">Nomor Surat Permohonan Magang </label>
                             <input type="text" name="nomor_surat_permohonan" class="form-control" value="<?= safe($row['nomor_surat_permohonan']); ?>">
                           </div>
 
@@ -362,17 +365,17 @@ include "daftar_pkl_action.php";
                           </div>
 
                           <div class="col-md-4">
-                            <label class="form-label">Ganti Foto Formal (opsional)</label>
+                            <label class="form-label">Ganti Foto Formal </label>
                             <input type="file" name="upload_foto" class="form-control">
                           </div>
 
                           <div class="col-md-4">
-                            <label class="form-label">Ganti Kartu Pelajar / KTM (opsional)</label>
+                            <label class="form-label">Ganti Kartu Pelajar / KTM </label>
                             <input type="file" name="upload_kartu_identitas" class="form-control">
                           </div>
 
                           <div class="col-md-4">
-                            <label class="form-label">Ganti Surat Permohonan PKL (opsional)</label>
+                            <label class="form-label">Ganti Surat Permohonan Magang </label>
                             <input type="file" name="upload_surat_permohonan" class="form-control">
                           </div>
 
@@ -407,7 +410,7 @@ include "daftar_pkl_action.php";
         <form method="POST" enctype="multipart/form-data">
           <input type="hidden" name="action" value="insert">
           <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i> Tambah Pendaftar PKL</h5>
+            <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i> Tambah Pendaftar Internship</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
 
@@ -449,7 +452,7 @@ include "daftar_pkl_action.php";
                 <input type="text" name="semester" class="form-control">
               </div>
               <div class="col-md-4">
-                <label class="form-label">Nomor Surat Permohonan PKL</label>
+                <label class="form-label">Nomor Surat Permohonan Magang</label>
                 <input type="text" name="no_surat" class="form-control">
               </div>
 
@@ -525,7 +528,7 @@ include "daftar_pkl_action.php";
                 <input type="file" name="upload_kartu_identitas" class="form-control">
               </div>
               <div class="col-md-4">
-                <label class="form-label">Upload Surat Permohonan PKL</label>
+                <label class="form-label">Upload Surat Permohonan Magang</label>
                 <input type="file" name="upload_surat_permohonan" class="form-control">
               </div>
             </div>
@@ -547,7 +550,7 @@ include "daftar_pkl_action.php";
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title"><i class="bi bi-building-add me-2"></i> Kelola Unit PKL</h5>
+        <h5 class="modal-title"><i class="bi bi-building-add me-2"></i> Kelola Unit Internship</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 

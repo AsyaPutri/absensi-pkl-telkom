@@ -100,7 +100,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Data Peserta PKL - Telkom Indonesia</title>
+  <title>Data Peserta InStep - Telkom Witel Bekasi - Karawang</title>
 
   <!-- Bootstrap & Icon -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -169,7 +169,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       justify-content: space-between;
       align-items: center;
     }
-    .telkom-logo { height: 80px; width: auto; }
+    .telkom-logo { height: 125px; width: auto; }
 
     /* Table style */
     .table thead th {
@@ -231,9 +231,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
     }
 
     @media (max-width: 768px) {
-      .filter-card .btn {
-        width: 100%;
-      }
+      .sidebar { left: -280px; }
+      .sidebar.active { left: 0; }
+      .main-content { margin-left: 0; }
+      .telkom-logo { height: 70px; }
+      .card-number { font-size: 2rem; }
+    }
+    @media (max-width: 576px) {
+      .stats-card .card-body { padding: 1rem; }
+      .card-number { font-size: 1.8rem; }
+      .header h4 { font-size: 1.2rem; }
+      .header small { font-size: 0.8rem; }
+      .telkom-logo { height: 50px; }
     }
   </style>
 </head>
@@ -245,14 +254,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <div class="sidebar" id="sidebarMenu">
     <div class="text-center py-3">
       <i class="bi bi-person-circle fs-1 text-white"></i>
-      <p class="fw-bold mb-0 text-white">Admin PKL</p>
-      <small class="text-white-50">Telkom Witel Bekasi</small>
+      <p class="fw-bold mb-0 text-white">Admin Internship | InStep</p>
+      <small class="text-white-50">Telkom Witel Bekasi - Karawang</small>
     </div>
     <hr class="text-white-50">
     <ul class="nav flex-column">
       <li><a href="dashboard.php" class="nav-link <?= ($current_page=='dashboard.php')?'active':'' ?>"><i class="bi bi-house-door me-2"></i> Beranda</a></li>
-      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar PKL</a></li>
-      <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
+      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar Internship</a></li>
+      <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta Internship</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
       <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page=='riwayat_peserta.php')?'active':'' ?>"><i class="bi bi-clock-history me-2"></i> Riwayat Peserta</a></li>
       <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
@@ -284,11 +293,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <i class="bi bi-list"></i>
       </button>
       <div>
-        <h4 class="mb-0 fw-bold text-danger">Data Peserta PKL</h4>
-        <small class="text-muted">Sistem Manajemen Praktik Kerja Lapangan</small>
+        <h4 class="mb-0 fw-bold text-danger">Data Peserta Internship | InStep</h4>
+        <small class="text-muted">Sistem Manajemen Internship</small>
       </div>
     </div>
-    <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
+    <img src="../assets/img/instepterbaru.png" class="telkom-logo" alt="Telkom Logo">
   </div>
 
   <!-- Filter Section -->
@@ -360,7 +369,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <div class="card mt-4 shadow-sm mx-3 mb-4">
     <div class="card-header bg-white">
       <h5 class="mb-0 text-danger">
-        <i class="bi bi-people-fill me-2 text-danger"></i> Data Peserta PKL
+        <i class="bi bi-people-fill me-2 text-danger"></i> Data Peserta Internship
       </h5>
     </div>
 
@@ -455,7 +464,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                           <p><strong>Memiliki Laptop:</strong> <?= htmlspecialchars($row['memiliki_laptop']); ?></p>
                           <p><strong>Bersedia Unit Manapun:</strong> <?= htmlspecialchars($row['bersedia_unit_manapun']); ?></p>
                           <p><strong>Durasi:</strong> <?= htmlspecialchars($row['durasi']); ?></p>
-                          <p><strong>Nomor Surat Permohonan PKL:</strong> <?= htmlspecialchars($row['nomor_surat_permohonan']); ?></p>
+                          <p><strong>Nomor Surat Permohonan Magang:</strong> <?= htmlspecialchars($row['nomor_surat_permohonan']); ?></p>
                           <p><strong>Skill:</strong> <?= htmlspecialchars($row['skill']); ?></p>
                           <p><strong>Unit:</strong> <?= htmlspecialchars($row['nama_unit']); ?></p>
                         </div>
@@ -475,7 +484,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                           <a href="../../uploads/Foto_Kartuidentitas/<?= htmlspecialchars($row['upload_kartu_identitas']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
                         </div>
                         <div class="col-md-4">
-                          <p><strong>Surat Permohonan PKL</strong></p>
+                          <p><strong>Surat Permohonan Magang</strong></p>
                           <a href="../../uploads/Surat_Permohonan/<?= htmlspecialchars($row['upload_surat_permohonan']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
                         </div>
                       </div>
@@ -497,7 +506,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <?php endwhile; ?>
           <?php else: ?>
             <tr>
-              <td colspan="12" class="text-center text-muted">Belum ada peserta PKL</td>
+              <td colspan="12" class="text-center text-muted">Belum ada peserta Internship</td>
             </tr>
           <?php endif; ?>
         </tbody>
@@ -532,7 +541,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     function konfirmasiSelesai(id) {
       Swal.fire({
         title: 'Yakin?',
-        text: "Apakah Anda yakin ingin menyelesaikan peserta PKL ini?",
+        text: "Apakah Anda yakin ingin menyelesaikan peserta Internship ini?",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
