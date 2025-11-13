@@ -65,7 +65,7 @@ $result = $conn->query($sql);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rekap Absensi Peserta Internship</title>
+  <title>Rekap Absensi Peserta InStep</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
@@ -93,7 +93,7 @@ $result = $conn->query($sql);
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
-    .header img { height: 60px; }
+    .header img { height: 100px; }
     .header .title h4 { color: var(--telkom-red); font-weight: 700; margin-bottom: 4px; }
     .header .title small { color: #6c757d; }
 
@@ -126,7 +126,7 @@ $result = $conn->query($sql);
 <body>
   <div class="header">
     <div class="d-flex align-items-center">
-      <img src="../assets/img/logo_telkom.png" alt="Telkom Logo">
+      <img src="../assets/img/instepterbaru.png" >
       <div class="title ms-3">
         <h4>Data Absensi Peserta Internship</h4>
         <small>Sistem Monitoring Internship | Telkom Witel Bekasi - Karawang</small>

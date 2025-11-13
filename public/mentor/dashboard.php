@@ -98,7 +98,7 @@ $koneksi,
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard Mentor Internship</title>
+  <title>Dashboard Mentor InStep</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
     * {margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif;}
@@ -268,7 +268,7 @@ $koneksi,
 
   <header>
     <div class="logo-area">
-      <img src="../assets/img/instepterbaru.png" alt="Telkom Logo" />
+      <img src="../assets/img/instepterbaru.png" />
       <div class="header-text">
         <h1>Dashboard Mentor Internship</h1>
         <p>Sistem Monitoring Internship | Telkom Witel Bekasi - Karawang</p>
