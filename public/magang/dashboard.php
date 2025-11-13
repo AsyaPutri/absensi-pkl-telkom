@@ -180,6 +180,19 @@ $pengumuman = $result->fetch_assoc();
     
     <style>
         /* Custom styles untuk Leaflet Maps Integration */
+        .text-telkom {
+            color: #e60012 !important; 
+            font-weight: 700;           
+            letter-spacing: 0.5px;
+        }
+
+        .title-telkom {
+            text-transform: uppercase;
+            font-size: 1.4rem;
+            text-shadow: 1px 1px 3px rgba(230, 0, 18, 0.15);
+        }
+
+         /* Custom styles untuk Leaflet Maps Integration */
         .map-container {
             height: 400px !important;
             width: 100% !important;
@@ -394,7 +407,7 @@ $pengumuman = $result->fetch_assoc();
                     </div>
                 </div>
                 <div class="col">
-                    <h4 class="mb-0 text-telkom">
+                    <h4 class="mb-0 text-telkom fw-bold title-telkom">
                         Absensi Internship - Telkom Indonesia
                     </h4>
                 </div>

@@ -264,6 +264,132 @@ while ($row = mysqli_fetch_assoc($queryLogbook)) {
             padding: 6px 14px;
             box-shadow: 0 2px 8px rgba(230, 0, 18, 0.15);
         }
+        /* ===================== RESPONSIVE LAYOUT FIX ===================== */
+
+/* Umum: ubah padding dan margin agar pas di layar kecil */
+@media (max-width: 1200px) {
+  .main-container {
+    margin: 20px;
+    padding: 20px;
+  }
+}
+
+/* Logo & Header */
+@media (max-width: 768px) {
+  .telkom-logo-img {
+    height: 70px;
+  }
+
+  .header-section h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-section p {
+    font-size: 0.9rem;
+  }
+}
+
+/* Profile Section: grid menyesuaikan */
+@media (max-width: 768px) {
+  .profile-info {
+    grid-template-columns: 1fr; /* 1 kolom di HP */
+  }
+
+  .profile-section {
+    padding: 20px;
+  }
+
+  .profile-item {
+    font-size: 0.9rem;
+  }
+}
+
+/* Table Container Responsif */
+@media (max-width: 992px) {
+  .table-container {
+    padding: 15px;
+  }
+
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .table-header h5 {
+    font-size: 1rem;
+  }
+
+  .header-controls {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .header-controls .btn-telkom {
+    width: 48%;
+    font-size: 0.85rem;
+  }
+
+  .badge-info {
+    width: 48%;
+    text-align: center;
+    font-size: 0.85rem;
+  }
+}
+
+/* Table font & scroll adjustment */
+@media (max-width: 768px) {
+  .table thead th, .table tbody td {
+    font-size: 0.75rem;
+    padding: 10px 6px;
+  }
+
+  .activity-text, .constraint-text {
+    font-size: 0.8rem;
+  }
+
+  .table-container {
+    border-radius: 12px;
+  }
+}
+
+/* Untuk HP kecil (max 576px) */
+@media (max-width: 576px) {
+  body {
+    font-size: 14px;
+  }
+
+  .main-container {
+    padding: 15px;
+  }
+
+  .btn-telkom {
+    width: 100%;
+    font-size: 0.8rem;
+  }
+
+  .badge-info {
+    width: 100%;
+    font-size: 0.8rem;
+    margin-top: 5px;
+  }
+
+  .table-container {
+    padding: 10px;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+  }
+
+  .table thead {
+    font-size: 0.8rem;
+  }
+}
+
     </style>
 </head>
 <body>
