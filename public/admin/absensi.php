@@ -16,7 +16,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Admin PKL - Telkom Indonesia</title>
+  <title>Dashboard Admin InStep - Telkom Witel Bekasi - Karawang </title>
 
   <!-- Bootstrap & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -95,7 +95,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
     }
 
     .telkom-logo {
-      height: 80px;
+      height: 125px;
       width: auto;
     }
 
@@ -132,6 +132,14 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
       .sidebar.active { left: 0; }
       .main-content { margin-left: 0; }
       .telkom-logo { height: 70px; }
+      .card-number { font-size: 2rem; }
+    }
+    @media (max-width: 576px) {
+      .stats-card .card-body { padding: 1rem; }
+      .card-number { font-size: 1.8rem; }
+      .header h4 { font-size: 1.2rem; }
+      .header small { font-size: 0.8rem; }
+      .telkom-logo { height: 50px; }
     }
   </style>
 </head>
@@ -143,14 +151,14 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
   <div class="sidebar" id="sidebarMenu">
     <div class="text-center py-3">
       <i class="bi bi-person-circle fs-1 text-white"></i>
-      <p class="fw-bold mb-0 text-white">Admin PKL</p>
-      <small class="text-white-50">Telkom Witel Bekasi</small>
+      <p class="fw-bold mb-0 text-white">Admin Internship | InStep</p>
+      <small class="text-white-50">Telkom Witel Bekasi - Karawang</small>
     </div>
     <hr class="text-white-50">
     <ul class="nav flex-column">
       <li><a href="dashboard.php" class="nav-link <?= ($current_page=='dashboard.php')?'active':'' ?>"><i class="bi bi-house-door me-2"></i> Beranda</a></li>
-      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar PKL</a></li>
-      <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
+      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar Internship</a></li>
+      <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta Internship</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
       <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page=='riwayat_peserta.php')?'active':'' ?>"><i class="bi bi-clock-history me-2"></i> Riwayat Peserta</a></li>
       <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
@@ -167,11 +175,11 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
           <i class="bi bi-list"></i>
         </button>
         <div>
-          <h4 class="mb-0 fw-bold text-danger">Dashboard Admin PKL</h4>
-          <small class="text-muted">Sistem Manajemen Praktik Kerja Lapangan</small>
+          <h4 class="mb-0 fw-bold text-danger">Rekap Absensi Internship | InStep</h4>
+          <small class="text-muted">Sistem Manajemen Internship</small>
         </div>
       </div>
-      <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
+      <img src="../assets/img/instepterbaru.png" class="telkom-logo" alt="Telkom Logo">
     </div>
 
     <!-- Filter -->
@@ -493,7 +501,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
                 <p><strong>NIM:</strong> ${peserta.nis_npm ?? "-"}</p>
                 <p><strong>Instansi:</strong> ${peserta.instansi_pendidikan ?? "-"}</p>
                 <p><strong>Unit:</strong> ${peserta.unit ?? "-"}</p>
-                <p><strong>Periode PKL:</strong> ${peserta.tgl_mulai ?? "-"} s/d ${peserta.tgl_selesai ?? "-"}</p>
+                <p><strong>Periode Internship:</strong> ${peserta.tgl_mulai ?? "-"} s/d ${peserta.tgl_selesai ?? "-"}</p>
                 <hr>
                 <p><strong>Jumlah Hari Kerja:</strong> ${hariKerja}</p>
                 <p><strong>Jumlah Hadir:</strong> ${jumlahHadir}</p>
@@ -574,7 +582,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
 
     // Header
     doc.setFontSize(16);
-    doc.text("REKAP DETAIL ABSENSI PKL", 150, 15, { align: "center" });
+    doc.text("REKAP DETAIL ABSENSI Internship", 150, 15, { align: "center" });
     doc.setFontSize(12);
     doc.text("PT TELKOM INDONESIA", 150, 22, { align: "center" });
     doc.line(14, 25, 283, 25);
@@ -590,7 +598,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
     y += 7;
     doc.text(`Unit: ${peserta.unit || "-"}`, 14, y);
     y += 7;
-    doc.text(`Periode PKL: ${peserta.tgl_mulai || "-"} s/d ${peserta.tgl_selesai || "-"}`, 14, y);
+    doc.text(`Periode Internship: ${peserta.tgl_mulai || "-"} s/d ${peserta.tgl_selesai || "-"}`, 14, y);
 
     // 🟢 Tambahkan statistik di bawah periode
     y += 10;

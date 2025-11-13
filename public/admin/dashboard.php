@@ -34,7 +34,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Admin PKL - Telkom Indonesia</title>
+  <title>Dashboard Admin InStep - Telkom Witel Bekasi - Karawang </title>
   
   <!-- Bootstrap & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -112,7 +112,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       align-items: center;
     }
     .telkom-logo {
-      height: 80px;
+      height: 125px;
       width: auto;
     }
 
@@ -156,16 +156,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <div class="sidebar" id="sidebarMenu">
     <div class="text-center py-3">
       <i class="bi bi-person-circle fs-1 text-white"></i>
-      <p class="fw-bold mb-0 text-white">Admin PKL</p>
-      <small class="text-white-50">Telkom Witel Bekasi</small>
+      <p class="fw-bold mb-0 text-white">Admin Internship | InStep </p>
+      <small class="text-white-50">Telkom Witel Bekasi - Karawang </small>
     </div>
     <hr class="text-white-50">
     <ul class="nav flex-column">
       <li><a href="dashboard.php" class="nav-link <?= ($current_page=='dashboard.php')?'active':'' ?>"><i class="bi bi-house-door me-2"></i> Beranda</a></li>
-      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar PKL</a></li>
-      <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta</a></li>
+      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar Internship</a></li>
+      <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta Internship</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
-      <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page== 'riwayat_peserta.php') ?'active':'' ?>"><i class="bi bi-clock-history me-2"></i> Riwayat Peserta</a></li>
+      <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page== 'riwayat_peserta.php') ?'active':'' ?>"><i class="bi bi-clock-history me-2"></i> Riwayat Peserta </a></li>
       <li><a href="../logout.php" class="nav-link"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
     </ul>
   </div>
@@ -180,11 +180,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
           <i class="bi bi-list"></i>
         </button>
         <div>
-          <h4 class="mb-0 fw-bold text-danger">Dashboard Admin PKL</h4>
-          <small class="text-muted">Sistem Manajemen Praktik Kerja Lapangan</small>
+          <h4 class="mb-0 fw-bold text-danger">Dashboard Admin Internship | InStep</h4>
+          <small class="text-muted">Sistem Manajemen Internship </small>
         </div>
       </div>
-      <img src="../assets/img/logo_telkom.png" class="telkom-logo" alt="Telkom Logo">
+      <img src="../assets/img/instepterbaru.png" class="telkom-logo" alt="Telkom Logo">
     </div>
 
     <div class="container-fluid p-4">
