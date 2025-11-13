@@ -63,7 +63,8 @@ if (!empty($search)) {
   $search_filter = "AND (
     peserta_pkl.nama LIKE '%$safe_search%' OR
     peserta_pkl.instansi_pendidikan LIKE '%$safe_search%' OR
-    peserta_pkl.jurusan LIKE '%$safe_search%'
+    peserta_pkl.jurusan LIKE '%$safe_search%' OR
+    unit_pkl.nama_unit LIKE '%$safe_search%'
   )";
 }
 
@@ -174,7 +175,7 @@ if (!$result) {
             type="text" 
             name="search" 
             class="form-control border-danger" 
-            placeholder="Cari Nama / Instansi / Jurusan..."
+            placeholder="Cari Nama / Instansi / Jurusan / Unit..."
             value="<?= htmlspecialchars($search); ?>" 
             style="border-radius: 8px 0 0 8px; font-size: 14px;"
           >
@@ -223,7 +224,9 @@ if (!$result) {
             </tr>
             <?php endwhile; else: ?>
             <tr>
-              <td colspan="8" class="text-center text-muted py-3">Tidak ada data peserta untuk unit Anda.</td>
+              <td colspan="8" class="text-center text-muted py-4" style="font-style: italic;">
+                <i class="bi bi-exclamation-circle me-2"></i>Tidak ada data peserta untuk unit Anda.
+              </td>
             </tr>
             <?php endif; ?>
           </tbody>

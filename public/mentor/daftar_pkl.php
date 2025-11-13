@@ -34,8 +34,6 @@ if (!$result) {
       font-family: 'Segoe UI', sans-serif;
       background: var(--light-bg);
       min-height: 100vh;
-      margin: 0;
-      padding: 0;
     }
     .header {
       background: #fff;
@@ -68,7 +66,7 @@ if (!$result) {
     .card-header { background: #fff; border-bottom: 3px solid var(--telkom-red); padding: 1rem 1.5rem; }
     .card-header h5 { color: var(--telkom-red); font-weight: 700; margin: 0; }
 
-    .table thead th { background: var(--telkom-red); color: #fff; }
+    .table thead th { background: var(--telkom-red); color: #fff; text-align: center; }
     .table-hover tbody tr:hover { background-color: #ffecec; }
 
     /* Modal styling */
@@ -91,35 +89,39 @@ if (!$result) {
     }
 
     /* Search box */
-.search-box {
-  position: relative;
-  width: 280px; /* proporsional */
-  margin-bottom: 10px;
-}
+    .search-box {
+      position: relative;
+      width: 280px;
+      margin-bottom: 10px;
+    }
+    .search-box input {
+      border-radius: 30px;
+      padding: 8px 35px 8px 35px;
+      border: 1.5px solid #ddd;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+    }
+    .search-box input:focus {
+      border-color: var(--telkom-red);
+      box-shadow: 0 0 6px rgba(204,0,0,0.3);
+      outline: none;
+    }
+    .search-box i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--telkom-red);
+      font-size: 1rem;
+    }
 
-.search-box input {
-  border-radius: 30px;
-  padding: 8px 35px 8px 35px;
-  border: 1.5px solid #ddd;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
-}
-
-.search-box input:focus {
-  border-color: var(--telkom-red);
-  box-shadow: 0 0 6px rgba(204,0,0,0.3);
-  outline: none;
-}
-
-.search-box i {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--telkom-red);
-  font-size: 1rem;
-}
-
+    /* Tabel kosong */
+    .no-data {
+      text-align: center;
+      color: #777;
+      font-style: italic;
+      background-color: #fff5f5;
+    }
   </style>
 </head>
 <body>
@@ -127,7 +129,7 @@ if (!$result) {
 <!-- Header -->
 <div class="header">
   <div class="d-flex align-items-center">
-    <img src="../assets/img/instepterbaru.png">
+    <img src="../assets/img/instepterbaru.png" alt="InStep Logo">
     <div class="title ms-3">
       <h4>Data Pendaftar Internship</h4>
       <small>Sistem Monitoring Internship | Telkom Witel Bekasi - Karawang</small>
@@ -145,58 +147,67 @@ if (!$result) {
       <!-- 🔍 Search Box -->
       <div class="search-box">
         <i class="bi bi-search"></i>
-        <input type="text" id="searchInput" class="form-control" placeholder="Search....">
+        <input type="text" id="searchInput" class="form-control" placeholder="Search...">
       </div>
     </div>
 
     <div class="card-body table-responsive">
-      <table id="dataTable" class="table table-bordered table-hover align-middle">
+      <table id="dataTable" class="table table-bordered table-hover align-middle text-center">
         <thead>
           <tr>
             <th>No</th>
             <th>Nama</th>
             <th>Instansi</th>
             <th>Jurusan</th>
+            <th>Unit</th>
             <th>No HP</th>
             <th>Status</th>
             <th>Aksi</th>
           </tr>
         </thead>
         <tbody>
-          <?php $no = 1;
-          while ($row = mysqli_fetch_assoc($result)): ?>
-          <tr>
-            <td><?= $no++; ?></td>
-            <td><?= htmlspecialchars($row['nama']); ?></td>
-            <td><?= htmlspecialchars($row['instansi_pendidikan']); ?></td>
-            <td><?= htmlspecialchars($row['jurusan']); ?></td>
-            <td><?= htmlspecialchars($row['no_hp']); ?></td>
-            <td><span class="badge bg-warning text-dark"><?= ucfirst($row['status']); ?></span></td>
-            <td>
-              <button class="btn btn-primary btn-sm" 
-                data-bs-toggle="modal" 
-                data-bs-target="#rincianModal" 
-                data-nama="<?= htmlspecialchars($row['nama']); ?>"
-                data-email="<?= htmlspecialchars($row['email']); ?>"
-                data-instansi="<?= htmlspecialchars($row['instansi_pendidikan']); ?>"
-                data-jurusan="<?= htmlspecialchars($row['jurusan']); ?>"
-                data-ipk="<?= htmlspecialchars($row['ipk_nilai_ratarata']); ?>"
-                data-semester="<?= htmlspecialchars($row['semester']); ?>"
-                data-nis="<?= htmlspecialchars($row['nis_npm']); ?>"
-                data-nomorsurat="<?= htmlspecialchars($row['nomor_surat_permohonan']); ?>"
-                data-skill="<?= htmlspecialchars($row['skill']); ?>"
-                data-unit="<?= htmlspecialchars($row['nama_unit']); ?>"
-                data-alamat="<?= htmlspecialchars($row['alamat']); ?>"
-                data-periode="<?= htmlspecialchars($row['tgl_mulai']); ?> - <?= htmlspecialchars($row['tgl_selesai']); ?>"
-                data-foto="<?= htmlspecialchars($row['upload_foto']); ?>"
-                data-ktm="<?= htmlspecialchars($row['upload_kartu_identitas']); ?>"
-                data-surat="<?= htmlspecialchars($row['upload_surat_permohonan']); ?>"
-              >
-                <i class="bi bi-eye"></i> Detail
-              </button>
-            </td>
-          </tr>
-          <?php endwhile; ?>
+          <?php if (mysqli_num_rows($result) == 0): ?>
+            <tr>
+              <td colspan="8" class="no-data py-4">
+                <i class="bi bi-inbox" style="font-size: 1.5rem;"></i><br>
+                Tidak ada data ditemukan.
+              </td>
+            </tr>
+          <?php else: ?>
+            <?php $no = 1; while ($row = mysqli_fetch_assoc($result)): ?>
+              <tr>
+                <td><?= $no++; ?></td>
+                <td><?= htmlspecialchars($row['nama']); ?></td>
+                <td><?= htmlspecialchars($row['instansi_pendidikan']); ?></td>
+                <td><?= htmlspecialchars($row['jurusan']); ?></td>
+                <td><?= htmlspecialchars($row['nama_unit'] ?? '-'); ?></td>
+                <td><?= htmlspecialchars($row['no_hp']); ?></td>
+                <td><span class="badge bg-warning text-dark"><?= ucfirst($row['status']); ?></span></td>
+                <td>
+                  <button class="btn btn-primary btn-sm" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#rincianModal" 
+                    data-nama="<?= htmlspecialchars($row['nama']); ?>"
+                    data-email="<?= htmlspecialchars($row['email']); ?>"
+                    data-instansi="<?= htmlspecialchars($row['instansi_pendidikan']); ?>"
+                    data-jurusan="<?= htmlspecialchars($row['jurusan']); ?>"
+                    data-ipk="<?= htmlspecialchars($row['ipk_nilai_ratarata']); ?>"
+                    data-semester="<?= htmlspecialchars($row['semester']); ?>"
+                    data-nis="<?= htmlspecialchars($row['nis_npm']); ?>"
+                    data-nomorsurat="<?= htmlspecialchars($row['nomor_surat_permohonan']); ?>"
+                    data-skill="<?= htmlspecialchars($row['skill']); ?>"
+                    data-unit="<?= htmlspecialchars($row['nama_unit']); ?>"
+                    data-alamat="<?= htmlspecialchars($row['alamat']); ?>"
+                    data-periode="<?= htmlspecialchars($row['tgl_mulai']); ?> - <?= htmlspecialchars($row['tgl_selesai']); ?>"
+                    data-foto="<?= htmlspecialchars($row['upload_foto']); ?>"
+                    data-ktm="<?= htmlspecialchars($row['upload_kartu_identitas']); ?>"
+                    data-surat="<?= htmlspecialchars($row['upload_surat_permohonan']); ?>">
+                    <i class="bi bi-eye"></i> Detail
+                  </button>
+                </td>
+              </tr>
+            <?php endwhile; ?>
+          <?php endif; ?>
         </tbody>
       </table>
     </div>
@@ -246,25 +257,25 @@ if (!$result) {
 // Modal handler
 const rincianModal = document.getElementById('rincianModal');
 rincianModal.addEventListener('show.bs.modal', event => {
-  const button = event.relatedTarget;
-  document.getElementById('r-nama').textContent = button.getAttribute('data-nama');
-  document.getElementById('r-email').textContent = button.getAttribute('data-email');
-  document.getElementById('r-instansi').textContent = button.getAttribute('data-instansi');
-  document.getElementById('r-jurusan').textContent = button.getAttribute('data-jurusan');
-  document.getElementById('r-ipk').textContent = button.getAttribute('data-ipk');
-  document.getElementById('r-semester').textContent = button.getAttribute('data-semester');
-  document.getElementById('r-nis').textContent = button.getAttribute('data-nis');
-  document.getElementById('r-nomorsurat').textContent = button.getAttribute('data-nomorsurat');
-  document.getElementById('r-skill').textContent = button.getAttribute('data-skill');
-  document.getElementById('r-unit').textContent = button.getAttribute('data-unit');
-  document.getElementById('r-alamat').textContent = button.getAttribute('data-alamat');
-  document.getElementById('r-periode').textContent = button.getAttribute('data-periode');
-  document.getElementById('r-foto').href = '../../uploads/Foto_daftarpkl/' + button.getAttribute('data-foto');
-  document.getElementById('r-ktm').href = '../../uploads/Foto_Kartuidentitas/' + button.getAttribute('data-ktm');
-  document.getElementById('r-surat').href = '../../uploads/Surat_Permohonan/' + button.getAttribute('data-surat');
+  const b = event.relatedTarget;
+  document.getElementById('r-nama').textContent = b.getAttribute('data-nama');
+  document.getElementById('r-email').textContent = b.getAttribute('data-email');
+  document.getElementById('r-instansi').textContent = b.getAttribute('data-instansi');
+  document.getElementById('r-jurusan').textContent = b.getAttribute('data-jurusan');
+  document.getElementById('r-ipk').textContent = b.getAttribute('data-ipk');
+  document.getElementById('r-semester').textContent = b.getAttribute('data-semester');
+  document.getElementById('r-nis').textContent = b.getAttribute('data-nis');
+  document.getElementById('r-nomorsurat').textContent = b.getAttribute('data-nomorsurat');
+  document.getElementById('r-skill').textContent = b.getAttribute('data-skill');
+  document.getElementById('r-unit').textContent = b.getAttribute('data-unit');
+  document.getElementById('r-alamat').textContent = b.getAttribute('data-alamat');
+  document.getElementById('r-periode').textContent = b.getAttribute('data-periode');
+  document.getElementById('r-foto').href = '../../uploads/Foto_daftarpkl/' + b.getAttribute('data-foto');
+  document.getElementById('r-ktm').href = '../../uploads/Foto_Kartuidentitas/' + b.getAttribute('data-ktm');
+  document.getElementById('r-surat').href = '../../uploads/Surat_Permohonan/' + b.getAttribute('data-surat');
 });
 
-// 🔍 Fungsi pencarian tabel (nama, universitas, jurusan)
+// 🔍 Fungsi pencarian tabel (nama, universitas, jurusan, unit)
 document.getElementById("searchInput").addEventListener("keyup", function() {
   const value = this.value.toLowerCase();
   const rows = document.querySelectorAll("#dataTable tbody tr");
@@ -273,9 +284,9 @@ document.getElementById("searchInput").addEventListener("keyup", function() {
     const nama = row.cells[1].textContent.toLowerCase();
     const instansi = row.cells[2].textContent.toLowerCase();
     const jurusan = row.cells[3].textContent.toLowerCase();
+    const unit = row.cells[4].textContent.toLowerCase();
 
-    // tampilkan baris jika salah satu kolom cocok
-    if (nama.includes(value) || instansi.includes(value) || jurusan.includes(value)) {
+    if (nama.includes(value) || instansi.includes(value) || jurusan.includes(value) || unit.includes(value)) {
       row.style.display = "";
     } else {
       row.style.display = "none";
