@@ -12,6 +12,9 @@ ORDER BY d.id DESC
 ";
 $result = mysqli_query($conn, $query);
 
+// 🔹 Ambil daftar unit untuk dropdown rekomendasi
+$unitQuery = mysqli_query($conn, "SELECT * FROM unit_pkl ORDER BY nama_unit ASC");
+
 if (!$result) {
   die("<h3 style='color:red; text-align:center;'>Query gagal: " . mysqli_error($conn) . "</h3>");
 }
@@ -69,7 +72,6 @@ if (!$result) {
     .table thead th { background: var(--telkom-red); color: #fff; text-align: center; }
     .table-hover tbody tr:hover { background-color: #ffecec; }
 
-    /* Modal styling */
     .modal-header {
       background-color: var(--telkom-red);
       color: white;
@@ -88,7 +90,6 @@ if (!$result) {
       color: #fff;
     }
 
-    /* Search box */
     .search-box {
       position: relative;
       width: 280px;
@@ -114,8 +115,6 @@ if (!$result) {
       color: var(--telkom-red);
       font-size: 1rem;
     }
-
-    /* Tabel kosong */
     .no-data {
       text-align: center;
       color: #777;
@@ -144,7 +143,6 @@ if (!$result) {
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
       <h5><i class="bi bi-list-check me-2"></i> Data Pendaftar Internship</h5>
 
-      <!-- 🔍 Search Box -->
       <div class="search-box">
         <i class="bi bi-search"></i>
         <input type="text" id="searchInput" class="form-control" placeholder="Search...">
@@ -167,47 +165,50 @@ if (!$result) {
         </thead>
         <tbody>
           <?php if (mysqli_num_rows($result) == 0): ?>
+            <tr><td colspan="8" class="no-data py-4"><i class="bi bi-inbox" style="font-size: 1.5rem;"></i><br>Tidak ada data ditemukan.</td></tr>
+          <?php else: $no=1; while($row=mysqli_fetch_assoc($result)): ?>
             <tr>
-              <td colspan="8" class="no-data py-4">
-                <i class="bi bi-inbox" style="font-size: 1.5rem;"></i><br>
-                Tidak ada data ditemukan.
+              <td><?= $no++; ?></td>
+              <td><?= htmlspecialchars($row['nama']); ?></td>
+              <td><?= htmlspecialchars($row['instansi_pendidikan']); ?></td>
+              <td><?= htmlspecialchars($row['jurusan']); ?></td>
+              <td><?= htmlspecialchars($row['nama_unit'] ?? '-'); ?></td>
+              <td><?= htmlspecialchars($row['no_hp']); ?></td>
+              <td><span class="badge bg-warning text-dark"><?= ucfirst($row['status']); ?></span></td>
+              <td>
+                <!-- Tombol Detail -->
+                <button class="btn btn-primary btn-sm me-1"
+                  data-bs-toggle="modal"
+                  data-bs-target="#rincianModal"
+                  data-nama="<?= htmlspecialchars($row['nama']); ?>"
+                  data-email="<?= htmlspecialchars($row['email']); ?>"
+                  data-instansi="<?= htmlspecialchars($row['instansi_pendidikan']); ?>"
+                  data-jurusan="<?= htmlspecialchars($row['jurusan']); ?>"
+                  data-ipk="<?= htmlspecialchars($row['ipk_nilai_ratarata']); ?>"
+                  data-semester="<?= htmlspecialchars($row['semester']); ?>"
+                  data-nis="<?= htmlspecialchars($row['nis_npm']); ?>"
+                  data-nomorsurat="<?= htmlspecialchars($row['nomor_surat_permohonan']); ?>"
+                  data-skill="<?= htmlspecialchars($row['skill']); ?>"
+                  data-unit="<?= htmlspecialchars($row['nama_unit']); ?>"
+                  data-alamat="<?= htmlspecialchars($row['alamat']); ?>"
+                  data-periode="<?= htmlspecialchars($row['tgl_mulai']); ?> - <?= htmlspecialchars($row['tgl_selesai']); ?>"
+                  data-foto="<?= htmlspecialchars($row['upload_foto']); ?>"
+                  data-ktm="<?= htmlspecialchars($row['upload_kartu_identitas']); ?>"
+                  data-surat="<?= htmlspecialchars($row['upload_surat_permohonan']); ?>">
+                  <i class="bi bi-eye"></i> Detail
+                </button>
+
+                <!-- Tombol Rekomendasi -->
+                <button class="btn btn-success btn-sm" 
+                  data-bs-toggle="modal"
+                  data-bs-target="#rekomendasiModal"
+                  data-id="<?= $row['id']; ?>"
+                  data-nama="<?= htmlspecialchars($row['nama']); ?>">
+                  <i class="bi bi-hand-thumbs-up"></i> Rekomendasi
+                </button>
               </td>
             </tr>
-          <?php else: ?>
-            <?php $no = 1; while ($row = mysqli_fetch_assoc($result)): ?>
-              <tr>
-                <td><?= $no++; ?></td>
-                <td><?= htmlspecialchars($row['nama']); ?></td>
-                <td><?= htmlspecialchars($row['instansi_pendidikan']); ?></td>
-                <td><?= htmlspecialchars($row['jurusan']); ?></td>
-                <td><?= htmlspecialchars($row['nama_unit'] ?? '-'); ?></td>
-                <td><?= htmlspecialchars($row['no_hp']); ?></td>
-                <td><span class="badge bg-warning text-dark"><?= ucfirst($row['status']); ?></span></td>
-                <td>
-                  <button class="btn btn-primary btn-sm" 
-                    data-bs-toggle="modal" 
-                    data-bs-target="#rincianModal" 
-                    data-nama="<?= htmlspecialchars($row['nama']); ?>"
-                    data-email="<?= htmlspecialchars($row['email']); ?>"
-                    data-instansi="<?= htmlspecialchars($row['instansi_pendidikan']); ?>"
-                    data-jurusan="<?= htmlspecialchars($row['jurusan']); ?>"
-                    data-ipk="<?= htmlspecialchars($row['ipk_nilai_ratarata']); ?>"
-                    data-semester="<?= htmlspecialchars($row['semester']); ?>"
-                    data-nis="<?= htmlspecialchars($row['nis_npm']); ?>"
-                    data-nomorsurat="<?= htmlspecialchars($row['nomor_surat_permohonan']); ?>"
-                    data-skill="<?= htmlspecialchars($row['skill']); ?>"
-                    data-unit="<?= htmlspecialchars($row['nama_unit']); ?>"
-                    data-alamat="<?= htmlspecialchars($row['alamat']); ?>"
-                    data-periode="<?= htmlspecialchars($row['tgl_mulai']); ?> - <?= htmlspecialchars($row['tgl_selesai']); ?>"
-                    data-foto="<?= htmlspecialchars($row['upload_foto']); ?>"
-                    data-ktm="<?= htmlspecialchars($row['upload_kartu_identitas']); ?>"
-                    data-surat="<?= htmlspecialchars($row['upload_surat_permohonan']); ?>">
-                    <i class="bi bi-eye"></i> Detail
-                  </button>
-                </td>
-              </tr>
-            <?php endwhile; ?>
-          <?php endif; ?>
+          <?php endwhile; endif; ?>
         </tbody>
       </table>
     </div>
@@ -252,9 +253,37 @@ if (!$result) {
   </div>
 </div>
 
+<!-- Modal Rekomendasi -->
+<div class="modal fade" id="rekomendasiModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form action="proses_rekomendasi.php" method="POST" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Rekomendasikan Peserta</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="id_peserta" id="id_peserta">
+        <p>Anda akan merekomendasikan <strong id="nama_peserta"></strong> ke unit berikut:</p>
+        <div class="mb-3">
+          <label for="unit_tujuan" class="form-label">Pilih Unit Tujuan</label>
+          <select name="unit_tujuan" id="unit_tujuan" class="form-select" required>
+            <option value="">-- Pilih Unit --</option>
+            <?php while($u = mysqli_fetch_assoc($unitQuery)): ?>
+              <option value="<?= $u['id']; ?>"><?= htmlspecialchars($u['nama_unit']); ?></option>
+            <?php endwhile; ?>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success"><i class="bi bi-send"></i> Kirim Rekomendasi</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Modal handler
+// Modal Detail
 const rincianModal = document.getElementById('rincianModal');
 rincianModal.addEventListener('show.bs.modal', event => {
   const b = event.relatedTarget;
@@ -275,25 +304,26 @@ rincianModal.addEventListener('show.bs.modal', event => {
   document.getElementById('r-surat').href = '../../uploads/Surat_Permohonan/' + b.getAttribute('data-surat');
 });
 
-// 🔍 Fungsi pencarian tabel (nama, universitas, jurusan, unit)
+// Modal Rekomendasi
+const rekomModal = document.getElementById('rekomendasiModal');
+rekomModal.addEventListener('show.bs.modal', event => {
+  const button = event.relatedTarget;
+  document.getElementById('id_peserta').value = button.getAttribute('data-id');
+  document.getElementById('nama_peserta').textContent = button.getAttribute('data-nama');
+});
+
+// 🔍 Search
 document.getElementById("searchInput").addEventListener("keyup", function() {
   const value = this.value.toLowerCase();
   const rows = document.querySelectorAll("#dataTable tbody tr");
-
   rows.forEach(row => {
     const nama = row.cells[1].textContent.toLowerCase();
     const instansi = row.cells[2].textContent.toLowerCase();
     const jurusan = row.cells[3].textContent.toLowerCase();
     const unit = row.cells[4].textContent.toLowerCase();
-
-    if (nama.includes(value) || instansi.includes(value) || jurusan.includes(value) || unit.includes(value)) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
+    row.style.display = (nama.includes(value) || instansi.includes(value) || jurusan.includes(value) || unit.includes(value)) ? "" : "none";
   });
 });
 </script>
-
 </body>
 </html>
