@@ -179,7 +179,7 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
           <small class="text-muted">Sistem Manajemen Internship</small>
         </div>
       </div>
-      <img src="../assets/img/instepterbaru.png" class="telkom-logo" alt="Telkom Logo">
+      <img src="../assets/img/InStep.png" class="telkom-logo" alt="Telkom Logo">
     </div>
 
     <!-- Filter -->
