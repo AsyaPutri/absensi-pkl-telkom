@@ -184,7 +184,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
           <small class="text-muted">Sistem Manajemen Internship </small>
         </div>
       </div>
-      <img src="../assets/img/instepterbaru.png" class="telkom-logo" alt="Telkom Logo">
+      <img src="../assets/img/InStep.png" class="telkom-logo" alt="Telkom Logo">
     </div>
 
     <div class="container-fluid p-4">

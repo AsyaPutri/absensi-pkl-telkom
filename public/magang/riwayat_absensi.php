@@ -208,7 +208,7 @@ if (!isset($_SESSION['user_id'])) {
 
     <!-- Header -->
     <div class="header-section">
-      <img src="../assets/img/logo_telkom.png" alt="Logo Telkom">
+      <img src="../assets/img/InStep.png" alt="Logo Telkom">
       <h2><i class="bi bi-calendar-check me-2"></i>Riwayat Absensi</h2>
       <p>Pencatatan Kehadiran Harian | Internship Telkom Witel Bekasi - Karawang</p>
     </div>

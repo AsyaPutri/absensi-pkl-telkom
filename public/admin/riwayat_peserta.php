@@ -272,7 +272,7 @@ $result = $stmt->get_result();
         </div>
       </div>
 
-      <img src="../assets/img/instepterbaru.png" class="telkom-logo" alt="Telkom Logo">
+      <img src="../assets/img/InStep.png" class="telkom-logo" alt="Telkom Logo">
     </header>
 
     <!-- Filter Section -->

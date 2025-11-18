@@ -268,7 +268,7 @@ $koneksi,
 
   <header>
     <div class="logo-area">
-      <img src="../assets/img/instepterbaru.png" />
+      <img src="../assets/img/InStep.png" />
       <div class="header-text">
         <h1>Dashboard Mentor Internship</h1>
         <p>Sistem Monitoring Internship | Telkom Witel Bekasi - Karawang</p>

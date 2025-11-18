@@ -93,7 +93,7 @@ $result = $conn->query($sql);
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
-    .header img { height: 100px; }
+    .header img { height: 90px; }
     .header .title h4 { color: var(--telkom-red); font-weight: 700; margin-bottom: 4px; }
     .header .title small { color: #6c757d; }
 
@@ -126,7 +126,7 @@ $result = $conn->query($sql);
 <body>
   <div class="header">
     <div class="d-flex align-items-center">
-      <img src="../assets/img/instepterbaru.png">
+      <img src="../assets/img/InStep.png">
       <div class="title ms-3">
         <h4>Data Absensi Peserta Internship</h4>
         <small>Sistem Monitoring Internship | Telkom Witel Bekasi - Karawang</small>
