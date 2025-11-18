@@ -118,8 +118,96 @@ $result = $conn->query($sql);
 
     .table thead th { background: var(--telkom-red); color: #fff; text-align: center; }
     .table-hover tbody tr:hover { background-color: #ffecec; }
-
     .filter-section { display: flex; gap: 10px; margin-bottom: 1rem; align-items: center; flex-wrap: wrap; }
+    /* ===========================
+   RESPONSIVE FIXES
+   =========================== */
+
+/* Header responsif */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.2rem 1rem;
+  }
+
+  .header img {
+    height: 70px;
+    margin-bottom: 10px;
+  }
+
+  .header .title h4 {
+    font-size: 18px;
+  }
+
+  .header .title small {
+    font-size: 13px;
+  }
+
+  .back-btn {
+    margin-top: 12px;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Search bar responsif */
+@media (max-width: 576px) {
+  .filter-section {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .filter-section .input-group {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+/* Table responsif: rapikan padding & teks */
+@media (max-width: 768px) {
+  table.table th,
+  table.table td {
+    padding: 8px 6px !important;
+    font-size: 12px;
+  }
+
+  table.table th {
+    white-space: nowrap;
+  }
+}
+
+/* Tombol detail responsif */
+@media (max-width: 576px) {
+  .btn-detail {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Modal responsif */
+@media (max-width: 768px) {
+  .modal-dialog {
+    max-width: 95% !important;
+    margin: 10px auto;
+  }
+
+  #rincianContent p {
+    font-size: 13px;
+  }
+
+  #rincianTabel img {
+    width: 40px !important;
+  }
+}
+
+/* Card responsif */
+@media (max-width: 768px) {
+  .card-header h5 {
+    font-size: 16px;
+  }
+}
+
   </style>
 </head>
 

@@ -147,6 +147,87 @@ if (!$result) {
     .table thead th { background: var(--telkom-red); color: #fff; }
     .table-hover tbody tr:hover { background-color: #ffecec; }
     .modal-header { background-color: var(--telkom-red); color: white; }
+
+    /* =======================
+   RESPONSIVE FIX
+======================= */
+@media (max-width: 992px) {
+
+  /* Header agar tidak bergeser & tetap rapi */
+  .header {
+    padding: 1rem;
+    text-align: center;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .header img {
+    height: 70px;
+  }
+
+  .header .title h4 {
+    font-size: 1.2rem;
+  }
+
+  .back-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Card header title & unit biar tidak mepet */
+  .card-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+
+  /* Form search jadi full width */
+  form.d-flex {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  form .input-group {
+    max-width: 100% !important;
+    width: 100%;
+  }
+
+  form a.btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Table responsive biar tidak overflow samping */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 576px) {
+  .header img {
+    height: 60px;
+  }
+
+  .header .title small {
+    font-size: 0.75rem;
+  }
+
+  .card-header h5 {
+    font-size: 1rem;
+  }
+
+  table th, table td {
+    font-size: 0.75rem;
+    padding: 6px;
+  }
+
+  .btn-sm {
+    padding: 4px 6px !important;
+    font-size: 0.7rem !important;
+  }
+}
+
   </style>
 </head>
 <body>

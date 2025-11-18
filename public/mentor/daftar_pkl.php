@@ -121,6 +121,89 @@ if (!$result) {
       font-style: italic;
       background-color: #fff5f5;
     }
+
+    /* =====================================================
+              RESPONSIVE FIX — NO DESIGN CHANGE
+===================================================== */
+
+/* HP kecil */
+@media (max-width: 576px) {
+
+  /* Header rapi */
+  .header {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .header img {
+    height: 70px !important;
+  }
+
+  .title h4 {
+    font-size: 1.1rem !important;
+  }
+
+  /* Tombol kembali jadi full layar */
+  .back-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Search box penuh */
+  .search-box {
+    width: 100% !important;
+  }
+
+  /* Tabel lebih kecil di HP */
+  table {
+    font-size: 0.8rem;
+  }
+
+  .table thead th,
+  .table tbody td {
+    white-space: nowrap;
+    padding: 6px;
+  }
+
+  /* Modal supaya tidak keluar layar */
+  .modal-dialog {
+    max-width: 95% !important;
+    margin: auto;
+  }
+}
+
+/* Tablet kecil */
+@media (max-width: 768px) {
+
+  .header {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+}
+
+/* Tablet sedang */
+@media (max-width: 992px) {
+  table {
+    font-size: 0.9rem;
+  }
+}
+
+/* Hindari geser kanan kiri */
+html, body {
+  overflow-x: hidden !important;
+}
+
   </style>
 </head>
 <body>
