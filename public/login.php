@@ -194,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="right-panel">
             <div class="login-header">
                 <div class="login-title">
-                    <img src="assets/img/telkom-removebg.png" width="200" alt="Logo Telkom">
+                    <img src="assets/img/telkom-removebg.png" width="180" alt="Logo Telkom">
                 </div>
                 <div class="login-subtitle">Sistem Absensi Internship</div>
             </div>

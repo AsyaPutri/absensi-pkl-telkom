@@ -184,8 +184,8 @@ $pdf->MultiCell(247, 7,$keterangan, 0, 'C');
 // QR Code TTD
 $dataTTD = "Ditandatangani oleh:\nROSANA INTAN PERMATASARI\nManager Shared Service & General Support\nTanggal: ".date("d-m-Y");
 $qrFile = __DIR__ . "/qrcode_ttd.png";
-QRcode::png($dataTTD, $qrFile, QR_ECLEVEL_H,5);
-$pdf->Image($qrFile, 35, 135, 35, 37);
+QRcode::png($dataTTD, $qrFile, QR_ECLEVEL_H,4);
+$pdf->Image($qrFile, 35, 135, 33, 35);
 
 // Nama & Jabatan
 $pdf->SetFont('Arial','B',12);
