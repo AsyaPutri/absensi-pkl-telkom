@@ -196,13 +196,24 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
           $upd2->execute();
           $upd2->close();
 
+          // 2. Hapus data peserta_pkl jika ada
+          $delPeserta = $conn->prepare("DELETE FROM peserta_pkl WHERE email=?");
+          $delPeserta->bind_param("s", $d['email']);
+          $delPeserta->execute();
+          $delPeserta->close();
+
+          // 3. Hapus akun user (yang role-nya magang)
+          $delUser = $conn->prepare("DELETE FROM users WHERE email=? AND role='magang'");
+          $delUser->bind_param("s", $d['email']);
+          $delUser->execute();
+          $delUser->close();
+
           $conn->commit();
           $_SESSION['success'] = "🔄 Status berhasil di-reset ke Pending.";
 
           header("Location: daftar_pkl.php");
           exit;
       }
-
 
 
       // ============================================================
