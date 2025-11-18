@@ -199,9 +199,8 @@ if (!$result) {
                 </button>
 
                 <!-- Tombol Rekomendasi -->
-                <button class="btn btn-success btn-sm" 
-                  data-bs-toggle="modal"
-                  data-bs-target="#rekomendasiModal"
+                <button 
+                  class="btn btn-success btn-sm btn-rekomendasi"
                   data-id="<?= $row['id']; ?>"
                   data-nama="<?= htmlspecialchars($row['nama']); ?>">
                   <i class="bi bi-hand-thumbs-up"></i> Rekomendasi
@@ -254,30 +253,29 @@ if (!$result) {
 </div>
 
 <!-- Modal Rekomendasi -->
-<div class="modal fade" id="rekomendasiModal" tabindex="-1">
+<div class="modal fade" id="rekomModal" tabindex="-1">
   <div class="modal-dialog">
-    <form action="proses_rekomendasi.php" method="POST" class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Rekomendasikan Peserta</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" name="id_peserta" id="id_peserta">
-        <p>Anda akan merekomendasikan <strong id="nama_peserta"></strong> ke unit berikut:</p>
-        <div class="mb-3">
-          <label for="unit_tujuan" class="form-label">Pilih Unit Tujuan</label>
-          <select name="unit_tujuan" id="unit_tujuan" class="form-select" required>
-            <option value="">-- Pilih Unit --</option>
-            <?php while($u = mysqli_fetch_assoc($unitQuery)): ?>
-              <option value="<?= $u['id']; ?>"><?= htmlspecialchars($u['nama_unit']); ?></option>
-            <?php endwhile; ?>
-          </select>
+    <div class="modal-content">
+      <form action="proses_rekomendasi.php" method="POST">
+        <div class="modal-header">
+          <h5 class="modal-title">Rekomendasikan Peserta</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="submit" class="btn btn-success"><i class="bi bi-send"></i> Kirim Rekomendasi</button>
-      </div>
-    </form>
+
+        <div class="modal-body">
+          <input type="hidden" name="id" id="id_peserta">
+
+          <p>Yakin ingin merekomendasikan <b id="nama_peserta"></b>?</p>
+          <p class="text-muted small">
+            Unit rekomendasi akan mengikuti unit Anda secara otomatis.
+          </p>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-success" type="submit">Ya, Rekomendasikan</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -304,13 +302,6 @@ rincianModal.addEventListener('show.bs.modal', event => {
   document.getElementById('r-surat').href = '../../uploads/Surat_Permohonan/' + b.getAttribute('data-surat');
 });
 
-// Modal Rekomendasi
-const rekomModal = document.getElementById('rekomendasiModal');
-rekomModal.addEventListener('show.bs.modal', event => {
-  const button = event.relatedTarget;
-  document.getElementById('id_peserta').value = button.getAttribute('data-id');
-  document.getElementById('nama_peserta').textContent = button.getAttribute('data-nama');
-});
 
 // 🔍 Search
 document.getElementById("searchInput").addEventListener("keyup", function() {
@@ -323,6 +314,14 @@ document.getElementById("searchInput").addEventListener("keyup", function() {
     const unit = row.cells[4].textContent.toLowerCase();
     row.style.display = (nama.includes(value) || instansi.includes(value) || jurusan.includes(value) || unit.includes(value)) ? "" : "none";
   });
+});
+
+document.querySelectorAll('.btn-rekomendasi').forEach(btn => {
+    btn.addEventListener('click', function () {
+        document.getElementById('id_peserta').value = this.dataset.id;
+        document.getElementById('nama_peserta').textContent = this.dataset.nama;
+        new bootstrap.Modal(document.getElementById('rekomModal')).show();
+    });
 });
 </script>
 </body>

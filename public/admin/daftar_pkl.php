@@ -117,6 +117,7 @@ include "daftar_pkl_action.php";
             <option value="diterima" <?= ($filter_status === 'diterima') ? 'selected' : '' ?>>Diterima</option>
             <option value="ditolak" <?= ($filter_status === 'ditolak') ? 'selected' : '' ?>>Ditolak</option>
             <option value="nonaktif" <?= ($filter_status === 'nonaktif') ? 'selected' : '' ?>>Nonaktif</option>
+            <option value="request" <?= ($filter_status === 'request') ? 'selected' : '' ?>>Request</option>
           </select>
 
           <input type="text" name="search" class="form-control form-control-sm w-auto"
@@ -183,8 +184,15 @@ include "daftar_pkl_action.php";
                     <?php elseif($row['status']==='nonaktif'): ?>
                       <span class="badge bg-dark">Nonaktif</span>
 
-                    <?php else: ?>
-                      <span class="badge bg-light text-dark">-</span>
+                    <?php elseif($row['status']==='request'): ?>
+                      <span 
+                          class="badge bg-info text-dark status-request" 
+                          style="cursor:pointer;" 
+                          data-nama="<?= safe($row['nama']); ?>"
+                          data-unit="<?= safe($row['nama_unit']); ?>"
+                      >
+                          Request
+                      </span>
                     <?php endif; ?>
                   </td>
 
@@ -643,9 +651,51 @@ include "daftar_pkl_action.php";
   </div>
 </div>
 
-<!-- ============================ -->
-<!-- Script untuk Modal Edit -->
-<!-- ============================ -->
+<!-- Modal Popup Request -->
+<div class="modal fade" id="modalStatusRequest" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-info">
+        <h5 class="modal-title text-dark fw-bold">Informasi Status Request</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <p id="popupMessage" class="mb-0"></p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const statusButtons = document.querySelectorAll(".status-request");
+
+    statusButtons.forEach(btn => {
+        btn.addEventListener("click", function () {
+            const nama = this.getAttribute("data-nama");      // Nama peserta
+            const mentor = this.getAttribute("data-mentor");  // Nama mentor
+            const unit = this.getAttribute("data-unit");      // Unit tujuan
+
+            const pesan = `
+                Peserta <strong>${nama}</strong> direkomendasikan untuk unit 
+                <strong>${unit}</strong>.<br><br>
+                Tolong admin untuk menghubungi peserta tersebut.
+            `;
+
+            document.getElementById("popupMessage").innerHTML = pesan;
+
+            const modal = new bootstrap.Modal(document.getElementById("modalStatusRequest"));
+            modal.show();
+        });
+    });
+});
+</script>
+
 <script>
 document.querySelectorAll('.btn-edit').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -691,6 +741,6 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
         }
       });
     });
-  </script>
+  </script> 
 </body>
 </html>

@@ -37,6 +37,17 @@ function uploadFileUnique($fileKey, $upload_dir) {
     ? $newname
     : '';
 }
+$sql = "
+    SELECT 
+        d.*,
+        u.nama_unit,
+        c.nama_karyawan AS mentor
+    FROM daftar_pkl d
+    LEFT JOIN unit u 
+        ON u.id = d.unit_id
+    LEFT JOIN cp_karyawan c 
+        ON c.unit_id = u.id
+";
 
 // ============================================================
 // INSERT DATA PENDAFTAR PKL
@@ -122,12 +133,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'inser
 }
 
 // ============================================================
-// UPDATE STATUS PENDAFTAR (diterima / ditolak / pending)
+// UPDATE STATUS PENDAFTAR (diterima / ditolak / pending / request)
 // ============================================================
 if (isset($_GET['id']) && isset($_GET['status'])) {
   $id     = (int) $_GET['id'];
   $status = $_GET['status'];
-  $allowed = ['diterima', 'pending', 'ditolak', 'nonaktif'];
+
+  // Tambahkan "request"
+  $allowed = ['diterima', 'pending', 'ditolak', 'nonaktif', 'request'];
 
   if (!in_array($status, $allowed)) {
       $_SESSION['error'] = "❌ Status tidak valid!";
@@ -146,92 +159,124 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
 
       if (!$d) throw new Exception("Data pendaftar tidak ditemukan.");
 
+
+      // ============================================================
+      // STATUS: REQUEST (dari mentor)
+      // ============================================================
+      if ($status === 'request') {
+
+          // hanya update status & unit_id (unit mentor)
+          $upd = $conn->prepare("UPDATE daftar_pkl SET status='request' WHERE id=?");
+          $upd->bind_param("i", $id);
+          if (!$upd->execute()) throw new Exception($upd->error);
+          $upd->close();
+
+          $conn->commit();
+          $_SESSION['success'] = "✅ Peserta berhasil ditandai sebagai REQUEST (direkomendasikan mentor).";
+
+          // Redirect balik
+          header("Location: daftar_pkl.php");
+          exit;
+      }
+
+
+      // ============================================================
+      // STATUS LAIN: DITERIMA / DITOLAK / PENDING / NONAKTIF
+      // ============================================================
+
       // --- Update status daftar_pkl ---
       $upd = $conn->prepare("UPDATE daftar_pkl SET status=? WHERE id=?");
       $upd->bind_param("si", $status, $id);
       if (!$upd->execute()) throw new Exception($upd->error);
       $upd->close();
 
+
+      // === STATUS: DITERIMA ======================================
       if ($status === 'diterima') {
-    // Buat akun user jika belum ada
-    $cekUser = $conn->prepare("SELECT id FROM users WHERE email=?");
-    $cekUser->bind_param("s", $d['email']);
-    $cekUser->execute();
-    $userRow = $cekUser->get_result()->fetch_assoc();
-    $cekUser->close();
 
-    if ($userRow) {
-        $user_id = $userRow['id'];
-    } else {
-        $passHash = password_hash($d['nis_npm'], PASSWORD_DEFAULT);
-        $role = "magang";
-        $insUser = $conn->prepare("INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)");
-        $insUser->bind_param("ssss", $d['nama'], $d['email'], $passHash, $role);
-        $insUser->execute();
-        $user_id = $insUser->insert_id;
-        $insUser->close();
-    }
+          // cek user
+          $cekUser = $conn->prepare("SELECT id FROM users WHERE email=?");
+          $cekUser->bind_param("s", $d['email']);
+          $cekUser->execute();
+          $userRow = $cekUser->get_result()->fetch_assoc();
+          $cekUser->close();
 
-    // Cek apakah peserta sudah ada di peserta_pkl
-    $cekPeserta = $conn->prepare("SELECT id, nomor_surat FROM peserta_pkl WHERE email=?");
-    $cekPeserta->bind_param("s", $d['email']);
-    $cekPeserta->execute();
-    $resPeserta = $cekPeserta->get_result();
-    $cekPeserta->close();
+          if ($userRow) {
+              $user_id = $userRow['id'];
+          } else {
+              $passHash = password_hash($d['nis_npm'], PASSWORD_DEFAULT);
+              $role = "magang";
 
-    $statusPeserta = "berlangsung";
+              $insUser = $conn->prepare("INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)");
+              $insUser->bind_param("ssss", $d['nama'], $d['email'], $passHash, $role);
+              $insUser->execute();
+              $user_id = $insUser->insert_id;
+              $insUser->close();
+          }
 
-    if ($resPeserta->num_rows > 0) {
-        // Sudah ada peserta
-        $rowPeserta = $resPeserta->fetch_assoc();
-        $nomor_surat = $rowPeserta['nomor_surat'];
+          // cek peserta
+          $cekPeserta = $conn->prepare("SELECT id, nomor_surat FROM peserta_pkl WHERE email=?");
+          $cekPeserta->bind_param("s", $d['email']);
+          $cekPeserta->execute();
+          $resPeserta = $cekPeserta->get_result();
+          $cekPeserta->close();
 
-        // Kalau belum punya nomor_surat, generate baru
-        if (!$nomor_surat) {
-            $resNomor = $conn->query("SELECT MAX(nomor_surat) AS last_no FROM peserta_pkl");
-            $rowNomor = $resNomor->fetch_assoc();
-            $next_no = $rowNomor['last_no'] ? $rowNomor['last_no'] + 1 : 1;
-            $updateNo = $conn->prepare("UPDATE peserta_pkl SET nomor_surat=? WHERE id=?");
-            $updateNo->bind_param("ii", $next_no, $rowPeserta['id']);
-            $updateNo->execute();
-            $updateNo->close();
-        }
+          $statusPeserta = "berlangsung";
 
-        // Update data peserta lainnya
-        $updPeserta = $conn->prepare("UPDATE peserta_pkl SET 
-            nama=?, instansi_pendidikan=?, jurusan=?, nis_npm=?, unit_id=?, no_hp=?, 
-            tgl_mulai=?, tgl_selesai=?, status=? 
-            WHERE id=?");
-        $updPeserta->bind_param(
-            "ssssissssi",
-            $d['nama'], $d['instansi_pendidikan'], $d['jurusan'], $d['nis_npm'], 
-            $d['unit_id'], $d['no_hp'], $d['tgl_mulai'], $d['tgl_selesai'], 
-            $statusPeserta, $rowPeserta['id']
-        );
-        $updPeserta->execute();
-        $updPeserta->close();
-    } else {
-        // Belum ada peserta -> buat baru + nomor surat otomatis
-        $resNomor = $conn->query("SELECT MAX(nomor_surat) AS last_no FROM peserta_pkl");
-        $rowNomor = $resNomor->fetch_assoc();
-        $next_no = $rowNomor['last_no'] ? $rowNomor['last_no'] + 1 : 1;
+          if ($resPeserta->num_rows > 0) {
+              $rowPeserta = $resPeserta->fetch_assoc();
+              $nomor_surat = $rowPeserta['nomor_surat'];
 
-        $insPeserta = $conn->prepare("INSERT INTO peserta_pkl 
-            (user_id, nama, email, instansi_pendidikan, jurusan, nis_npm, unit_id, no_hp, 
-             tgl_mulai, tgl_selesai, status, nomor_surat)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-        $insPeserta->bind_param(
-            "issssisssssi",
-            $user_id, $d['nama'], $d['email'], $d['instansi_pendidikan'], $d['jurusan'],
-            $d['nis_npm'], $d['unit_id'], $d['no_hp'], $d['tgl_mulai'], $d['tgl_selesai'],
-            $statusPeserta, $next_no
-        );
-        $insPeserta->execute();
-        $insPeserta->close();
-    }
-}
+              if (!$nomor_surat) {
+                  $resNomor = $conn->query("SELECT MAX(nomor_surat) AS last_no FROM peserta_pkl");
+                  $rowNomor = $resNomor->fetch_assoc();
+                  $next_no = $rowNomor['last_no'] ? $rowNomor['last_no'] + 1 : 1;
 
-      // === STATUS: DITOLAK ===
+                  $updateNo = $conn->prepare("UPDATE peserta_pkl SET nomor_surat=? WHERE id=?");
+                  $updateNo->bind_param("ii", $next_no, $rowPeserta['id']);
+                  $updateNo->execute();
+                  $updateNo->close();
+              }
+
+              // update peserta
+              $updPeserta = $conn->prepare("UPDATE peserta_pkl SET 
+                  nama=?, instansi_pendidikan=?, jurusan=?, nis_npm=?, unit_id=?, no_hp=?, 
+                  tgl_mulai=?, tgl_selesai=?, status=? 
+                  WHERE id=?");
+              $updPeserta->bind_param(
+                  "ssssissssi",
+                  $d['nama'], $d['instansi_pendidikan'], $d['jurusan'], $d['nis_npm'], 
+                  $d['unit_id'], $d['no_hp'], $d['tgl_mulai'], $d['tgl_selesai'],
+                  $statusPeserta, $rowPeserta['id']
+              );
+              $updPeserta->execute();
+              $updPeserta->close();
+
+          } else {
+
+              // buat peserta baru
+              $resNomor = $conn->query("SELECT MAX(nomor_surat) AS last_no FROM peserta_pkl");
+              $rowNomor = $resNomor->fetch_assoc();
+              $next_no = $rowNomor['last_no'] ? $rowNomor['last_no'] + 1 : 1;
+
+              $insPeserta = $conn->prepare("INSERT INTO peserta_pkl 
+                  (user_id, nama, email, instansi_pendidikan, jurusan, nis_npm, unit_id, no_hp, 
+                  tgl_mulai, tgl_selesai, status, nomor_surat)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+              $insPeserta->bind_param(
+                  "issssisssssi",
+                  $user_id, $d['nama'], $d['email'], $d['instansi_pendidikan'], $d['jurusan'],
+                  $d['nis_npm'], $d['unit_id'], $d['no_hp'], $d['tgl_mulai'], $d['tgl_selesai'],
+                  $statusPeserta, $next_no
+              );
+              $insPeserta->execute();
+              $insPeserta->close();
+          }
+
+      }
+
+
+      // === STATUS: DITOLAK ========================================
       elseif ($status === 'ditolak') {
           $delPeserta = $conn->prepare("DELETE FROM peserta_pkl WHERE email=?");
           $delPeserta->bind_param("s", $d['email']);
@@ -244,7 +289,8 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
           $delUser->close();
       }
 
-      // === STATUS: PENDING ===
+
+      // === STATUS: PENDING =======================================
       elseif ($status === 'pending') {
           $updPeserta = $conn->prepare("UPDATE peserta_pkl SET status='pending' WHERE email=?");
           $updPeserta->bind_param("s", $d['email']);
@@ -252,14 +298,15 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
           $updPeserta->close();
       }
 
-      // === STATUS: NONAKTIF ===
+
+      // === STATUS: NONAKTIF ======================================
       elseif ($status === 'nonaktif') {
-        // Update status daftar_pkl jadi nonaktif
-        $updStatus = $conn->prepare("UPDATE daftar_pkl SET status='nonaktif' WHERE id=?");
-        $updStatus->bind_param("i", $id);
-        $updStatus->execute();
-        $updStatus->close();
+          $updStatus = $conn->prepare("UPDATE daftar_pkl SET status='nonaktif' WHERE id=?");
+          $updStatus->bind_param("i", $id);
+          $updStatus->execute();
+          $updStatus->close();
       }
+
 
       $conn->commit();
       $_SESSION['success'] = "✅ Status berhasil diubah menjadi $status";
@@ -269,14 +316,18 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
       $_SESSION['error'] = "❌ Gagal mengubah status: " . $e->getMessage();
   }
 
-  // Redirect kembali ke halaman daftar, pertahankan filter jika ada
+
+  // Redirect dengan mempertahankan filter
   $redirect = "daftar_pkl.php";
-  if (isset($_GET['filter_status']) && in_array($_GET['filter_status'], ['all','pending','diterima','ditolak', 'nonaktif'])) {
+
+  if (isset($_GET['filter_status']) && in_array($_GET['filter_status'], ['all','pending','diterima','ditolak','nonaktif','request'])) {
     $redirect .= '?filter_status=' . urlencode($_GET['filter_status']);
   }
+
   header("Location: " . $redirect);
   exit;
 }
+
 
 // ============================================================
 // UPDATE DATA PENDAFTAR
