@@ -200,6 +200,7 @@ include "daftar_pkl_action.php";
                     <!-- status buttons -->
                     <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=diterima<?= isset($filter_status) && $filter_status !== 'all' ? '&filter_status=' . urlencode($filter_status) : '' ?>" class="btn btn-success btn-sm">✔ Terima</a>
                     <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=ditolak<?= isset($filter_status) && $filter_status !== 'all' ? '&filter_status=' . urlencode($filter_status) : '' ?>" class="btn btn-danger btn-sm">❌ Tolak</a>
+                    <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=reset<?= isset($filter_status) && $filter_status !== 'all' ? '&filter_status=' . urlencode($filter_status) : '' ?>" class="btn btn-warning btn-sm">🔄 Reset</a>
                   </td>
                   <!-- Detail -->
                   <td class="text-center">
