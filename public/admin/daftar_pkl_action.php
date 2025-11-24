@@ -386,132 +386,216 @@ if (isset($_GET['id']) && isset($_GET['status'])) {
 // UPDATE DATA PENDAFTAR
 // ============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update') {
-  $id = (int)($_POST['id'] ?? 0);
-  if ($id <= 0) {
-      $_SESSION['error'] = "ID peserta tidak valid.";
-      header("Location: daftar_pkl.php");
-      exit();
-  }
 
-  // --- Ambil data lama ---
-  $oldFoto = $oldKtm = $oldSurat = '';
-  $q = $conn->prepare("SELECT upload_foto, upload_kartu_identitas, upload_surat_permohonan FROM daftar_pkl WHERE id=?");
-  $q->bind_param("i", $id);
-  $q->execute();
-  $r = $q->get_result();
-  if ($row = $r->fetch_assoc()) {
-      $oldFoto = $row['upload_foto'];
-      $oldKtm = $row['upload_kartu_identitas'];
-      $oldSurat = $row['upload_surat_permohonan'];
-  }
-  $q->close();
+    $id = (int)($_POST['id'] ?? 0);
+    if ($id <= 0) {
+        $_SESSION['error'] = "ID peserta tidak valid.";
+        header("Location: daftar_pkl.php");
+        exit();
+    }
 
-  // --- Data baru dari form ---
-  $nama = trim($_POST['nama'] ?? '');
-  $email = trim($_POST['email'] ?? '');
-  $nis = trim($_POST['nis_npm'] ?? '');
-  $inst = trim($_POST['instansi_pendidikan'] ?? '');
-  $jur = trim($_POST['jurusan'] ?? '');
-  $skill = trim($_POST['skill'] ?? '');
-  $dur = trim($_POST['durasi'] ?? '');
-  $unit_id = trim($_POST['unit_id'] ?? '');
-  $hp = trim($_POST['no_hp'] ?? '');
-  $alamat = trim($_POST['alamat'] ?? '');
-  $ipk = ($_POST['ipk_nilai_ratarata'] !== '') ? (float) $_POST['ipk_nilai_ratarata'] : null;
-  $semester = trim($_POST['semester'] ?? '');
-  $memiliki_laptop = trim($_POST['memiliki_laptop'] ?? '');
-  $bersedia_unit = trim($_POST['bersedia_unit_manapun'] ?? '');
-  $no_surat = trim($_POST['nomor_surat_permohonan'] ?? '');
-  $tgl_mulai = $_POST['tgl_mulai'] ?? null;
-  $tgl_selesai = $_POST['tgl_selesai'] ?? null;
 
-  // --- Upload file baru ---
-  $fotoNew = uploadFileUnique('upload_foto', $foto_dir);
-  $ktmNew = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
-  $suratNew = uploadFileUnique('upload_surat_permohonan', $surat_dir);
+    /* ------------------------------------------------------
+     * Ambil data lama
+     * ------------------------------------------------------ */
+    $oldFoto = $oldKtm = $oldSurat = '';
 
-  // --- Tentukan file akhir ---
-  $fotoDB = $fotoNew ?: $oldFoto;
-  $ktmDB = $ktmNew ?: $oldKtm;
-  $suratDB = $suratNew ?: $oldSurat;
+    $q = $conn->prepare("
+        SELECT upload_foto, upload_kartu_identitas, upload_surat_permohonan 
+        FROM daftar_pkl 
+        WHERE id=?
+    ");
+    $q->bind_param("i", $id);
+    $q->execute();
+    $r = $q->get_result();
 
-  // --- Hapus file lama jika ada file baru ---
-  if ($fotoNew && file_exists($foto_dir . $oldFoto)) @unlink($foto_dir . $oldFoto);
-  if ($ktmNew && file_exists($ktm_dir . $oldKtm)) @unlink($ktm_dir . $oldKtm);
-  if ($suratNew && file_exists($surat_dir . $oldSurat)) @unlink($surat_dir . $oldSurat);
+    if ($row = $r->fetch_assoc()) {
+        $oldFoto  = $row['upload_foto'];
+        $oldKtm   = $row['upload_kartu_identitas'];
+        $oldSurat = $row['upload_surat_permohonan'];
+    }
+    $q->close();
 
-  // --- Update daftar_pkl ---
-  $sql = "UPDATE daftar_pkl SET
-              nama=?, email=?, nis_npm=?, instansi_pendidikan=?, jurusan=?, ipk_nilai_ratarata=?, semester=?,
-              memiliki_laptop=?, bersedia_unit_manapun=?, nomor_surat_permohonan=?,
-              skill=?, durasi=?, unit_id=?, no_hp=?, alamat=?, tgl_mulai=?, tgl_selesai=?,
-              upload_foto=?, upload_kartu_identitas=?, upload_surat_permohonan=?
-          WHERE id=?";
 
-$stmt = $conn->prepare($sql);
-if (!$stmt) {
-    die("Prepare statement gagal: " . $conn->error . "<br>SQL: " . $sql);
-}
+    /* ------------------------------------------------------
+     * Ambil data baru dari form
+     * ------------------------------------------------------ */
+    $nama   = trim($_POST['nama'] ?? '');
+    $email  = trim($_POST['email'] ?? '');
+    $nis    = trim($_POST['nis_npm'] ?? '');
+    $inst   = trim($_POST['instansi_pendidikan'] ?? '');
+    $jur    = trim($_POST['jurusan'] ?? '');
+    $skill  = trim($_POST['skill'] ?? '');
+    $dur    = trim($_POST['durasi'] ?? '');
+    $unit_id = trim($_POST['unit_id'] ?? '');
+    $hp      = trim($_POST['no_hp'] ?? '');
+    $alamat  = trim($_POST['alamat'] ?? '');
 
-// Pastikan urutan parameter sesuai kolom di query UPDATE kamu
-$stmt->bind_param(
-    "sssssdssssssisssssssi",
-    $nama,           // s
-    $email,          // s
-    $nis,            // s
-    $inst,           // s
-    $jur,            // s
-    $ipk,            // d (double)
-    $semester,       // s
-    $memiliki_laptop,// s
-    $bersedia_unit,  // s
-    $no_surat,       // s
-    $skill,          // s
-    $dur,            // s
-    $unit_id,        // i (integer)
-    $hp,             // s
-    $alamat,         // s
-    $tgl_mulai,      // s
-    $tgl_selesai,    // s
-    $fotoDB,         // s
-    $ktmDB,          // s
-    $suratDB,        // s
-    $id              // i (integer)
-);
+    $ipk      = ($_POST['ipk_nilai_ratarata'] !== '') ? (float)$_POST['ipk_nilai_ratarata'] : null;
+    $semester = trim($_POST['semester'] ?? '');
 
-  if ($stmt->execute()) {
-      // Sinkronisasi ke peserta_pkl
-      $cekPeserta = $conn->prepare("SELECT id FROM peserta_pkl WHERE email=?");
-      $cekPeserta->bind_param("s", $email);
-      $cekPeserta->execute();
-      $resPeserta = $cekPeserta->get_result();
+    $memiliki_laptop = trim($_POST['memiliki_laptop'] ?? '');
+    $bersedia_unit   = trim($_POST['bersedia_unit_manapun'] ?? '');
+    $no_surat        = trim($_POST['nomor_surat_permohonan'] ?? '');
 
-      if ($resPeserta && $resPeserta->num_rows > 0) {
-          $updPeserta = $conn->prepare("UPDATE peserta_pkl SET 
-              nama=?, instansi_pendidikan=?, jurusan=?, nis_npm=?, unit_id=?, no_hp=?, tgl_mulai=?, tgl_selesai=? 
-              WHERE email=?");
-          $updPeserta->bind_param("ssssissss", $nama, $inst, $jur, $nis, $unit_id, $hp, $tgl_mulai, $tgl_selesai, $email);
-          $updPeserta->execute();
-          $updPeserta->close();
-      } else {
-          $statusPeserta = "berlangsung";
-          $insPeserta = $conn->prepare("INSERT INTO peserta_pkl 
-              (user_id, nama, email, instansi_pendidikan, jurusan, nis_npm, unit_id, no_hp, tgl_mulai, tgl_selesai, status)
-              VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-          $insPeserta->bind_param("issssisssss", $user_id, $nama, $email, $inst, $jur, $nis, $unit_id, $hp, $tgl_mulai, $tgl_selesai, $statusPeserta);
-          $insPeserta->execute();
-          $insPeserta->close();
-      }
-      $cekPeserta->close();
+    $tgl_mulai   = $_POST['tgl_mulai'] ?? null;
+    $tgl_selesai = $_POST['tgl_selesai'] ?? null;
 
-      $_SESSION['success'] = "✅ Data pendaftar peserta berhasil diperbarui.";
-  } else {
-      $_SESSION['error'] = "❌ Gagal update: " . $stmt->error;
-  }
-  $stmt->close();
 
-  header("Location: daftar_pkl.php");
-  exit();
+    /* ------------------------------------------------------
+     * Upload file baru (jika ada)
+     * ------------------------------------------------------ */
+    $fotoNew  = uploadFileUnique('upload_foto', $foto_dir);
+    $ktmNew   = uploadFileUnique('upload_kartu_identitas', $ktm_dir);
+    $suratNew = uploadFileUnique('upload_surat_permohonan', $surat_dir);
+
+    $fotoDB  = $fotoNew  ?: $oldFoto;
+    $ktmDB   = $ktmNew   ?: $oldKtm;
+    $suratDB = $suratNew ?: $oldSurat;
+
+    // Hapus file lama jika ada file baru
+    if ($fotoNew  && file_exists($foto_dir . $oldFoto))  @unlink($foto_dir . $oldFoto);
+    if ($ktmNew   && file_exists($ktm_dir . $oldKtm))    @unlink($ktm_dir . $oldKtm);
+    if ($suratNew && file_exists($surat_dir . $oldSurat))@unlink($surat_dir . $oldSurat);
+
+
+    /* ------------------------------------------------------
+     * UPDATE daftar_pkl
+     * ------------------------------------------------------ */
+    $sql = "
+        UPDATE daftar_pkl SET
+            nama=?, email=?, nis_npm=?, instansi_pendidikan=?, jurusan=?, 
+            ipk_nilai_ratarata=?, semester=?, memiliki_laptop=?, bersedia_unit_manapun=?, nomor_surat_permohonan=?,
+            skill=?, durasi=?, unit_id=?, no_hp=?, alamat=?, tgl_mulai=?, tgl_selesai=?,
+            upload_foto=?, upload_kartu_identitas=?, upload_surat_permohonan=?
+        WHERE id=?
+    ";
+
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        die("Prepare gagal: " . $conn->error . "<br>SQL: " . $sql);
+    }
+
+    $stmt->bind_param(
+        "sssssdssssssisssssssi",
+        $nama, $email, $nis, $inst, $jur,
+        $ipk, $semester, $memiliki_laptop, $bersedia_unit, $no_surat,
+        $skill, $dur, $unit_id, $hp, $alamat,
+        $tgl_mulai, $tgl_selesai, $fotoDB, $ktmDB, $suratDB,
+        $id
+    );
+
+
+    /* ------------------------------------------------------
+     * Jika update sukses
+     * ------------------------------------------------------ */
+    if ($stmt->execute()) {
+
+
+        /* ------------------------------------------------------
+         * Sinkronisasi ke peserta_pkl
+         * ------------------------------------------------------ */
+        $cekPeserta = $conn->prepare("SELECT id FROM peserta_pkl WHERE email=?");
+        $cekPeserta->bind_param("s", $email);
+        $cekPeserta->execute();
+        $resPeserta = $cekPeserta->get_result();
+
+        if ($resPeserta && $resPeserta->num_rows > 0) {
+
+            // Update peserta_pkl
+            $updPeserta = $conn->prepare("
+                UPDATE peserta_pkl SET 
+                    nama=?, instansi_pendidikan=?, jurusan=?, nis_npm=?, 
+                    unit_id=?, no_hp=?, tgl_mulai=?, tgl_selesai=?
+                WHERE email=?
+            ");
+
+            $updPeserta->bind_param(
+                "ssssissss",
+                $nama, $inst, $jur, $nis,
+                $unit_id, $hp, $tgl_mulai, $tgl_selesai,
+                $email
+            );
+
+            $updPeserta->execute();
+            $updPeserta->close();
+
+        } else {
+
+            // Insert peserta_pkl baru
+            $statusPeserta = "berlangsung";
+
+            $insPeserta = $conn->prepare("
+                INSERT INTO peserta_pkl 
+                    (user_id, nama, email, instansi_pendidikan, jurusan, nis_npm, 
+                     unit_id, no_hp, tgl_mulai, tgl_selesai, status)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            ");
+
+            $insPeserta->bind_param(
+                "issssisssss",
+                $user_id, $nama, $email, $inst, $jur,
+                $nis, $unit_id, $hp, $tgl_mulai, $tgl_selesai, $statusPeserta
+            );
+
+            $insPeserta->execute();
+            $insPeserta->close();
+        }
+
+        $cekPeserta->close();
+
+
+        /* ------------------------------------------------------
+         * RIWAYAT — UPDATE jika sudah ada, INSERT jika belum ada
+         * ------------------------------------------------------ */
+            $updRwy = $conn->prepare("
+                UPDATE riwayat_peserta_pkl SET
+                    unit_id=?, 
+                    nama=?, 
+                    no_hp=?, 
+                    nis_npm=?, 
+                    instansi_pendidikan=?, 
+                    jurusan=?, 
+                    tgl_mulai=?, 
+                    tgl_selesai=? 
+                WHERE email=?
+            ");
+
+            $statusRiwayat = "update";
+
+            $updRwy->bind_param(
+                "issssssss",
+                $unit_id, 
+                $nama, 
+                $hp, 
+                $nis, 
+                $inst, 
+                $jur, 
+                $tgl_mulai, 
+                $tgl_selesai, 
+                $email
+            );
+
+            $updRwy->execute();
+            $updRwy->close();
+
+        /* ------------------------------------------------------
+         * BERHASIL
+         * ------------------------------------------------------ */
+        $_SESSION['success'] = "✅ Data pendaftar peserta berhasil diperbarui.";
+
+    } else {
+
+        /* ------------------------------------------------------
+         * ERROR
+         * ------------------------------------------------------ */
+        $_SESSION['error'] = "❌ Gagal update: " . $stmt->error;
+    }
+
+    $stmt->close();
+    header("Location: daftar_pkl.php");
+    exit();
 }
 
 // ============================================================
@@ -534,12 +618,6 @@ if (isset($_GET['delete'])) {
       foreach (['upload_foto' => $foto_dir, 'upload_kartu_identitas' => $ktm_dir, 'upload_surat_permohonan' => $surat_dir] as $key => $dir) {
           if ($rw[$key] && file_exists($dir . $rw[$key])) @unlink($dir . $rw[$key]);
       }
-
-      // hapus peserta & user
-      $delPeserta = $conn->prepare("DELETE FROM peserta_pkl WHERE email=?");
-      $delPeserta->bind_param("s", $email);
-      $delPeserta->execute();
-      $delPeserta->close();
 
       $delUser = $conn->prepare("DELETE FROM users WHERE email=? AND role='magang'");
       $delUser->bind_param("s", $email);

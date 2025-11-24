@@ -197,11 +197,42 @@ include "daftar_pkl_action.php";
                   </td>
 
                   <td class="text-center">
-                    <!-- status buttons -->
-                    <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=diterima<?= isset($filter_status) && $filter_status !== 'all' ? '&filter_status=' . urlencode($filter_status) : '' ?>" class="btn btn-success btn-sm">✔ Terima</a>
-                    <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=ditolak<?= isset($filter_status) && $filter_status !== 'all' ? '&filter_status=' . urlencode($filter_status) : '' ?>" class="btn btn-danger btn-sm">❌ Tolak</a>
-                    <a href="daftar_pkl.php?id=<?= $row['id'] ?>&status=reset<?= isset($filter_status) && $filter_status !== 'all' ? '&filter_status=' . urlencode($filter_status) : '' ?>" class="btn btn-warning btn-sm">🔄 Reset</a>
+                    <?php
+                        $status = strtolower($row['status']);
+                        $disable_approval = ($status === 'diterima' || $status === 'nonaktif');
+                        $disable_reset    = ($status === 'nonaktif');
+
+                        $disabled_class = "opacity-40 pointer-events-none cursor-not-allowed";
+                    ?>
+
+                    <!-- Terima -->
+                    <a 
+                        href="daftar_pkl.php?id=<?= $row['id'] ?>&status=diterima"
+                        class="px-2 py-1 rounded-md text-xs font-semibold text-white bg-green-600 hover:bg-green-700 transition-all inline-flex items-center gap-1 shadow-sm
+                            <?= $disable_approval ? $disabled_class : '' ?>"
+                    >
+                        <i class="bi bi-check-lg"></i>
+                    </a>
+
+                    <!-- Tolak -->
+                    <a 
+                        href="daftar_pkl.php?id=<?= $row['id'] ?>&status=ditolak"
+                        class="px-2 py-1 rounded-md text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-all inline-flex items-center gap-1 shadow-sm
+                            <?= $disable_approval ? $disabled_class : '' ?>"
+                    >
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+
+                    <!-- Reset -->
+                    <a 
+                        href="daftar_pkl.php?id=<?= $row['id'] ?>&status=reset"
+                        class="px-2 py-1 rounded-md text-xs font-semibold text-white bg-yellow-500 hover:bg-yellow-600 transition-all inline-flex items-center gap-1 shadow-sm
+                            <?= $disable_reset ? $disabled_class : '' ?>"
+                    >
+                        <i class="bi bi-arrow-repeat"></i>
+                    </a>
                   </td>
+
                   <!-- Detail -->
                   <td class="text-center">
                     <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal<?= $id; ?>" title="Rincian">🔍</button>
@@ -671,7 +702,7 @@ include "daftar_pkl_action.php";
     </div>
   </div>
 </div>
-
+<script src="https://cdn.tailwindcss.com"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const statusButtons = document.querySelectorAll(".status-request");
