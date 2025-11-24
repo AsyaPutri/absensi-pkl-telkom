@@ -438,65 +438,117 @@ $current_page = basename($_SERVER['PHP_SELF']);
               </tr>
 
               <!-- Modal Detail Peserta -->
+              <!-- Modal Detail Peserta -->
               <div class="modal fade" id="detailModal<?= $row['peserta_id']; ?>" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
                   <div class="modal-content">
+
+                    <!-- Header -->
                     <div class="modal-header bg-danger text-white">
-                      <h5 class="modal-title">Rincian Peserta: <?= htmlspecialchars($row['nama']); ?></h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      <h5 class="modal-title fw-bold">
+                        Rincian Peserta: <?= htmlspecialchars($row['nama']); ?>
+                      </h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
 
+                    <!-- Body -->
                     <div class="modal-body">
-                      <div class="row">
-                        <div class="col-md-6">
-                          <p><strong>Tanggal Daftar:</strong> <?= htmlspecialchars($row['tgl_daftar']); ?></p>
-                          <p><strong>Nama:</strong> <?= htmlspecialchars($row['nama']); ?></p>
-                          <p><strong>Email:</strong> <?= htmlspecialchars($row['email']); ?></p>
-                          <p><strong>No HP:</strong> <?= htmlspecialchars($row['no_hp']); ?></p>
-                          <p><strong>NIS/NPM:</strong> <?= htmlspecialchars($row['nis_npm']); ?></p>
-                          <p><strong>Instansi:</strong> <?= htmlspecialchars($row['instansi_pendidikan']); ?></p>
-                          <p><strong>Jurusan:</strong> <?= htmlspecialchars($row['jurusan']); ?></p>
-                          <p><strong>Semester:</strong> <?= htmlspecialchars($row['semester']); ?></p>
+
+                      <!-- Informasi Pribadi -->
+                      <h6 class="fw-bold text-danger mb-3">Informasi Pribadi</h6>
+
+                      <div class="p-3 border rounded bg-light mb-4">
+                        <div class="row mb-2">
+                          <div class="col-md-6"><strong>Tanggal Daftar:</strong> <?= htmlspecialchars($row['tgl_daftar']); ?></div>
+                          <div class="col-md-6"><strong>Instansi:</strong> <?= htmlspecialchars($row['instansi_pendidikan']); ?></div>
                         </div>
 
-                        <div class="col-md-6">
-                          <p><strong>IPK/Nilai Rata-rata:</strong> <?= htmlspecialchars($row['ipk_nilai_ratarata']); ?></p>
-                          <p><strong>Memiliki Laptop:</strong> <?= htmlspecialchars($row['memiliki_laptop']); ?></p>
-                          <p><strong>Bersedia Unit Manapun:</strong> <?= htmlspecialchars($row['bersedia_unit_manapun']); ?></p>
-                          <p><strong>Durasi:</strong> <?= htmlspecialchars($row['durasi']); ?></p>
-                          <p><strong>Nomor Surat Permohonan Magang:</strong> <?= htmlspecialchars($row['nomor_surat_permohonan']); ?></p>
-                          <p><strong>Skill:</strong> <?= htmlspecialchars($row['skill']); ?></p>
-                          <p><strong>Unit:</strong> <?= htmlspecialchars($row['nama_unit']); ?></p>
+                        <div class="row mb-2">
+                          <div class="col-md-6"><strong>Nama:</strong> <?= htmlspecialchars($row['nama']); ?></div>
+                          <div class="col-md-6"><strong>Jurusan:</strong> <?= htmlspecialchars($row['jurusan']); ?></div>
+                        </div>
+
+                        <div class="row mb-2">
+                          <div class="col-md-6"><strong>Email:</strong> <?= htmlspecialchars($row['email']); ?></div>
+                          <div class="col-md-6"><strong>Semester:</strong> <?= htmlspecialchars($row['semester']); ?></div>
+                        </div>
+
+                        <div class="row mb-2">
+                          <div class="col-md-6"><strong>No HP:</strong> <?= htmlspecialchars($row['no_hp']); ?></div>
+                          <div class="col-md-6"><strong>IPK / Nilai Rata-rata:</strong> <?= htmlspecialchars($row['ipk_nilai_ratarata']); ?></div>
+                        </div>
+
+                        <div class="row mb-2">
+                          <div class="col-md-6"><strong>NIS / NPM:</strong> <?= htmlspecialchars($row['nis_npm']); ?></div>
+                          <div class="col-md-6"><strong>Skill:</strong> <?= htmlspecialchars($row['skill']); ?></div>
+                        </div>
+
+                        <div class="row">
+                          <div class="col-12"><strong>Alamat:</strong> <?= htmlspecialchars($row['alamat']); ?></div>
                         </div>
                       </div>
 
-                      <hr>
-                      <p><strong>Alamat:</strong> <?= htmlspecialchars($row['alamat']); ?></p>
-                      <p><strong>Periode:</strong> <?= htmlspecialchars($row['tgl_mulai']); ?> – <?= htmlspecialchars($row['tgl_selesai']); ?></p>
 
-                      <div class="row g-3 mt-2">
-                        <div class="col-md-4">
-                          <p><strong>Foto Formal</strong></p>
-                          <a href="../../uploads/Foto_daftarpkl/<?= htmlspecialchars($row['upload_foto']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+                      <!-- Informasi Penempatan -->
+                      <h6 class="fw-bold text-danger mb-3">Informasi Penempatan</h6>
+
+                      <div class="p-3 border rounded bg-light mb-4">
+                        <div class="row mb-2">
+                          <div class="col-md-6"><strong>Unit:</strong> <?= htmlspecialchars($row['nama_unit']); ?></div>
+                          <div class="col-md-6"><strong>Durasi PKL:</strong> <?= htmlspecialchars($row['durasi']); ?></div>
                         </div>
-                        <div class="col-md-4">
-                          <p><strong>Kartu Pelajar / KTM</strong></p>
-                          <a href="../../uploads/Foto_Kartuidentitas/<?= htmlspecialchars($row['upload_kartu_identitas']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+
+                        <div class="row mb-2">
+                          <div class="col-md-6"><strong>Bersedia Unit Manapun:</strong> <?= htmlspecialchars($row['bersedia_unit_manapun']); ?></div>
+                          <div class="col-md-6"><strong>Periode:</strong> <?= htmlspecialchars($row['tgl_mulai']); ?> – <?= htmlspecialchars($row['tgl_selesai']); ?></div>
                         </div>
-                        <div class="col-md-4">
-                          <p><strong>Surat Permohonan Magang</strong></p>
-                          <a href="../../uploads/Surat_Permohonan/<?= htmlspecialchars($row['upload_surat_permohonan']); ?>" target="_blank" class="btn btn-outline-primary btn-sm">Lihat</a>
+
+                        <div class="row">
+                          <div class="col-md-6"><strong>Memiliki Laptop:</strong> <?= htmlspecialchars($row['memiliki_laptop']); ?></div>
+                          <div class="col-md-6"><strong>No. Surat Permohonan:</strong> <?= htmlspecialchars($row['nomor_surat_permohonan']); ?></div>
                         </div>
                       </div>
 
-                      <hr>
+
+                      <!-- Lampiran Berkas -->
+                      <h6 class="fw-bold text-danger mb-3">Lampiran Berkas</h6>
+
+                      <div class="p-3 border rounded bg-light mb-4">
+                        <div class="row g-3">
+
+                          <div class="col-md-4">
+                            <strong>Foto Formal</strong><br>
+                            <a href="../../uploads/Foto_daftarpkl/<?= htmlspecialchars($row['upload_foto']); ?>"
+                              class="btn btn-outline-primary btn-sm mt-2 w-100" target="_blank">Lihat</a>
+                          </div>
+
+                          <div class="col-md-4">
+                            <strong>Kartu Pelajar / KTM</strong><br>
+                            <a href="../../uploads/Foto_Kartuidentitas/<?= htmlspecialchars($row['upload_kartu_identitas']); ?>"
+                              class="btn btn-outline-primary btn-sm mt-2 w-100" target="_blank">Lihat</a>
+                          </div>
+
+                          <div class="col-md-4">
+                            <strong>Surat Permohonan Magang</strong><br>
+                            <a href="../../uploads/Surat_Permohonan/<?= htmlspecialchars($row['upload_surat_permohonan']); ?>"
+                              class="btn btn-outline-primary btn-sm mt-2 w-100" target="_blank">Lihat</a>
+                          </div>
+
+                        </div>
+                      </div>
+
+
+                      <!-- Cetak ID Card -->
                       <div class="text-center mt-3">
-                        <a href="id_card/generate_idcard.php?id=<?= $row['peserta_id']; ?>" target="_blank" class="btn btn-danger">
+                        <a href="id_card/generate_idcard.php?id=<?= $row['peserta_id']; ?>"
+                          class="btn btn-danger" target="_blank">
                           <i class="bi bi-printer"></i> Cetak ID Card
                         </a>
                       </div>
+
                     </div>
 
+                    <!-- Footer -->
                     <div class="modal-footer">
                       <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                     </div>

@@ -191,7 +191,7 @@ include "daftar_pkl_action.php";
                           data-nama="<?= safe($row['nama']); ?>"
                           data-unit="<?= safe($row['nama_unit']); ?>"
                       >
-                          Request
+                          Requested
                       </span>
                     <?php endif; ?>
                   </td>
@@ -244,47 +244,144 @@ include "daftar_pkl_action.php";
                   </td>
                 </tr>
 
-                <!-- Detail Modal -->
+                <!-- Modal Detail -->
                 <div class="modal fade" id="detailModal<?= $id; ?>" tabindex="-1">
-                  <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
+                  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content shadow">
+
+                      <!-- HEADER -->
                       <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">Rincian Pendaftar</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <h5 class="modal-title fw-bold">
+                          <i class="bi bi-person-vcard me-2"></i> Rincian Pendaftar
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                       </div>
+
+                      <!-- BODY -->
                       <div class="modal-body">
-                        <div class="row">
-                          <div class="col-md-6">
-                            <p><strong>Tanggal Daftar:</strong> <?= safe($row['tgl_daftar']); ?></p>
-                            <p><strong>Nama:</strong> <?= safe($row['nama']); ?></p>
-                            <p><strong>Email:</strong> <?= safe($row['email']); ?></p>
-                            <p><strong>NIS/NPM:</strong> <?= safe($row['nis_npm']); ?></p>
-                            <p><strong>No HP:</strong> <?= safe($row['no_hp']); ?></p>
-                            <p><strong>Instansi:</strong> <?= safe($row['instansi_pendidikan']); ?></p>
-                            <p><strong>Jurusan:</strong> <?= safe($row['jurusan']); ?></p>
-                            <p><strong>IPK/Nilai Rata-Rata:</strong> <?= safe($row['ipk_nilai_ratarata']); ?></p>
+
+                        <!-- INFORMASI PRIBADI -->
+                        <h6 class="fw-bold text-danger mb-3">Informasi Pribadi</h6>
+
+                        <div class="p-3 border rounded-3 bg-light mb-4">
+                          <div class="row mb-2">
+                            <div class="col-md-6">
+                              <strong>Tanggal Daftar:</strong> <?= safe($row['tgl_daftar']); ?>
+                            </div>
+                            <div class="col-md-6">
+                              <strong>Instansi Pendidikan:</strong> <?= safe($row['instansi_pendidikan']); ?>
+                            </div>
                           </div>
-                          <div class="col-md-6">
-                            <p><strong>Semester/Tingkat Kelas:</strong> <?= safe($row['semester']); ?></p>
-                            <p><strong>Skill:</strong> <?= safe($row['skill']); ?></p>
-                            <p><strong>Unit:</strong> <?= safe($row['nama_unit']); ?></p>
-                            <p><strong>Bersedia Unit Manapun:</strong> <?= safe($row['bersedia_unit_manapun']); ?></p>
-                            <p><strong>Memiliki Laptop:</strong> <?= safe($row['memiliki_laptop']); ?></p>
-                            <p><strong>Durasi:</strong> <?= safe($row['durasi']); ?></p>
-                            <p><strong>Nomor Surat Permohonan Magang:</strong> <?= safe($row['nomor_surat_permohonan']); ?></p>
+
+                          <div class="row mb-2">
+                            <div class="col-md-6">
+                              <strong>Nama:</strong> <?= safe($row['nama']); ?>
+                            </div>
+                            <div class="col-md-6">
+                              <strong>Jurusan:</strong> <?= safe($row['jurusan']); ?>
+                            </div>
+                          </div>
+
+                          <div class="row mb-2">
+                            <div class="col-md-6">
+                              <strong>Email:</strong> <?= safe($row['email']); ?>
+                            </div>
+                            <div class="col-md-6">
+                              <strong>IPK / Nilai Rata-rata:</strong> <?= safe($row['ipk_nilai_ratarata']); ?>
+                            </div>
+                          </div>
+
+                          <div class="row mb-2">
+                            <div class="col-md-6">
+                              <strong>NIS / NPM:</strong> <?= safe($row['nis_npm']); ?>
+                            </div>
+                            <div class="col-md-6">
+                              <strong>Semester / Tingkat:</strong> <?= safe($row['semester']); ?>
+                            </div>
+                          </div>
+
+                          <div class="row mb-2">
+                            <div class="col-md-6">
+                              <strong>No. HP:</strong> <?= safe($row['no_hp']); ?>
+                            </div>
+                            <div class="col-md-6">
+                              <strong>Skill:</strong> <?= safe($row['skill']); ?>
+                            </div>
+                          </div>
+
+                          <div class="row mb-0">
+                            <div class="col-md-12">
+                              <strong>Alamat:</strong> <?= safe($row['alamat']); ?>
+                            </div>
                           </div>
                         </div>
-                        <hr>
-                        <p><strong>Alamat:</strong> <?= safe($row['alamat']); ?></p>
-                        <p><strong>Periode:</strong> <?= safe($row['tgl_mulai']); ?> — <?= safe($row['tgl_selesai']); ?></p>
-                        <div class="row g-3">
-                          <div class="col-md-4"><strong>Foto Formal</strong><br><?= $row['upload_foto'] ? '<a href="'. $foto_dir . safe($row['upload_foto']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
-                          <div class="col-md-4"><strong>Kartu Peljar / KTM</strong><br><?= $row['upload_kartu_identitas'] ? '<a href="'. $ktm_dir . safe($row['upload_kartu_identitas']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
-                          <div class="col-md-4"><strong>Surat Permohonan Magang </strong><br><?= $row['upload_surat_permohonan'] ? '<a href="'. $surat_dir . safe($row['upload_surat_permohonan']) .'" target="_blank" class="btn btn-sm btn-outline-primary mt-2">Lihat</a>' : '-' ; ?></div>
+
+
+                        <!-- INFORMASI PENEMPATAN -->
+                        <h6 class="fw-bold text-danger mb-3">Informasi Penempatan</h6>
+
+                        <div class="p-3 border rounded-3 bg-light mb-4">
+                          <div class="row mb-2">
+                            <div class="col-md-6">
+                              <strong>Unit Penempatan:</strong> <?= safe($row['nama_unit']); ?>
+                            </div>
+                            <div class="col-md-6">
+                              <strong>Durasi PKL:</strong> <?= safe($row['durasi']); ?>
+                            </div>
+                          </div>
+
+                          <div class="row mb-2">
+                            <div class="col-md-6">
+                              <strong>Bersedia Unit Manapun:</strong> <?= safe($row['bersedia_unit_manapun']); ?>
+                            </div>
+                            <div class="col-md-6">
+                              <strong>Periode:</strong> <?= safe($row['tgl_mulai']); ?> — <?= safe($row['tgl_selesai']); ?>
+                            </div>
+                          </div>
+
+                          <div class="row mb-0">
+                            <div class="col-md-6">
+                              <strong>Memiliki Laptop:</strong> <?= safe($row['memiliki_laptop']); ?>
+                            </div>
+                            <div class="col-md-6">
+                              <strong>No. Surat Permohonan:</strong> <?= safe($row['nomor_surat_permohonan']); ?>
+                            </div>
+                          </div>
+                        </div>
+
+
+                        <!-- BERKAS -->
+                        <h6 class="fw-bold text-danger mb-3">Lampiran Berkas</h6>
+
+                        <div class="p-3 border rounded-3 bg-light mb-3">
+                          <div class="row g-3">
+
+                            <div class="col-md-4">
+                              <strong>Foto Formal</strong><br>
+                              <?= $row['upload_foto'] 
+                                ? '<a href="'. $foto_dir . safe($row['upload_foto']) .'" target="_blank" class="btn btn-outline-primary btn-sm mt-2 w-100">Lihat</a>'
+                                : '-' ?>
+                            </div>
+
+                            <div class="col-md-4">
+                              <strong>Kartu Pelajar / KTM</strong><br>
+                              <?= $row['upload_kartu_identitas'] 
+                                ? '<a href="'. $ktm_dir . safe($row['upload_kartu_identitas']) .'" target="_blank" class="btn btn-outline-primary btn-sm mt-2 w-100">Lihat</a>'
+                                : '-' ?>
+                            </div>
+
+                            <div class="col-md-4">
+                              <strong>Surat Permohonan Magang</strong><br>
+                              <?= $row['upload_surat_permohonan'] 
+                                ? '<a href="'. $surat_dir . safe($row['upload_surat_permohonan']) .'" target="_blank" class="btn btn-outline-primary btn-sm mt-2 w-100">Lihat</a>'
+                                : '-' ?>
+                            </div>
+                          </div>
                         </div>
                       </div>
+                      <!-- FOOTER -->
                       <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                       </div>
                     </div>
                   </div>
@@ -688,7 +785,7 @@ include "daftar_pkl_action.php";
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-info">
-        <h5 class="modal-title text-dark fw-bold">Informasi Status Request</h5>
+        <h5 class="modal-title text-dark fw-bold">Informasi Status Requested</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 

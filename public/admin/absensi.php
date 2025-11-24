@@ -569,75 +569,110 @@ $unitResult = $conn->query("SELECT id, nama_unit FROM unit_pkl ORDER BY nama_uni
   }
 
   // ======================================================
-  // ========== EXPORT PDF DETAIL ABSENSI ================
+  // =============== EXPORT PDF ABSENSI ====================
   // ======================================================
   function downloadPDF(peserta, absensi, statistik = {}) {
-    if (!absensi || absensi.length === 0) {
-      alert("Tidak ada data absensi untuk diunduh.");
-      return;
-    }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: "landscape" });
+      // =================== HEADER =====================
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      doc.text("TELKOM INDONESIA", 105, 20, { align: "center" });
 
-    // Header
-    doc.setFontSize(16);
-    doc.text("REKAP DETAIL ABSENSI Internship", 150, 15, { align: "center" });
-    doc.setFontSize(12);
-    doc.text("PT TELKOM INDONESIA", 150, 22, { align: "center" });
-    doc.line(14, 25, 283, 25);
+      doc.setFontSize(12);
+      doc.text("Witel Bekasi - Karawang", 105, 28, { align: "center" });
 
-    // Info Peserta
-    doc.setFontSize(11);
-    let y = 35;
-    doc.text(`Nama: ${peserta.nama || "-"}`, 14, y);
-    y += 7;
-    doc.text(`NIM/NIS: ${peserta.nis_npm || "-"}`, 14, y);
-    y += 7;
-    doc.text(`Instansi: ${peserta.instansi_pendidikan || "-"}`, 14, y);
-    y += 7;
-    doc.text(`Unit: ${peserta.unit || "-"}`, 14, y);
-    y += 7;
-    doc.text(`Periode Internship: ${peserta.tgl_mulai || "-"} s/d ${peserta.tgl_selesai || "-"}`, 14, y);
+      doc.setDrawColor(180, 0, 0);
+      doc.setLineWidth(1);
+      doc.line(20, 34, 190, 34);
 
-    // 🟢 Tambahkan statistik di bawah periode
-    y += 10;
-    doc.text(`Jumlah Hari Kerja: ${statistik.totalHariKerja || "-"}`, 14, y);
-    y += 7;
-    doc.text(`Jumlah Hadir: ${statistik.jumlahHadir || "-"}`, 14, y);
-    y += 7;
-    doc.text(`Persentase Kehadiran: ${statistik.persen || 0}%`, 14, y);
+      // =================== INFORMASI PESERTA =====================
+      doc.setDrawColor(200, 0, 0);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(15, 42, 180, 48, 4, 4);
 
-    // Siapkan data tabel
-    const tableData = absensi.map((r, i) => [
-      i + 1,
-      r.tanggal || "-",
-      r.jam_masuk || "-",
-      r.aktivitas_masuk || "-",
-      r.kendala_masuk || "-",
-      r.kondisi_kesehatan || "-",
-      r.lokasi_kerja || "-",
-      r.aktivitas_keluar || "-",
-      r.kendala_keluar || "-",
-      r.jam_keluar || "-"
-    ]);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("Informasi Peserta", 20, 50);
 
-    // Tabel
-    doc.autoTable({
-      startY: y + 10,
-      head: [[
-        "No", "Tanggal", "Jam Masuk", "Aktivitas Masuk", "Kendala Masuk",
-        "Kondisi Kesehatan", "Lokasi", "Aktivitas Keluar", "Kendala Keluar", "Jam Keluar"
-      ]],
-      body: tableData,
-      styles: { fontSize: 8, cellPadding: 2, halign: "center", valign: "middle" },
-      headStyles: { fillColor: [220, 53, 69], textColor: 255, halign: "center" },
-      alternateRowStyles: { fillColor: [245, 245, 245] },
-      margin: { left: 14, right: 14 }
-    });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
 
-    const namaFile = `rekap_absensi_${(peserta.nama || "user").replace(/\s+/g, "_")}.pdf`;
-    doc.save(namaFile);
+      const info = [
+          ["Nama Lengkap", peserta.nama || "-"],
+          ["NIM/NIS", peserta.nis_npm || "-"],
+          ["Instansi Pendidikan", peserta.instansi_pendidikan || "-"],
+          ["Unit Penempatan", peserta.unit || "-"],
+          ["Periode", `${peserta.tgl_mulai || "-"} s.d. ${peserta.tgl_selesai || "-"}`]
+      ];
+
+      let y = 58;
+      info.forEach(([label, value]) => {
+          doc.text(`${label}`, 20, y);
+          doc.text(": ", 65, y);
+          doc.text(String(value), 70, y);
+          y += 6;
+      });
+
+      // =================== BOX STATISTIK (3 BOX) =====================
+      const boxTop = 97;
+
+      function statBox(x, title, value) {
+          doc.roundedRect(x, boxTop, 57, 32, 3, 3);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.text(title, x + 28, boxTop + 10, { align: "center" });
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(18);
+          doc.text(String(value), x + 28, boxTop + 23, { align: "center" });
+      }
+
+      statBox(18, "Total Hari Kerja", statistik.totalHariKerja || 0);
+      statBox(78, "Jumlah Hadir", statistik.jumlahHadir || 0);
+      statBox(138, "Persentase", `${statistik.persen || 0}%`);
+
+      // =================== TABEL ABSENSI =====================
+      const tableData = absensi.map((row, i) => [
+          i + 1,
+          row.tanggal || "-",
+          row.jam_masuk || "-",
+          row.aktivitas_masuk || "-",
+          row.kendala_masuk || "-",
+          row.kondisi_kesehatan || "-",
+          row.lokasi_kerja || "-",
+          row.aktivitas_keluar || "-",
+          row.kendala_keluar || "-",
+          row.jam_keluar || "-"
+      ]);
+
+      doc.autoTable({
+          startY: boxTop + 40,
+          head: [[
+              "No", "Tanggal", "Masuk", "Aktivitas Masuk", "Kendala Masuk",
+              "Kesehatan", "Lokasi", "Aktivitas Keluar", "Kendala Keluar", "Keluar"
+          ]],
+          body: tableData,
+          styles: {
+              fontSize: 8,
+              cellPadding: 2,
+              halign: "center",
+              valign: "middle"
+          },
+          headStyles: {
+              fillColor: [210, 0, 0],
+              textColor: 255,
+              fontSize: 9,
+              halign: "center"
+          },
+          alternateRowStyles: { fillColor: [245, 245, 245] },
+          margin: { left: 10, right: 10 },
+          tableWidth: "auto"
+      });
+
+      // =================== SAVE =====================
+      doc.save(`Rekap_Absensi_${(peserta.nama || "Peserta").replace(/\s+/g, "_")}.pdf`);
   }
 </script>
 </body>
