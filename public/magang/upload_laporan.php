@@ -5,10 +5,11 @@ include "../../config/database.php";
 
 $peserta_id = $_SESSION['user_id'];
 
-// Ambil data peserta untuk laporan PKL dan pesan admin
-$q = $conn->query("SELECT id, laporan_pkl, pesan_admin FROM peserta_pkl WHERE user_id = '$peserta_id' LIMIT 1");
+// Ambil data peserta
+$q = $conn->query("SELECT id, laporan_pkl, pesan_admin 
+                   FROM peserta_pkl 
+                   WHERE user_id = '$peserta_id' LIMIT 1");
 
-// Cek apakah query berhasil
 if (!$q) {
     die("Error database: " . $conn->error);
 }
@@ -18,23 +19,39 @@ if ($q->num_rows == 0) {
 }
 
 $data = $q->fetch_assoc();
-$pk_id = $data['id'];
+$pk_id        = $data['id'];
 $laporan_lama = $data['laporan_pkl'];
-$pesan_admin = $data['pesan_admin'] ?? '';
+$pesan_admin  = $data['pesan_admin'] ?? '';
 
 $error = '';
 $success = '';
 
+/* =====================================
+   FIX PENTING 1:
+   Decode newline dari database SEBELUM
+   dipakai ke textarea
+===================================== */
+$pesan_admin = str_replace("\\n", "\n", $pesan_admin);
+
+/* =====================================
+   siapkan nilai default textarea
+===================================== */
+$pesan_textarea = $pesan_admin;
+
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // Handle Upload Laporan
+    /* ---------- Upload Laporan ---------- */
     if (isset($_POST['upload_laporan'])) {
-        if (isset($_FILES['laporan']) && $_FILES['laporan']['error'] === 0) {
-            $ext = pathinfo($_FILES['laporan']['name'], PATHINFO_EXTENSION);
 
-            if (strtolower($ext) !== 'pdf') {
+        if (isset($_FILES['laporan']) && $_FILES['laporan']['error'] === 0) {
+
+            $ext = strtolower(pathinfo($_FILES['laporan']['name'], PATHINFO_EXTENSION));
+
+            if ($ext !== 'pdf') {
                 $error = "File harus berformat PDF.";
             } else {
+
                 $nama_file = "laporan_" . $pk_id . "_" . time() . ".pdf";
                 $tujuan = "../../uploads/laporan/" . $nama_file;
 
@@ -43,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (move_uploaded_file($_FILES['laporan']['tmp_name'], $tujuan)) {
+
                     if ($laporan_lama && file_exists("../../uploads/laporan/" . $laporan_lama)) {
                         unlink("../../uploads/laporan/" . $laporan_lama);
                     }
@@ -50,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $conn->query("UPDATE peserta_pkl SET laporan_pkl = '$nama_file' WHERE id = '$pk_id'");
                     $success = "Laporan berhasil diupload.";
                     $laporan_lama = $nama_file;
+
                 } else {
                     $error = "Gagal mengupload file.";
                 }
@@ -59,32 +78,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Handle Simpan/Update Pesan Admin
+
+    /* ---------- Simpan pesan ---------- */
     if (isset($_POST['simpan_catatan'])) {
+
         $pesan = trim($_POST['catatan_biodata']);
-        // Normalisasi line breaks (hapus \r, biarkan hanya \n)
-        $pesan = str_replace("\r\n", "\n", $pesan);
-        $pesan = str_replace("\r", "\n", $pesan);
-        $pesan = $conn->real_escape_string($pesan);
-        
-        // Update pesan (hanya 1 pesan per peserta, akan replace yang lama)
-        $update = $conn->query("UPDATE peserta_pkl SET pesan_admin = '$pesan' WHERE id = '$pk_id'");
-        
+
+        // Normalisasi newline
+        $pesan = str_replace(["\r\n", "\r"], "\n", $pesan);
+
+        $pesan_db = $conn->real_escape_string($pesan);
+
+        $update = $conn->query("UPDATE peserta_pkl 
+                                SET pesan_admin = '$pesan_db' 
+                                WHERE id = '$pk_id'");
+
         if ($update) {
-            if (!empty($pesan)) {
-                $success = "Pesan berhasil dikirim ke admin.";
-            } else {
-                $success = "Pesan berhasil dihapus.";
-            }
-            $pesan_admin = $pesan;
+            $success = !empty($pesan) ? "Pesan berhasil dikirim ke admin." : "Pesan berhasil dihapus.";
+            $pesan_admin = $pesan; // Load ulang ke preview
+            $pesan_textarea = $pesan;
         } else {
             $error = "Gagal menyimpan pesan: " . $conn->error;
         }
     }
-    // Convert literal "\n" (slash + n) → newline asli
-    $pesan_textarea = str_replace("\\n", "\n", $pesan_admin);
 }
+
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">
@@ -595,8 +615,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="bi bi-pencil-fill me-1"></i>Tulis Pesan Anda
                     </label>
                     <textarea name="catatan_biodata"
-                            class="form-control mb-3"
-                            placeholder="Tulis disini..."><?php echo htmlspecialchars($pesan_textarea, ENT_QUOTES, 'UTF-8'); ?></textarea>
+                        class="form-control mb-3"
+                        placeholder="Tulis disini..."><?php echo htmlspecialchars($pesan_textarea, ENT_QUOTES, 'UTF-8'); ?></textarea>
 
                     <button type="submit" name="simpan_catatan" class="btn btn-telkom">
                         <i class="bi bi-send-fill me-1"></i> <?= !empty($pesan_admin) ? 'Update Pesan' : 'Kirim Pesan' ?>
