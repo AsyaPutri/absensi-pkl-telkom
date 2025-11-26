@@ -407,6 +407,19 @@ $current_page = basename($_SERVER['PHP_SELF']);
                   <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal<?= $row['peserta_id']; ?>">
                     🔍
                   </button>
+                  <!-- Tombol Laporan -->
+                  <button class="btn btn-outline-success btn-sm me-1" 
+                          data-bs-toggle="modal" 
+                          data-bs-target="#modalLaporan<?= $row['peserta_id']; ?>">
+                      <i class="bi bi-file-earmark-text"></i>
+                  </button>
+
+                  <!-- Tombol Pesan -->
+                  <button class="btn btn-outline-warning btn-sm" 
+                          data-bs-toggle="modal" 
+                          data-bs-target="#modalPesan<?= $row['peserta_id']; ?>">
+                      <i class="bi bi-chat-dots"></i>
+                  </button>
                 </td>
 
                 <td class="text-center">
@@ -537,6 +550,73 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         </div>
                       </div>
 
+                      <!-- MODAL LAPORAN MAGANG -->
+                      <div class="modal fade" id="modalLaporan<?= $row['peserta_id']; ?>" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                          <div class="modal-content">
+
+                            <div class="modal-header bg-success text-white">
+                              <h5 class="modal-title">
+                                <i class="bi bi-file-earmark-text"></i> Laporan Magang
+                              </h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+
+                            <div class="modal-body">
+
+                              <?php if (!empty($row['laporan_pkl'])): ?>
+                                  <div class="p-3 border rounded bg-light">
+                                      <?= nl2br($row['laporan_pkl']); ?>
+                                  </div>
+                              <?php else: ?>
+                                  <div class="alert alert-warning mb-0">
+                                      Peserta belum mengisi laporan magang.
+                                  </div>
+                              <?php endif; ?>
+
+                            </div>
+
+                            <div class="modal-footer">
+                              <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                            </div>
+
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- MODAL PESAN PESERTA -->
+                      <div class="modal fade" id="modalPesan<?= $row['peserta_id']; ?>" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                          <div class="modal-content">
+
+                            <div class="modal-header bg-warning text-dark">
+                              <h5 class="modal-title">
+                                <i class="bi bi-chat-dots"></i> Pesan dari Peserta
+                              </h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+
+                            <div class="modal-body">
+
+                              <?php if (!empty($row['pesan_admin'])): ?>
+                                  <div class="p-3 border rounded bg-light">
+                                      <?= nl2br($row['pesan_admin']); ?>
+                                  </div>
+                              <?php else: ?>
+                                  <div class="alert alert-info mb-0">
+                                      Belum ada pesan dari peserta.
+                                  </div>
+                              <?php endif; ?>
+
+                            </div>
+
+                            <div class="modal-footer">
+                              <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                            </div>
+
+                          </div>
+                        </div>
+                      </div>
 
                       <!-- Cetak ID Card -->
                       <div class="text-center mt-3">
