@@ -1,4 +1,5 @@
 <?php
+session_start();
 // Koneksi database
 include "../config/database.php";
 
@@ -46,9 +47,6 @@ if ($result) {
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -73,6 +71,121 @@ if ($result) {
         .progress-bar-animated {
             background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
         }
+
+        .navbar-logo {
+            height: 85px;
+            width: auto;
+            margin-right: 12px;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand h5 {
+            color: #dc2626 !important;
+        }
+
+        .navbar-brand small {
+            color: #6b7280 !important;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            border: none;
+            color: white !important;
+            padding: 8px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+            color: white !important;
+        }
+
+        /* Fix untuk mobile menu */
+        @media (max-width: 991.98px) {
+            .navbar-collapse {
+                background: white;
+                padding: 1rem;
+                border-radius: 8px;
+                margin-top: 1rem;
+            }
+            
+            .btn-login {
+                width: 100%;
+            }
+        }
+
+        /* Pastikan navbar items terlihat */
+        .navbar-nav .nav-link {
+            color: #374151 !important;
+            padding: 0.5rem 1rem !important;
+            font-weight: 500;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: #dc2626 !important;
+        }
+
+        /* Hero Section Text Colors */
+        .hero-badge {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #dc2626 !important;
+            font-weight: 600;
+        }
+
+        .hero-title {
+            color: #111827;
+        }
+
+        .hero-title .text-danger {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-description {
+            color: #4b5563;
+        }
+
+        /* Section Headers */
+        .section-title {
+            color: #111827;
+        }
+
+        .section-subtitle {
+            color: #6b7280;
+        }
+
+        /* Footer customization */
+        .footer-logo {
+            height: 60px;
+            width: auto;
+            margin-right: 12px;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .footer-title {
+            color: #ffffff;
+            margin-bottom: 0;
+        }
+
+        .footer-text {
+            color: #d1d5db;
+        }
     </style>
 </head>
 <body class="gradient-bg">
@@ -80,19 +193,21 @@ if ($result) {
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <div class="bg-gradient-to-br from-red-600 to-red-700 p-2 rounded me-2">
-                    <i class="fas fa-briefcase text-white"></i>
-                </div>
+            <a class="navbar-brand" href="index.php">
+                <img src="assets/img/InStep.png" alt="InStep Logo" class="navbar-logo">
                 <div>
-                    <h5 class="mb-0 fw-bold">Telkom Witel Bekasi-Karawang</h5>
+                    <h5 class="mb-0 fw-bold">InStep</h5>
+                    <small class="text-muted">Telkom Witel Bekasi-Karawang</small>
                 </div>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
                     <li class="nav-item">
                         <a class="nav-link" href="#positions">Lowongan</a>
                     </li>
@@ -102,8 +217,10 @@ if ($result) {
                     <li class="nav-item">
                         <a class="nav-link" href="#process">Proses</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-secondary ms-2" href="login.php">Login Peserta</a>
+                    <li class="nav-item mt-2 mt-lg-0 ms-lg-3">
+                        <a class="btn btn-login" href="login.php">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -115,14 +232,14 @@ if ($result) {
         <div class="container">
             <div class="row justify-content-center text-center">
                 <div class="col-lg-8">
-                    <span class="badge bg-danger bg-opacity-10 text-danger mb-3 p-3">
+                    <span class="badge hero-badge mb-3 p-3">
                         🎓 Internship Program Telkom Witel Bekasi - Karawang
                     </span>
-                    <h1 class="display-3 fw-bold mb-4">
+                    <h1 class="display-3 fw-bold mb-4 hero-title">
                         Bergabunglah dengan <span class="text-danger">InStep</span>
                     </h1>
-                    <p class="lead text-muted mb-4">
-                        Program magang profesional di Telkom Witel Bekasi-Karawang. Kembangkan skill, bangun network, 
+                    <p class="lead mb-4 hero-description">
+                        Program internship profesional di Telkom Witel Bekasi-Karawang. Kembangkan skill, bangun network, 
                         dan raih pengalaman kerja bersama mentor terbaik di industri telekomunikasi.
                     </p>
                     <div class="d-flex gap-3 justify-content-center flex-wrap">
@@ -186,8 +303,8 @@ if ($result) {
     <section id="positions" class="py-5">
         <div class="container">
             <div class="text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3">Lowongan Unit</h2>
-                <p class="text-muted col-lg-6 mx-auto">
+                <h2 class="display-5 fw-bold mb-3 section-title">Lowongan Unit</h2>
+                <p class="section-subtitle col-lg-6 mx-auto">
                     Pilih unit yang sesuai dengan minat dan keahlian Anda. Setiap unit menawarkan pengalaman berbeda dengan mentor profesional.
                 </p>
             </div>
@@ -334,8 +451,8 @@ if ($result) {
     <section id="process" class="py-5">
         <div class="container">
             <div class="text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3">Persyaratan Internship</h2>
-                <p class="text-muted">Dokumen yang perlu disiapkan untuk mendaftar program Instep</p>
+                <h2 class="display-5 fw-bold mb-3 section-title">Persyaratan Internship</h2>
+                <p class="section-subtitle">Dokumen yang perlu disiapkan untuk mendaftar program Instep</p>
             </div>
 
             <div class="row g-4 mb-5">
@@ -346,7 +463,7 @@ if ($result) {
                     ['icon' => 'fa-id-card', 'title' => 'Kartu Mahasiswa', 'desc' => 'Kartu Tanda Mahasiswa atau Kartu Pelajar yang masih berlaku'],
                     ['icon' => 'fa-stamp', 'title' => 'Materai 10.000', 'desc' => 'Materai 10.000 rupiah untuk pengesahan dokumen'],
                     ['icon' => 'fa-mobile-alt', 'title' => 'Nomor Telkomsel', 'desc' => 'Nomor HP Telkomsel aktif terhubung dengan WhatsApp'],
-                    ['icon' => 'fa-laptop', 'title' => 'Laptop Pribadi', 'desc' => 'Membawa laptop pribadi untuk kegiatan magang']
+                    ['icon' => 'fa-laptop', 'title' => 'Laptop Pribadi', 'desc' => 'Membawa laptop pribadi untuk kegiatan internship']
                 ];
 
                 foreach ($requirements as $req): ?>
@@ -381,17 +498,13 @@ if ($result) {
                             <i class="fas fa-check-circle me-2"></i>
                             Unit di area Witel Bekasi dapat diikuti oleh jenjang apapun
                         </li>
-                        <li class="mb-0">
-                            <i class="fas fa-check-circle me-2"></i>
-                            Tanyakan kepada PIC yang bertugas terkait unit yang tersedia
-                        </li>
                     </ul>
                 </div>
             </div>
 
             <!-- Registration Process -->
             <div class="text-center mb-5">
-                <h2 class="display-5 fw-bold">Proses Pendaftaran</h2>
+                <h2 class="display-5 fw-bold section-title">Proses Pendaftaran</h2>
             </div>
 
             <div class="row g-4">
@@ -427,29 +540,33 @@ if ($result) {
     <footer class="bg-dark text-white py-5">
         <div class="container">
             <div class="text-center">
-                <div class="d-flex justify-content-center align-items-center mb-4">
-                    <div class="bg-danger rounded p-2 me-2">
-                        <i class="fas fa-briefcase"></i>
-                    </div>
-                    <h4 class="mb-0 fw-bold">Instep</h4>
-                </div>
-                <p class="text-white-50 mb-4">
-                    Telkom Witel Bekasi-Karawang<br>
-                    Jl. Ahmad Yani No. 123, Bekasi, Jawa Barat
+                <p class="footer-text mb-4">
+                    Telkom Indonesia | Witel Bekasi-Karawang<br>
+                    Jalan Rawa Tembaga IV No.4, Marga Jaya, Bekasi Selatan, Kota Bekasi, Jawa Barat 17141, Indonesia
                 </p>
+                
                 <div class="bg-secondary bg-opacity-25 rounded p-4 d-inline-block mb-4">
-                    <p class="mb-2 text-white-50">📞 Informasi & Bantuan:</p>
-                    <a href="https://wa.me/6285316144454" class="text-success fw-bold fs-5 text-decoration-none">
-                        085316144454 (Orient)
-                    </a>
+                    <p class="mb-0 footer-text">
+                        <i class="fas fa-envelope me-2" style="color: #d32f2f; font-size: 18px;"></i>
+                        tjslcwitelbekasi@gmail.com
+                    </p>
+
+                    <p class="mb-0 footer-text">
+                        <i class="fab fa-instagram me-2" style="color: #d32f2f; font-size: 18px;"></i>
+                        @telkombekasi
+                    </p>
                 </div>
+
+
+                
                 <hr class="border-secondary">
-                <p class="text-white-50 mb-0">© 2025 Instep - Telkom Indonesia. All rights reserved.</p>
+                
+                <p class="footer-text mb-0">© 2025 Instep - Telkom Indonesia. All rights reserved.</p>
             </div>
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
+    <!-- Bootstrap JS Bundle (includes Popper) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
