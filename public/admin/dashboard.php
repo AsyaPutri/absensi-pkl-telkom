@@ -528,6 +528,19 @@ $current_page = basename($_SERVER['PHP_SELF']);
           </div>
         </div>
 
+        <!-- Kelola Unit -->
+        <div class="col-12 col-md-6">
+          <a href="kelola_unit.php" class="action-card telkom-red">
+            <div class="d-flex justify-content-between align-items-center h-100">
+              <div>
+                <p class="action-card-text mb-2">Kelola Unit</p>
+                <small>Atur data unit / divisi internship</small>
+              </div>
+              <i class="bi bi-building action-card-icon"></i>
+            </div>
+          </a>
+        </div>
+
         <!-- Upload Pengumuman -->
         <div class="col-12 col-md-6">
           <a href="admin_upload.php" class="action-card telkom-red">
@@ -556,7 +569,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
       </div>
     </div>
-  </div>
+  </div>  
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

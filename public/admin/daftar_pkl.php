@@ -61,7 +61,7 @@ include "daftar_pkl_action.php";
     <hr class="text-white-50">
     <ul class="nav flex-column">
       <li><a href="dashboard.php" class="nav-link <?= ($current_page=='dashboard.php')?'active':'' ?>"><i class="bi bi-house-door me-2"></i> Beranda</a></li>
-      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Daftar Internship</a></li>
+      <li><a href="daftar_pkl.php" class="nav-link <?= ($current_page=='daftar_pkl.php')?'active':'' ?>"><i class="bi bi-journal-text me-2"></i> Data Daftar Internship</a></li>
       <li><a href="peserta.php" class="nav-link <?= ($current_page=='peserta.php')?'active':'' ?>"><i class="bi bi-people me-2"></i> Data Peserta Internship</a></li>
       <li><a href="absensi.php" class="nav-link <?= ($current_page=='absensi.php')?'active':'' ?>"><i class="bi bi-bar-chart-line me-2"></i> Rekap Absensi</a></li>
       <li><a href="riwayat_peserta.php" class="nav-link <?= ($current_page== 'riwayat_peserta.php') ?'active':'' ?> "><i class="bi bi-clock-history me-2"></i> Riwayat Peserta </a></li>
@@ -163,7 +163,26 @@ include "daftar_pkl_action.php";
                   <td><?= safe($row['nama']); ?></td>
                   <td><?= safe($row['instansi_pendidikan']); ?></td>
                   <td><?= safe($row['jurusan']); ?></td>
-                  <td><?= safe($row['no_hp'] ?? $row['no_hp']); ?></td>
+                  <td>
+                    <?php 
+                        // Ambil nomor mentah
+                        $nohp_raw = $row['no_hp'];
+
+                        // Hilangkan semua karakter selain angka
+                        $nohp = preg_replace('/[^0-9]/', '', $nohp_raw);
+
+                        // Jika nomor mulai dari 0 → ubah jadi 62 (format WA)
+                        if (substr($nohp, 0, 1) === '0') {
+                            $nohp = '62' . substr($nohp, 1);
+                        }
+                    ?>
+                    <a href="https://wa.me/<?= $nohp ?>" 
+                      target="_blank" 
+                      class="text-success fw-bold"
+                      title="Chat WhatsApp">
+                        <?= safe($nohp_raw); ?>
+                    </a>
+                  </td>
                   <td class="text-center">
                     <?php if($row['status']==='pending'): ?>
                       <span class="badge bg-warning text-dark">Pending</span>

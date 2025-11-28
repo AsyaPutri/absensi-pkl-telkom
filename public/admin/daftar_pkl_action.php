@@ -732,4 +732,5 @@ if (!empty($search)) {
 
 $sql .= " ORDER BY p.id DESC";
 $result = $conn->query($sql);
+$current_page = basename($_SERVER['PHP_SELF']);
 ?>
