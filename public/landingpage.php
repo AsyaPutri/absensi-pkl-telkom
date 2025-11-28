@@ -1,3 +1,28 @@
+<?php
+// Koneksi database
+include "../config/database.php";
+
+// Ambil data unit dari database
+$query = "SELECT id, nama_unit, lokasi, kuota, jurusan, jobdesk FROM unit_pkl ORDER BY nama_unit";
+$result = $conn->query($query);
+
+$positions = [];
+$total_unit = 0;
+$total_kuota = 0;
+
+if ($result) {
+    if ($result->num_rows > 0) {
+        while($row = $result->fetch_assoc()) {
+            $positions[] = $row;
+            $total_unit++;
+            $total_kuota += (int)$row['kuota'];
+        }
+    }
+} else {
+    // Debug error jika query gagal
+    die("Error query: " . $conn->error);
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -23,13 +48,13 @@
             background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
         }
         
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
         .card-hover:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        }
-        
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.5);
         }
         
         .progress-bar-animated {
@@ -47,8 +72,7 @@
                     <i class="fas fa-briefcase text-white"></i>
                 </div>
                 <div>
-                    <h5 class="mb-0 fw-bold">Instep</h5>
-                    <small class="text-muted">Telkom Witel Bekasi-Karawang</small>
+                    <h5 class="mb-0 fw-bold">Telkom Witel Bekasi-Karawang</h5>
                 </div>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -79,10 +103,10 @@
             <div class="row justify-content-center text-center">
                 <div class="col-lg-8">
                     <span class="badge bg-danger bg-opacity-10 text-danger mb-3 p-3">
-                        🎓 Internship Program 2025
+                        🎓 Internship Program Telkom Witel Bekasi - Karawang
                     </span>
                     <h1 class="display-3 fw-bold mb-4">
-                        Bergabunglah dengan <span class="text-danger">Instep</span>
+                        Bergabunglah dengan <span class="text-danger">InStep</span>
                     </h1>
                     <p class="lead text-muted mb-4">
                         Program magang profesional di Telkom Witel Bekasi-Karawang. Kembangkan skill, bangun network, 
@@ -109,7 +133,7 @@
                     <div class="card text-center border-0 shadow-sm card-hover transition">
                         <div class="card-body">
                             <i class="fas fa-briefcase text-danger fs-1 mb-3"></i>
-                            <h3 class="fw-bold">9</h3>
+                            <h3 class="fw-bold"><?= $total_unit ?></h3>
                             <p class="text-muted mb-0">Unit Tersedia</p>
                         </div>
                     </div>
@@ -118,7 +142,7 @@
                     <div class="card text-center border-0 shadow-sm card-hover transition">
                         <div class="card-body">
                             <i class="fas fa-users text-danger fs-1 mb-3"></i>
-                            <h3 class="fw-bold">24</h3>
+                            <h3 class="fw-bold"><?= $total_kuota ?></h3>
                             <p class="text-muted mb-0">Kuota Total</p>
                         </div>
                     </div>
@@ -156,158 +180,45 @@
             </div>
 
             <div class="row g-4">
-                <?php
-                $positions = [
-                    [
-                        'unit' => 'Witel Business Service',
-                        'location' => 'Rw. Tembaga',
-                        'quota' => 3,
-                        'remaining' => 2,
-                        'jobdesk' => [
-                            'Membuat Nomor Induk Berusaha pelanggan',
-                            'Menginput data pelanggan kedalam website Indibiz'
-                        ],
-                        'requirements' => ['Jurusan: Manajemen, Ilmu Komunikasi, Ilmu Komputer']
-                    ],
-                    [
-                        'unit' => 'Payment Collection',
-                        'location' => 'Rw. Tembaga',
-                        'quota' => 2,
-                        'remaining' => 1,
-                        'jobdesk' => [
-                            'Membuat dan mengirimkan tagihan kepada pelanggan',
-                            'Menghubungi atau menagih pelanggan yang menunggak',
-                            'Melakukan update status pembayaran tagihan'
-                        ],
-                        'requirements' => ['Jurusan: Akuntansi, Ilmu Komunikasi']
-                    ],
-                    [
-                        'unit' => 'Head of Representative Office',
-                        'location' => 'BKS, PKY, KLA, PG, KRJ, CKR, CBT',
-                        'quota' => 5,
-                        'remaining' => 3,
-                        'jobdesk' => [
-                            'Berkomunikasi dengan pelanggan',
-                            'Memberikan informasi produk yang ditawarkan',
-                            'Merekomendasikan produk kepada konsumen',
-                            'Update data pelanggan melalui My CX',
-                            'Melakukan customer visit'
-                        ],
-                        'requirements' => ['Jurusan: Ilmu Komunikasi, Manajemen']
-                    ],
-                    [
-                        'unit' => 'Performance Risk & QOS',
-                        'location' => 'Rw. Tembaga',
-                        'quota' => 2,
-                        'remaining' => 1,
-                        'jobdesk' => [
-                            'Mendata alamat dan akun social media pelanggan di Excel'
-                        ],
-                        'requirements' => ['Jurusan: Telekomunikasi']
-                    ],
-                    [
-                        'unit' => 'TJSL & Human Capital',
-                        'location' => 'Rw. Tembaga',
-                        'quota' => 3,
-                        'remaining' => 2,
-                        'jobdesk' => [
-                            'Melakukan kegiatan rekrutmen karyawan PKL baru',
-                            'Membuat surat keluar & masuk Karyawan PKL',
-                            'Pencatatan data administrasi karyawan PKL',
-                            'Menghubungi pelaku binaan UMKM Telkom'
-                        ],
-                        'requirements' => ['Jurusan: Manajemen SDM, Psikologi, Ilmu Komunikasi']
-                    ],
-                    [
-                        'unit' => 'Access Data Management',
-                        'location' => 'Area Witel',
-                        'quota' => 2,
-                        'remaining' => 1,
-                        'jobdesk' => [
-                            'Melakukan validasi data pelanggan (TV, Internet, Telepon)',
-                            'Mengisi dan membantu penginputan barcode'
-                        ],
-                        'requirements' => ['Jurusan: Telekomunikasi']
-                    ],
-                    [
-                        'unit' => 'Network Area & IS Operation - IP Engineer',
-                        'location' => 'STO Bekasi',
-                        'quota' => 2,
-                        'remaining' => 2,
-                        'gender' => 'Perempuan',
-                        'jobdesk' => [
-                            'Melakukan Operasi Harian (OPHAR) ke STO-STO',
-                            'Membersihkan perangkat metro dan server client',
-                            'Mengganti filter udara di perangkat metro',
-                            'Maintenance'
-                        ],
-                        'requirements' => ['Jurusan: Sistem Informasi, Teknik Elektronika, Telekomunikasi', 'Khusus Perempuan']
-                    ],
-                    [
-                        'unit' => 'Network Area & IS Operation - Transport',
-                        'location' => 'STO Bekasi',
-                        'quota' => 3,
-                        'remaining' => 2,
-                        'gender' => 'Laki-laki',
-                        'jobdesk' => [
-                            'Membersihkan perangkat BackBone',
-                            'Maintenance perangkat Backbone (DWDM)',
-                            'Pengawalan Kabel FO',
-                            'Pengukuran kabel Optik',
-                            'Perbaikan kabel FO cut',
-                            'Bertest Link DWDM untuk Client'
-                        ],
-                        'requirements' => ['Jurusan: Sistem Informasi, Teknik Elektronika, Telekomunikasi', 'Khusus Laki-laki']
-                    ],
-                    [
-                        'unit' => 'Access Service Operation',
-                        'location' => 'Area Witel',
-                        'quota' => 2,
-                        'remaining' => 1,
-                        'jobdesk' => [
-                            'Input orderan Telkomsel'
-                        ],
-                        'requirements' => ['Semua Jurusan']
-                    ]
-                ];
-
-                foreach ($positions as $index => $position) {
-                    $percentage = round(($position['remaining'] / $position['quota']) * 100);
-                    $badgeClass = $position['remaining'] > 0 ? 'bg-success' : 'bg-danger';
-                    ?>
+                <?php foreach ($positions as $index => $position): 
+                    $kuota = $position['kuota'];
+                    $badgeClass = 'bg-success';
+                    
+                    // Parse jobdesk (misal disimpan sebagai JSON atau dipisah dengan |||)
+                    $jobdesk_array = [];
+                    if (!empty($position['jobdesk'])) {
+                        // Coba parse sebagai JSON dulu
+                        $decoded = json_decode($position['jobdesk'], true);
+                        if (is_array($decoded)) {
+                            $jobdesk_array = $decoded;
+                        } else {
+                            // Jika bukan JSON, split dengan delimiter
+                            $jobdesk_array = explode('|||', $position['jobdesk']);
+                        }
+                    }
+                    
+                    // Parse jurusan
+                    $requirements = [];
+                    if (!empty($position['jurusan'])) {
+                        $requirements[] = 'Jurusan: ' . $position['jurusan'];
+                    }
+                ?>
                     <div class="col-lg-4 col-md-6">
-                        <div class="card border-0 shadow-sm h-100 card-hover transition">
+                        <div class="card border-0 shadow-sm h-100 card-hover">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <div>
-                                        <h5 class="fw-bold mb-1"><?= $position['unit'] ?></h5>
-                                        <small class="text-muted">📍 <?= $position['location'] ?></small>
-                                        <?php if (isset($position['gender'])): ?>
-                                            <br><span class="badge bg-info text-dark mt-1"><?= $position['gender'] ?></span>
-                                        <?php endif; ?>
+                                        <h5 class="fw-bold mb-1"><?= htmlspecialchars($position['nama_unit']) ?></h5>
+                                        <small class="text-muted">📍 <?= htmlspecialchars($position['lokasi']) ?></small>
                                     </div>
                                     <span class="badge <?= $badgeClass ?>">
-                                        <?= $position['remaining'] > 0 ? $position['remaining'] . ' slot' : 'Penuh' ?>
+                                        <?= $kuota ?> slot
                                     </span>
                                 </div>
                                 
-                                <div class="mb-3">
-                                    <div class="d-flex justify-content-between text-muted small mb-2">
-                                        <span>Kuota: <?= $position['quota'] ?> orang</span>
-                                        <span><?= $percentage ?>%</span>
-                                    </div>
-                                    <div class="progress" style="height: 8px;">
-                                        <div class="progress-bar progress-bar-animated" role="progressbar" 
-                                             style="width: <?= $percentage ?>%" 
-                                             aria-valuenow="<?= $percentage ?>" 
-                                             aria-valuemin="0" 
-                                             aria-valuemax="100"></div>
-                                    </div>
-                                </div>
-                                
-                                <button class="btn btn-outline-danger w-100" 
+                                <button class="btn btn-outline-danger w-100 mt-3" 
                                         data-bs-toggle="modal" 
-                                        data-bs-target="#unitModal<?= $index ?>">
+                                        data-bs-target="#unitModal<?= $position['id'] ?>">
                                     Lihat Detail
                                 </button>
                             </div>
@@ -315,54 +226,55 @@
                     </div>
 
                     <!-- Modal for each position -->
-                    <div class="modal fade" id="unitModal<?= $index ?>" tabindex="-1">
+                    <div class="modal fade" id="unitModal<?= $position['id'] ?>" tabindex="-1">
                         <div class="modal-dialog modal-lg modal-dialog-scrollable">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <div>
-                                        <h4 class="modal-title fw-bold"><?= $position['unit'] ?></h4>
-                                        <p class="mb-0 text-muted">📍 <?= $position['location'] ?></p>
-                                        <?php if (isset($position['gender'])): ?>
-                                            <span class="badge bg-info text-dark">Khusus <?= $position['gender'] ?></span>
-                                        <?php endif; ?>
-                                        <span class="badge <?= $badgeClass ?> ms-2">
-                                            <?= $position['remaining'] ?> dari <?= $position['quota'] ?> slot tersisa
+                                        <h4 class="modal-title fw-bold"><?= htmlspecialchars($position['nama_unit']) ?></h4>
+                                        <p class="mb-0 text-muted">📍 <?= htmlspecialchars($position['lokasi']) ?></p>
+                                        <span class="badge <?= $badgeClass ?>">
+                                            <?= $kuota ?> slot tersedia
                                         </span>
                                     </div>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <h5 class="fw-bold mb-3">
-                                        <i class="fas fa-file-alt text-danger me-2"></i>Job Description
-                                    </h5>
-                                    <ul class="list-unstyled">
-                                        <?php foreach ($position['jobdesk'] as $job): ?>
-                                            <li class="mb-2">
-                                                <i class="fas fa-check-circle text-success me-2"></i><?= $job ?>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
+                                    <?php if (!empty($jobdesk_array)): ?>
+                                        <h5 class="fw-bold mb-3">
+                                            <i class="fas fa-file-alt text-danger me-2"></i>Job Description
+                                        </h5>
+                                        <ul class="list-unstyled">
+                                            <?php foreach ($jobdesk_array as $job): ?>
+                                                <li class="mb-2">
+                                                    <i class="fas fa-check-circle text-success me-2"></i><?= htmlspecialchars(trim($job)) ?>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
 
-                                    <h5 class="fw-bold mb-3 mt-4">
-                                        <i class="fas fa-users text-danger me-2"></i>Persyaratan
-                                    </h5>
-                                    <ul class="list-unstyled">
-                                        <?php foreach ($position['requirements'] as $req): ?>
-                                            <li class="mb-2">
-                                                <i class="fas fa-check-circle text-primary me-2"></i><?= $req ?>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
+                                    <?php if (!empty($requirements)): ?>
+                                        <h5 class="fw-bold mb-3 mt-4">
+                                            <i class="fas fa-users text-danger me-2"></i>Persyaratan
+                                        </h5>
+                                        <ul class="list-unstyled">
+                                            <?php foreach ($requirements as $req): ?>
+                                                <li class="mb-2">
+                                                    <i class="fas fa-check-circle text-primary me-2"></i><?= htmlspecialchars($req) ?>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="modal-footer">
-                                    <a href="register.php" class="btn btn-danger gradient-red w-100">
+                                    <a href="register.php?unit_id=<?= $position['id'] ?>" class="btn btn-danger gradient-red w-100">
                                         Daftar Posisi Ini <i class="fas fa-arrow-right ms-2"></i>
                                     </a>
                                 </div>
                             </div>
                         </div>
                     </div>
-                <?php } ?>
+                <?php endforeach; ?>
             </div>
         </div>
     </section>

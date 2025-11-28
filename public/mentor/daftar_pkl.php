@@ -2,6 +2,29 @@
 include "../../includes/auth.php";
 include "../../config/database.php";
 
+// Ambil unit mentor jika belum ada di session
+if (!isset($_SESSION['unit_mentor_id']) || !isset($_SESSION['unit_mentor_nama'])) {
+    $email = $_SESSION['email'];
+
+    $q = $conn->query("
+        SELECT cp_karyawan.unit_id, unit_pkl.nama_unit 
+        FROM cp_karyawan 
+        LEFT JOIN unit_pkl ON cp_karyawan.unit_id = unit_pkl.id
+        WHERE cp_karyawan.email = '$email'
+        LIMIT 1
+    ");
+
+    if ($q && $q->num_rows > 0) {
+        $d = $q->fetch_assoc();
+        $_SESSION['unit_mentor_id'] = $d['unit_id'];
+        $_SESSION['unit_mentor_nama'] = $d['nama_unit'];
+    } else {
+        $_SESSION['unit_mentor_id'] = '';
+        $_SESSION['unit_mentor_nama'] = 'Unit Tidak Ditemukan';
+    }
+}
+
+
 // ✅ Ambil data PKL dengan JOIN ke tabel unit_pkl
 $query = "
 SELECT d.*, u.nama_unit 
@@ -18,6 +41,12 @@ $unitQuery = mysqli_query($conn, "SELECT * FROM unit_pkl ORDER BY nama_unit ASC"
 if (!$result) {
   die("<h3 style='color:red; text-align:center;'>Query gagal: " . mysqli_error($conn) . "</h3>");
 }
+
+// Ambil data kebutuhan unit berdasarkan unit mentor
+$unit_id = $_SESSION['unit_mentor_id'];
+$kebutuhan = mysqli_query($conn, "SELECT * FROM unit_pkl WHERE id='$unit_id'");
+$data_kebutuhan = mysqli_fetch_assoc($kebutuhan);
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -230,6 +259,9 @@ html, body {
         <i class="bi bi-search"></i>
         <input type="text" id="searchInput" class="form-control" placeholder="Search...">
       </div>
+      <button class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#kebutuhanModal">
+        <i class="bi bi-gear"></i> Input Kebutuhan Unit
+      </button>
     </div>
 
     <div class="card-body table-responsive">
@@ -297,70 +329,70 @@ html, body {
   </div>
 </div>
 
-<!-- Modal Detail -->
-<div class="modal fade" id="rincianModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Detail Pendaftar</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          <div class="col-md-6">
-            <label>Nama:</label> <p id="r-nama"></p>
-            <label>Email:</label> <p id="r-email"></p>
-            <label>Instansi:</label> <p id="r-instansi"></p>
-            <label>Jurusan:</label> <p id="r-jurusan"></p>
-            <label>Semester:</label> <p id="r-semester"></p>
-            <label>NIS/NPM:</label> <p id="r-nis"></p>
-          </div>
-          <div class="col-md-6">
-            <label>IPK/Nilai Rata-Rata:</label> <p id="r-ipk"></p>
-            <label>Nomor Surat:</label> <p id="r-nomorsurat"></p>
-            <label>Skill:</label> <p id="r-skill"></p>
-            <label>Unit:</label> <p id="r-unit"></p>
-            <label>Alamat:</label> <p id="r-alamat"></p>
-            <label>Periode:</label> <p id="r-periode"></p>
-          </div>
-        </div>
-        <hr>
-        <div class="d-flex justify-content-around mt-3">
-          <a id="r-foto" class="btn btn-outline-primary" target="_blank">Foto Formal</a>
-          <a id="r-ktm" class="btn btn-outline-primary" target="_blank">Kartu Pelajar / KTM</a>
-          <a id="r-surat" class="btn btn-outline-primary" target="_blank">Surat Permohonan PKL</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Rekomendasi -->
-<div class="modal fade" id="rekomModal" tabindex="-1">
+<!-- Modal Kebutuhan Unit -->
+<div class="modal fade" id="kebutuhanModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form action="proses_rekomendasi.php" method="POST">
-        <div class="modal-header">
-          <h5 class="modal-title">Rekomendasikan Peserta</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+      <form action="proses_kebutuhan.php" method="POST">
+
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Atur Kebutuhan Unit</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
 
         <div class="modal-body">
-          <input type="hidden" name="id" id="id_peserta">
 
-          <p>Yakin ingin merekomendasikan <b id="nama_peserta"></b>?</p>
-          <p class="text-muted small">
-            Unit rekomendasi akan mengikuti unit Anda secara otomatis.
-          </p>
+          <!-- Unit -->
+          <div class="mb-3">
+            <label class="form-label">Unit</label>
+            <input type="text" class="form-control" 
+                value="<?= $_SESSION['unit_mentor_nama'] ?>" disabled>
+
+            <input type="hidden" name="unit_id" 
+                value="<?= $_SESSION['unit_mentor_id'] ?>">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Kuota Dibutuhkan</label>
+            <input type="number" class="form-control" name="kuota" 
+                value="<?= $data_kebutuhan['kuota'] ?? '' ?>" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Jurusan yang Diterima</label>
+            <input type="text" class="form-control" name="jurusan"
+                value="<?= $data_kebutuhan['jurusan'] ?? '' ?>"
+                placeholder="Contoh: Sistem Informasi, Manajemen" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Jobdesk</label>
+            <textarea class="form-control" name="jobdesk" rows="3" required><?= $data_kebutuhan['jobdesk'] ?? '' ?></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Lokasi</label>
+            <input type="text" class="form-control" name="lokasi"
+                value="<?= $data_kebutuhan['lokasi'] ?? '' ?>" 
+                placeholder="Contoh: Witel Bekasi Karawang">
+          </div>
+
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-success" type="submit">Ya, Rekomendasikan</button>
+          <button class="btn btn-danger" type="submit">
+            <i class="bi bi-save"></i> Simpan Kebutuhan
+          </button>
         </div>
+
       </form>
+
     </div>
   </div>
 </div>
+
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
