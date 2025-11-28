@@ -13,9 +13,22 @@ $total_kuota = 0;
 if ($result) {
     if ($result->num_rows > 0) {
         while($row = $result->fetch_assoc()) {
+            // Hitung jumlah pendaftar pending untuk unit ini
+            $unit_id = $row['id'];
+            $count_query = "SELECT COUNT(*) as total_pendaftar FROM daftar_pkl WHERE unit_id = ? AND status = 'pending'";
+            $stmt = $conn->prepare($count_query);
+            $stmt->bind_param("i", $unit_id);
+            $stmt->execute();
+            $count_result = $stmt->get_result();
+            $count_row = $count_result->fetch_assoc();
+            
+            $row['total_pendaftar'] = $count_row['total_pendaftar'];
+            
             $positions[] = $row;
             $total_unit++;
             $total_kuota += (int)$row['kuota'];
+            
+            $stmt->close();
         }
     }
 } else {
@@ -181,8 +194,10 @@ if ($result) {
 
             <div class="row g-4">
                 <?php foreach ($positions as $index => $position): 
-                    $kuota = $position['kuota'];
+                    $kuota = (int)$position['kuota'];
+                    $pendaftar = (int)$position['total_pendaftar'];
                     $badgeClass = 'bg-success';
+                    $badgeText = $pendaftar . ' Pendaftar';
                     
                     // Parse jobdesk (misal disimpan sebagai JSON atau dipisah dengan |||)
                     $jobdesk_array = [];
@@ -212,11 +227,18 @@ if ($result) {
                                         <small class="text-muted">📍 <?= htmlspecialchars($position['lokasi']) ?></small>
                                     </div>
                                     <span class="badge <?= $badgeClass ?>">
-                                        <?= $kuota ?> slot
+                                        <?= $badgeText ?>
                                     </span>
                                 </div>
                                 
-                                <button class="btn btn-outline-danger w-100 mt-3" 
+                                <div class="mb-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-users text-danger me-1"></i>
+                                        <strong>Kuota:</strong> <?= $kuota ?> orang
+                                    </small>
+                                </div>
+                                
+                                <button class="btn btn-outline-danger w-100" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#unitModal<?= $position['id'] ?>">
                                     Lihat Detail
@@ -233,13 +255,18 @@ if ($result) {
                                     <div>
                                         <h4 class="modal-title fw-bold"><?= htmlspecialchars($position['nama_unit']) ?></h4>
                                         <p class="mb-0 text-muted">📍 <?= htmlspecialchars($position['lokasi']) ?></p>
-                                        <span class="badge <?= $badgeClass ?>">
-                                            <?= $kuota ?> slot tersedia
-                                        </span>
                                     </div>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
+                                    <!-- Kuota Information -->
+                                    <div class="alert alert-info d-flex align-items-center mb-4">
+                                        <i class="fas fa-info-circle fs-4 me-3"></i>
+                                        <div>
+                                            <strong>Kuota:</strong> <?= $kuota ?> orang
+                                        </div>
+                                    </div>
+
                                     <?php if (!empty($jobdesk_array)): ?>
                                         <h5 class="fw-bold mb-3">
                                             <i class="fas fa-file-alt text-danger me-2"></i>Job Description
@@ -373,7 +400,7 @@ if ($result) {
                     ['step' => '1', 'title' => 'Registrasi Online', 'desc' => 'Isi formulir pendaftaran dan upload dokumen yang diperlukan'],
                     ['step' => '2', 'title' => 'Seleksi Administrasi', 'desc' => 'Tim HR akan melakukan verifikasi dokumen dan kelengkapan data'],
                     ['step' => '3', 'title' => 'Interview', 'desc' => 'Wawancara dengan tim HR dan calon mentor dari unit terkait'],
-                    ['step' => '4', 'title' => 'Pengumuman', 'desc' => 'Pengumuman hasil seleksi via email dan dapat login ke sistem']
+                    ['step' => '4', 'title' => 'Pengumuman', 'desc' => 'Pengumuman hasil seleksi via chat whatsapp dan dapat login ke sistem']
                 ];
 
                 foreach ($process as $p): ?>
