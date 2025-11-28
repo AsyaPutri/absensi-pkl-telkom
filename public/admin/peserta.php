@@ -32,6 +32,8 @@ $sql = "
     p.tgl_mulai, 
     p.tgl_selesai, 
     p.status,
+    p.laporan_pkl,
+    p.pesan_admin,
     d.skill, 
     d.durasi, 
     d.alamat,
@@ -105,6 +107,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
   <!-- Bootstrap & Icon -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
   <style>
     :root {
@@ -403,46 +406,52 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <td><?= htmlspecialchars($row['no_hp']) ?></td>
                 <td><?= htmlspecialchars($row['nama_unit']) ?></td>
 
+                <!-- Tombol aksi -->
                 <td class="text-center">
-                  <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal<?= $row['peserta_id']; ?>">
-                    🔍
-                  </button>
-                  <!-- Tombol Laporan -->
-                  <button class="btn btn-outline-success btn-sm me-1" 
-                          data-bs-toggle="modal" 
-                          data-bs-target="#modalLaporan<?= $row['peserta_id']; ?>">
-                      <i class="bi bi-file-earmark-text"></i>
-                  </button>
+                  <div class="inline-flex items-center justify-center gap-2">
 
-                  <!-- Tombol Pesan -->
-                  <button class="btn btn-outline-warning btn-sm" 
-                          data-bs-toggle="modal" 
-                          data-bs-target="#modalPesan<?= $row['peserta_id']; ?>">
+                    <!-- RINCIAN -->
+                    <button type="button"
+                      class="px-2 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                      data-bs-toggle="modal"
+                      data-bs-target="#detailModal<?= $row['peserta_id']; ?>">
+                      <i class="bi bi-search"></i>
+                    </button>
+
+                    <!-- LAPORAN -->
+                    <button type="button"
+                      class="px-2 py-1 rounded-md bg-yellow-400 text-black hover:bg-yellow-500"
+                      data-bs-toggle="modal"
+                      data-bs-target="#modalLaporan<?= $row['peserta_id']; ?>">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </button>
+
+                    <!-- PESAN -->
+                    <button type="button"
+                      class="px-2 py-1 rounded-md bg-green-500 text-white hover:bg-green-600"
+                      data-bs-toggle="modal"
+                      data-bs-target="#modalPesan<?= $row['peserta_id']; ?>">
                       <i class="bi bi-chat-dots"></i>
-                  </button>
+                    </button>
+                  </div>
                 </td>
 
+                <!-- Status -->
                 <td class="text-center">
                   <?php if ($row['status'] == 'selesai' || date('Y-m-d') > $row['tgl_selesai']): ?>
-                    <span class="badge bg-success text-white">Selesai</span>
+                    <span class="badge bg-success">Selesai</span>
                   <?php else: ?>
-                    <span class="badge bg-success">Berlangsung</span>
+                    <span class="badge bg-info">Berlangsung</span>
                   <?php endif; ?>
                 </td>
 
+                <!-- Tombol Selesai -->
                 <td class="text-center">
                   <?php if ($row['status'] == 'berlangsung' && date('Y-m-d') <= $row['tgl_selesai']): ?>
-                    <form 
-                      id="formSelesai<?= $row['peserta_id'] ?>" 
-                      action="ubah_status.php" 
-                      method="POST" 
-                      style="display:inline;">
+                    <form id="formSelesai<?= $row['peserta_id'] ?>" action="ubah_status.php" method="POST">
                       <input type="hidden" name="id" value="<?= $row['peserta_id'] ?>">
-                      <button 
-                        type="button" 
-                        class="btn btn-sm btn-warning"
-                        onclick="konfirmasiSelesai(<?= $row['peserta_id'] ?>)"
-                      >
+                      <button type="button" class="btn btn-sm btn-warning"
+                        onclick="konfirmasiSelesai(<?= $row['peserta_id'] ?>)">
                         <i class="bi bi-check2-circle"></i> Selesai
                       </button>
                     </form>
@@ -450,23 +459,19 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </td>
               </tr>
 
-              <!-- Modal Detail Peserta -->
-              <!-- Modal Detail Peserta -->
-              <div class="modal fade" id="detailModal<?= $row['peserta_id']; ?>" tabindex="-1" aria-hidden="true">
+              <!-- ===================================================== -->
+              <!-- ================  MODAL DETAIL PESERTA =============== -->
+              <!-- ===================================================== -->
+              <div class="modal fade" id="detailModal<?= $row['peserta_id']; ?>" tabindex="-1">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                   <div class="modal-content">
 
-                    <!-- Header -->
                     <div class="modal-header bg-danger text-white">
-                      <h5 class="modal-title fw-bold">
-                        Rincian Peserta: <?= htmlspecialchars($row['nama']); ?>
-                      </h5>
+                      <h5 class="modal-title fw-bold">Rincian Peserta: <?= htmlspecialchars($row['nama']); ?></h5>
                       <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
 
-                    <!-- Body -->
                     <div class="modal-body">
-
                       <!-- Informasi Pribadi -->
                       <h6 class="fw-bold text-danger mb-3">Informasi Pribadi</h6>
 
@@ -550,74 +555,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         </div>
                       </div>
 
-                      <!-- MODAL LAPORAN MAGANG -->
-                      <div class="modal fade" id="modalLaporan<?= $row['peserta_id']; ?>" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered modal-lg">
-                          <div class="modal-content">
-
-                            <div class="modal-header bg-success text-white">
-                              <h5 class="modal-title">
-                                <i class="bi bi-file-earmark-text"></i> Laporan Magang
-                              </h5>
-                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-
-                            <div class="modal-body">
-
-                              <?php if (!empty($row['laporan_pkl'])): ?>
-                                  <div class="p-3 border rounded bg-light">
-                                      <?= nl2br($row['laporan_pkl']); ?>
-                                  </div>
-                              <?php else: ?>
-                                  <div class="alert alert-warning mb-0">
-                                      Peserta belum mengisi laporan magang.
-                                  </div>
-                              <?php endif; ?>
-
-                            </div>
-
-                            <div class="modal-footer">
-                              <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                            </div>
-
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- MODAL PESAN PESERTA -->
-                      <div class="modal fade" id="modalPesan<?= $row['peserta_id']; ?>" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered">
-                          <div class="modal-content">
-
-                            <div class="modal-header bg-warning text-dark">
-                              <h5 class="modal-title">
-                                <i class="bi bi-chat-dots"></i> Pesan dari Peserta
-                              </h5>
-                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-
-                            <div class="modal-body">
-
-                              <?php if (!empty($row['pesan_admin'])): ?>
-                                  <div class="p-3 border rounded bg-light">
-                                      <?= nl2br($row['pesan_admin']); ?>
-                                  </div>
-                              <?php else: ?>
-                                  <div class="alert alert-info mb-0">
-                                      Belum ada pesan dari peserta.
-                                  </div>
-                              <?php endif; ?>
-
-                            </div>
-
-                            <div class="modal-footer">
-                              <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                            </div>
-
-                          </div>
-                        </div>
-                      </div>
-
                       <!-- Cetak ID Card -->
                       <div class="text-center mt-3">
                         <a href="id_card/generate_idcard.php?id=<?= $row['peserta_id']; ?>"
@@ -625,31 +562,170 @@ $current_page = basename($_SERVER['PHP_SELF']);
                           <i class="bi bi-printer"></i> Cetak ID Card
                         </a>
                       </div>
-
+                    </div>
+                     <!-- FOOTER -->
+                     <div class="modal-footer bg-light">
+                      <button class="btn px-4 text-white"
+                              style="background: #d50000; border-radius: 8px;"
+                              data-bs-dismiss="modal">
+                        Tutup
+                      </button>
                     </div>
 
-                    <!-- Footer -->
-                    <div class="modal-footer">
-                      <button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    </div>
                   </div>
                 </div>
               </div>
+
+              <!-- ===================================================== -->
+              <!-- ==================  MODAL LAPORAN  =================== -->
+              <!-- ===================================================== -->
+              <div class="modal fade" id="modalLaporan<?= $row['peserta_id']; ?>" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                  <div class="modal-content shadow-lg border-0" style="border-radius: 12px;">
+
+                    <?php
+                      // Siapkan variabel file dan ekstensi lebih awal (untuk HEADER & BODY)
+                      $file = !empty($row['laporan_pkl']) ? "../../uploads/laporan/" . $row['laporan_pkl'] : null;
+                      $ext  = $file ? strtolower(pathinfo($file, PATHINFO_EXTENSION)) : null;
+                    ?>
+
+                    <!-- HEADER -->
+                    <div class="modal-header text-white"
+                        style="background: linear-gradient(90deg, #d50000, #ff5252); border-radius: 12px 12px 0 0;">
+                      <h5 class="modal-title fw-bold">
+                        <i class="bi bi-file-earmark-text"></i>
+                        Laporan Magang — <?= htmlspecialchars($row['nama']); ?> - <?= htmlspecialchars($row['instansi_pendidikan']); ?>
+                      </h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+
+
+                    <!-- BODY -->
+                    <div class="modal-body" style="background: #fafafa;">
+
+                      <?php if (!empty($row['laporan_pkl'])): ?>
+
+                        <!-- PREVIEW -->
+                        <div class="p-4 bg-white border rounded shadow-sm mb-3"
+                            style="border-left: 4px solid #d50000;">
+
+                          <h6 class="fw-bold mb-3">Preview Laporan</h6>
+
+                          <?php if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])): ?>
+
+                            <img src="<?= $file ?>" class="img-fluid rounded shadow">
+
+                          <?php elseif ($ext === 'pdf'): ?>
+
+                            <embed src="<?= $file ?>" type="application/pdf"
+                                  style="width:100%; height:500px; border-radius:8px; border:1px solid #ccc;" />
+
+                          <?php elseif ($ext === 'txt'): ?>
+
+                            <pre style="background:#f5f5f5; padding:15px; border-radius:8px; max-height:400px; overflow:auto;"><?= htmlspecialchars(file_get_contents($file)); ?>
+                            </pre>
+
+                          <?php else: ?>
+
+                            <div class="alert alert-info">
+                              File laporan tidak bisa dipreview. Silakan download.
+                            </div>
+
+                          <?php endif; ?>
+                        </div>
+
+                        <!-- DOWNLOAD -->
+                        <div>
+                          <a href="<?= $file ?>"
+                            download="laporan magang - <?= htmlspecialchars($row['nama']); ?> - <?= htmlspecialchars($row['instansi_pendidikan']); ?>.<?= $ext; ?>"
+                            class="btn text-white px-4"
+                            style="background:#d50000; border-radius: 8px;">
+                            <i class="bi bi-download"></i> Download Laporan
+                          </a>
+                        </div>
+
+                      <?php else: ?>
+
+                        <div class="alert alert-danger mb-0">
+                          Peserta belum mengupload laporan magang.
+                        </div>
+
+                      <?php endif; ?>
+
+                    </div>
+
+
+                    <!-- FOOTER -->
+                    <div class="modal-footer bg-light">
+                      <button class="btn px-4 text-white"
+                              style="background: #d50000; border-radius: 8px;"
+                              data-bs-dismiss="modal">
+                        Tutup
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <!-- ===================================================== -->
+              <!-- ==================== MODAL PESAN ===================== -->
+              <!-- ===================================================== -->
+              <div class="modal fade" id="modalPesan<?= $row['peserta_id']; ?>" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content shadow-lg border-0" style="border-radius: 14px; overflow: hidden;">
+
+                    <!-- HEADER -->
+                    <div class="modal-header text-white"
+                        style="background: linear-gradient(90deg, #d50000, #ff1744);">
+                      <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                        <i class="bi bi-chat-dots-fill"></i>
+                        Pesan — <?= htmlspecialchars($row['nama']); ?>
+                      </h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <!-- BODY -->
+                    <div class="modal-body" style="background: #fdfdfd;">
+                      <?php if (!empty($row['pesan_admin'])): ?>
+                        <div class="p-3 bg-white border rounded shadow-sm"
+                            style="border-left: 5px solid #d50000; border-radius: 10px; font-size: 15px;">
+                          <?= nl2br(htmlspecialchars($row['pesan_admin'])); ?>
+                        </div>
+                      <?php else: ?>
+                        <div class="alert alert-danger mb-0 d-flex align-items-center gap-2"
+                            style="background: #ffebee; border: 1px solid #ffcdd2; color: #c62828;">
+                          <i class="bi bi-exclamation-circle-fill"></i>
+                          Belum ada pesan dari peserta.
+                        </div>
+                      <?php endif; ?>
+                    </div>
+
+                    <!-- FOOTER -->
+                    <div class="modal-footer bg-light">
+                      <button class="btn px-4 text-white"
+                              style="background: #d50000; border-radius: 8px;"
+                              data-bs-dismiss="modal">
+                        Tutup
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
             <?php endwhile; ?>
           <?php else: ?>
-            <tr>
-              <td colspan="12" class="text-center text-muted">Belum ada peserta Internship</td>
-            </tr>
+            <tr><td colspan="12" class="text-center text-muted">Belum ada peserta Internship</td></tr>
           <?php endif; ?>
         </tbody>
       </table>
     </div>
   </div>
-  </div>
 
-
-  <!-- Bootstrap JS -->
+  <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const menuToggle = document.getElementById('menuToggle');
