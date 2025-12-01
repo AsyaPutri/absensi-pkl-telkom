@@ -130,10 +130,6 @@ $units = $conn->query("SELECT * FROM unit_pkl ORDER BY id DESC");
                 <?= htmlspecialchars($nama); ?>
             </h3>
 
-            <p class="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed line-clamp-3 flex-grow">
-                <?= $deskripsi !== '' ? htmlspecialchars($deskripsi) : '<span class="text-gray-400 italic">Tidak ada deskripsi</span>'; ?>
-            </p>
-
             <!-- Info -->
             <div class="text-xs sm:text-sm space-y-1.5 sm:space-y-2 mb-4 sm:mb-5 bg-gray-50 p-3 rounded-lg">
                 <p class="flex justify-between">
@@ -201,11 +197,6 @@ $units = $conn->query("SELECT * FROM unit_pkl ORDER BY id DESC");
             <div class="mb-3 sm:mb-4">
                 <label class="font-semibold block mb-1.5 text-sm sm:text-base text-gray-700">Nama Unit</label>
                 <input type="text" name="nama_unit" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm sm:text-base focus:ring-2 focus:ring-[var(--telkom-red)] focus:border-transparent transition" required>
-            </div>
-
-            <div class="mb-4 sm:mb-5">
-                <label class="font-semibold block mb-1.5 text-sm sm:text-base text-gray-700">Deskripsi</label>
-                <textarea name="deskripsi" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm sm:text-base focus:ring-2 focus:ring-[var(--telkom-red)] focus:border-transparent transition" rows="3"></textarea>
             </div>
 
             <div class="flex justify-end gap-2 sm:gap-3 mt-5 sm:mt-6">
