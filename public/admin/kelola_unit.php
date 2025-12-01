@@ -327,7 +327,6 @@ function closeModal(id) {
 function openEditUnit(data) {
     document.getElementById("edit_id").value = data.id;
     document.getElementById("edit_nama").value = data.nama_unit;
-    document.getElementById("edit_deskripsi").value = data.deskripsi;
     openModal("modalEdit");
 }
 
