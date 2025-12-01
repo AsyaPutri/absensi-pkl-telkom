@@ -34,6 +34,7 @@ $sql = "
     p.status,
     p.laporan_pkl,
     p.pesan_admin,
+    p.pesan_status,
     d.skill, 
     d.durasi, 
     d.alamat,
@@ -80,6 +81,21 @@ if (!empty($search)) {
       OR p.jurusan LIKE '%$s%'
       OR d.skill LIKE '%$s%'
   )";
+}
+
+if (isset($_GET['read_id'])) {
+
+  $read_id = intval($_GET['read_id']);
+
+  if ($read_id > 0) {
+      $conn->query("
+          UPDATE peserta_pkl
+          SET pesan_status = 1
+          WHERE id = '$read_id'
+      ");
+  }
+
+  exit;
 }
 
 // ============================
@@ -427,11 +443,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     </button>
 
                     <!-- PESAN -->
-                    <button type="button"
-                      class="px-2 py-1 rounded-md bg-green-500 text-white hover:bg-green-600"
+                    <button 
+                      type="button"
+                      class="position-relative px-2 py-1 rounded-md bg-green-500 text-white hover:bg-green-600"
                       data-bs-toggle="modal"
-                      data-bs-target="#modalPesan<?= $row['peserta_id']; ?>">
+                      data-bs-target="#modalPesan<?= $row['peserta_id']; ?>"
+                      onclick="fetch('?read_id=<?= $row['peserta_id']; ?>').then(()=>{ this.querySelector('.badge')?.remove(); });">
+
                       <i class="bi bi-chat-dots"></i>
+
+                      <?php if ($row['pesan_status'] == 0 && !empty($row['pesan_admin'])): ?>
+                          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                              !
+                          </span>
+                      <?php endif; ?>
                     </button>
                   </div>
                 </td>
@@ -671,6 +696,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
               <!-- ===================================================== -->
               <!-- ==================== MODAL PESAN ===================== -->
               <!-- ===================================================== -->
+              <!-- ===================================================== -->
+              <!-- ==================== MODAL PESAN ===================== -->
+              <!-- ===================================================== -->
               <div class="modal fade" id="modalPesan<?= $row['peserta_id']; ?>" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
                   <div class="modal-content shadow-lg border-0" style="border-radius: 14px; overflow: hidden;">
@@ -762,6 +790,19 @@ $current_page = basename($_SERVER['PHP_SELF']);
         }
       });
     }
+    document.addEventListener("DOMContentLoaded", function () {
+
+      document.querySelectorAll("[data-bs-target^='#modalPesan']").forEach(btn => {
+
+          btn.addEventListener("click", function () {
+
+              let id = this.getAttribute("data-id");
+
+              // AJAX update status ke 'dibaca'
+              fetch("update_pesan_status.php?id=" + id);
+          });
+      });
+    });
   </script>
 </body>
 </html>

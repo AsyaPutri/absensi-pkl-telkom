@@ -29,6 +29,6 @@ header("Pragma: no-cache");
 header("Expires: 0");
 
 // Redirect to login page with success message
-header("Location: login.php");
+header("Location: landingpage.php");
 exit();
 ?>

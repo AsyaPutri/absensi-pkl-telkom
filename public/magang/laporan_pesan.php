@@ -80,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     /* ---------- Simpan pesan ---------- */
+    /* ---------- Simpan pesan ---------- */
     if (isset($_POST['simpan_catatan'])) {
 
         $pesan = trim($_POST['catatan_biodata']);
@@ -89,8 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pesan_db = $conn->real_escape_string($pesan);
 
+        // UPDATE + set pesan_status = 'baru'
         $update = $conn->query("UPDATE peserta_pkl 
-                                SET pesan_admin = '$pesan_db' 
+                                SET pesan_admin = '$pesan_db',
+                                    pesan_status = '0'
                                 WHERE id = '$pk_id'");
 
         if ($update) {
