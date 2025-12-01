@@ -226,11 +226,6 @@ $units = $conn->query("SELECT * FROM unit_pkl ORDER BY id DESC");
                 <input type="text" id="edit_nama" name="nama_unit" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm sm:text-base focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition" required>
             </div>
 
-            <div class="mb-4 sm:mb-5">
-                <label class="font-semibold block mb-1.5 text-sm sm:text-base text-gray-700">Deskripsi</label>
-                <textarea id="edit_deskripsi" name="deskripsi" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm sm:text-base focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition" rows="3"></textarea>
-            </div>
-
             <div class="flex justify-end gap-2 sm:gap-3 mt-5 sm:mt-6">
                 <button type="button" onclick="closeModal('modalEdit')" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm sm:text-base font-medium transition">Batal</button>
                 <button class="px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 text-sm sm:text-base font-semibold transition">Update</button>
