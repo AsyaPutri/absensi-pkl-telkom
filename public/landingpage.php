@@ -215,7 +215,7 @@ if ($result) {
                         <a class="nav-link" href="#about">Tentang</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#process">Proses</a>
+                        <a class="nav-link" href="#process">Persyaratan</a>
                     </li>
                     <li class="nav-item mt-2 mt-lg-0 ms-lg-3">
                         <a class="btn btn-login" href="login.php">

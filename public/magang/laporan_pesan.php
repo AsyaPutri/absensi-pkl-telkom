@@ -521,7 +521,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div style="display: flex; align-items: center; gap: 15px; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <!-- Logo Telkom -->
-                <img src="../assets/img/instepterbaru.png" alt="Telkom Indonesia" style="width: 120px; height: 120px; object-fit: contain;">
+                <img src="../assets/img/InStep.png" alt="Telkom Indonesia" style="width: 120px; height: 120px; object-fit: contain;">
                 <div>
                     <h3><i class="bi bi-file-earmark-text me-2"></i>Upload Laporan & Pesan Perbaikan</h3>
                     <p>Telkom Indonesia — Witel Bekasi Karawang</p>

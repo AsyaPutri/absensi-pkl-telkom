@@ -403,7 +403,7 @@ $pengumuman = $result->fetch_assoc();
             <div class="row align-items-center">
                 <div class="col-auto">
                     <div class="telkom-logo">
-                        <img src="../assets/img/InsTep.png" width="150" height="100">
+                        <img src="../assets/img/InStep.png" width="150" height="100">
                     </div>
                 </div>
                 <div class="col">
